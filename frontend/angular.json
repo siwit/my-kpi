@@ -63,7 +63,7 @@
         "serve": {
           "builder": "@angular/build:dev-server",
           "options": {
-            "servePath": "/my-kpi/"
+            "servePath": "/my-kpi"
           },
           "configurations": {
             "production": {
