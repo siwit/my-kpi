@@ -146,7 +146,7 @@ export class LayoutComponent implements OnInit, OnDestroy {
     const initialTitle = currentRoute.snapshot.data['title'];
     if (initialTitle) {
       this.pageTitle = initialTitle;
-      this.titleService.setTitle('Korat Health KPI | ' + this.pageTitle);
+      this.titleService.setTitle('MY KPI | ' + this.pageTitle);
     }
 
     // Listen for future navigation changes
@@ -161,7 +161,7 @@ export class LayoutComponent implements OnInit, OnDestroy {
       mergeMap(route => route.data)
     ).subscribe(data => {
       this.pageTitle = data['title'] || 'Dashboard';
-      this.titleService.setTitle('Korat Health KPI | ' + this.pageTitle);
+      this.titleService.setTitle('MY KPI | ' + this.pageTitle);
     });
   }
 

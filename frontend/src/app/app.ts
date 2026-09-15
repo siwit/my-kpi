@@ -10,7 +10,7 @@ import { ThemeService } from './services/theme.service';
   styleUrl: './app.css'
 })
 export class App implements OnInit, OnDestroy {
-  protected readonly title = signal('Korat Health KPI');
+  protected readonly title = signal('MY KPI');
   private idleTimeoutService = inject(IdleTimeoutService);
   private themeService = inject(ThemeService); // โหลด theme ตั้งแต่เริ่ม app
 

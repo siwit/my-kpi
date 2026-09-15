@@ -49,7 +49,7 @@
 }
 
 .refresh-icon:hover {
-  animation: heartbeat-spin 1.5s ease-in-out infinite;
+  animation: kpi-spin 1.5s ease-in-out infinite;
 }
 
 /* Bell shake animation */
@@ -72,7 +72,7 @@
   100% { transform: rotate(0deg); }
 }
 
-@keyframes heartbeat-spin {
+@keyframes kpi-spin {
   0% {
     transform: rotate(0deg) scale(1);
     color: white;
