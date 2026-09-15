@@ -8,7 +8,7 @@ import { environment } from './environments/environment';
 // เมื่อ DGA redirect กลับมาที่ /authen/thaid/callback
 // nginx ไม่รู้จัก path นี้ จึง serve SPA (index.html)
 // เราต้อง forward query params ไปยัง API endpoint
-// ที่ nginx รู้จักก่อน (/khupskpi/api/auth/thaid/callback)
+// ที่ nginx รู้จักก่อน (/my-kpi/api/auth/thaid/callback)
 // ======================================================
 // Suppress PerformanceObserver "startTime" errors จาก Angular 21 internals
 // (เกิดใน web-vitals / zone.js PerformanceObserver callback ใน browser บางรุ่น)
@@ -21,7 +21,7 @@ window.addEventListener('error', (e) => {
 const _path = window.location.pathname;
 if (_path.endsWith('/authen/thaid/callback') || _path.includes('/authen/thaid/callback')) {
   // Forward ทันทีก่อน Angular bootstrap (ไม่ render UI)
-  const _apiCallback = '/khupskpi/api/auth/thaid/callback' + window.location.search;
+  const _apiCallback = '/my-kpi/api/auth/thaid/callback' + window.location.search;
   window.location.replace(_apiCallback);
   // หยุด — ไม่ bootstrap Angular ในครั้งนี้
 } else {

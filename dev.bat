@@ -45,13 +45,13 @@ for /f "tokens=1,* delims==" %%a in ('type "%~dp0api\.env.dev" ^| findstr "^DB_H
 
 echo.
 echo ===================================================
-echo   Frontend : http://localhost:4500/khupskpi/    ^(ng serve^)
-echo   API      : http://localhost:3700/khupskpi/api ^(nodemon^)
+echo   Frontend : http://localhost:4500/my-kpi/    ^(ng serve^)
+echo   API      : http://localhost:3700/my-kpi/api ^(nodemon^)
 if not "!SHOW_DBHOST!"=="" (
 echo   DB_HOST  : !SHOW_DBHOST! ^(from api\.env.dev^)
 )
 echo.
-echo   Docker   : http://localhost:8881/khupskpi/    ^(use build.bat^)
+echo   Docker   : http://localhost:8881/my-kpi/    ^(use build.bat^)
 echo.
 echo   Press Ctrl+C in each window to stop.
 echo ===================================================

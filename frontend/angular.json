@@ -55,7 +55,7 @@
               "optimization": false,
               "extractLicenses": false,
               "sourceMap": true,
-              "baseHref": "/khupskpi/"
+              "baseHref": "/my-kpi/"
             }
           },
           "defaultConfiguration": "production"
@@ -63,7 +63,7 @@
         "serve": {
           "builder": "@angular/build:dev-server",
           "options": {
-            "servePath": "/khupskpi/"
+            "servePath": "/my-kpi/"
           },
           "configurations": {
             "production": {

@@ -1075,7 +1075,7 @@
           </div>
           <ul class="list-disc ml-5 text-xs text-gray-700 space-y-1">
             <li>กรอก <b>Channel Access Token</b> + <b>Channel Secret</b> + <b>Group ID</b> (รองรับหลาย Group คั่น comma) ที่หน้าตั้งค่าระบบ → กดทดสอบ</li>
-            <li><b>Webhook URL</b> ใช้ค่าที่ระบบแสดง: <code>https://yourdomain/khupskpi/api/webhook/line</code> — ไปวางที่ LINE Developers Console</li>
+            <li><b>Webhook URL</b> ใช้ค่าที่ระบบแสดง: <code>https://yourdomain/my-kpi/api/webhook/line</code> — ไปวางที่ LINE Developers Console</li>
             <li>เลือก <b>per-event toggle</b> (5 หัวข้อ): admin login / backup / restore / settings change / indicator change — ปิดอันที่ไม่ต้องการได้ ไม่กระทบ Email/Telegram</li>
           </ul>
         </div>
@@ -1498,7 +1498,7 @@
             </div>
             <div class="mt-2 bg-orange-100 rounded-lg p-2 text-xs text-orange-700">
               <i class="fas fa-stethoscope mr-1"></i><b>Diagnose Tool (super_admin):</b> ถ้าข้อมูลส่งออกไม่ครบ ใช้ endpoint
-              <code class="bg-orange-200 px-1 rounded">/khupskpi/api/admin/export-debug?year_bh=&amp;table_process=&amp;hospcode=</code>
+              <code class="bg-orange-200 px-1 rounded">/my-kpi/api/admin/export-debug?year_bh=&amp;table_process=&amp;hospcode=</code>
               เพื่อตรวจว่าข้อมูลอยู่ source ไหน — ดูทุกตาราง (kpi_results, sub_results, form_*, schemas, export_table) พร้อม sub_indicators relationship
             </div>
             <div class="mt-2 bg-rose-100 rounded-lg p-2 text-xs text-rose-700">

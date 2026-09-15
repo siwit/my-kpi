@@ -7,8 +7,8 @@ RUN rm -f /etc/nginx/conf.d/default.conf
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 # Copy pre-built Angular dist
-# Prepared by deploy.sh: ng build --base-href /khupskpi/ -> frontend/dist/
-COPY dist/ /usr/share/nginx/html/khupskpi/
+# Prepared by deploy.sh: ng build --base-href /my-kpi/ -> frontend/dist/
+COPY dist/ /usr/share/nginx/html/my-kpi/
 
 # Fix permissions
 RUN chmod -R 755 /usr/share/nginx/html

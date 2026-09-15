@@ -81,7 +81,7 @@ test('description', async () => {
     const u = await ensureTestUser(db, { username: 'test_xxx', role: 'user_hos' });
     const token = makeToken({ userId: u.id, role: 'user_hos' });
     const res = await request(app)
-        .post('/khupskpi/api/endpoint')
+        .post('/my-kpi/api/endpoint')
         .set('Authorization', `Bearer ${token}`)
         .send({ ... });
     expect(res.status).toBe(200);

@@ -24,7 +24,7 @@ REM [2/5] Build Frontend (Angular)
 REM -------------------------------------------------------
 echo [2/5] Building Frontend Application (Angular)...
 cd frontend
-call npm run build -- --base-href /khupskpi/
+call npm run build -- --base-href /my-kpi/
 if %errorlevel% neq 0 (
     echo.
     echo !-- FRONTEND BUILD FAILED --!
@@ -140,8 +140,8 @@ docker compose ps
 echo.
 echo ===================================================
 echo   [DONE] Deploy successful!
-echo   Frontend : http://localhost:8881/khupskpi/
-echo   API      : http://localhost:8830/khupskpi/api
+echo   Frontend : http://localhost:8881/my-kpi/
+echo   API      : http://localhost:8830/my-kpi/api
 echo ===================================================
 echo.
 

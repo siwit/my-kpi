@@ -221,7 +221,7 @@ export class LoginComponent implements OnInit, OnDestroy {
   /** กดปุ่ม ProviderID → redirect ไปที่ OAuth start endpoint */
   loginWithProviderID() {
     sessionStorage.setItem('sso_intent', 'providerid');
-    const apiUrl = environment.apiUrl || '/khupskpi/api';
+    const apiUrl = environment.apiUrl || '/my-kpi/api';
     window.location.href = `${apiUrl}/auth/providerid/start`;
   }
 

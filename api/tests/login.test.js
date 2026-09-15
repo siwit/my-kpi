@@ -19,7 +19,7 @@ afterAll(async () => {
     await cleanupTestUsers(db);
 });
 
-describe('POST /khupskpi/api/login', () => {
+describe('POST /my-kpi/api/login', () => {
     let testUser;
     beforeAll(async () => {
         testUser = await ensureTestUser(db, {
@@ -31,7 +31,7 @@ describe('POST /khupskpi/api/login', () => {
 
     test('✅ login สำเร็จด้วย credentials ที่ถูกต้อง', async () => {
         const res = await request(app)
-            .post('/khupskpi/api/login')
+            .post('/my-kpi/api/login')
             .send({ username: 'test_user_login', password: 'CorrectPass123!' });
         expect(res.status).toBe(200);
         expect(res.body.success).toBe(true);
@@ -41,7 +41,7 @@ describe('POST /khupskpi/api/login', () => {
 
     test('❌ login ล้มเหลวเมื่อ password ผิด', async () => {
         const res = await request(app)
-            .post('/khupskpi/api/login')
+            .post('/my-kpi/api/login')
             .send({ username: 'test_user_login', password: 'WrongPass!' });
         expect([401, 403]).toContain(res.status);
         expect(res.body.success).toBe(false);
@@ -49,7 +49,7 @@ describe('POST /khupskpi/api/login', () => {
 
     test('❌ login ล้มเหลวเมื่อ username ไม่มีในระบบ', async () => {
         const res = await request(app)
-            .post('/khupskpi/api/login')
+            .post('/my-kpi/api/login')
             .send({ username: 'nonexistent_user_xyz', password: 'Anything!' });
         expect([401, 403, 404]).toContain(res.status);
         expect(res.body.success).toBe(false);
@@ -62,7 +62,7 @@ describe('POST /khupskpi/api/login', () => {
             is_approved: 0
         });
         const res = await request(app)
-            .post('/khupskpi/api/login')
+            .post('/my-kpi/api/login')
             .send({ username: 'test_user_pending', password: 'PendingPass123!' });
         expect(res.status).toBe(403);
         expect(res.body.message).toMatch(/รออนุมัติ|รอการอนุมัติ/);
@@ -75,7 +75,7 @@ describe('POST /khupskpi/api/login', () => {
             is_active: 0
         });
         const res = await request(app)
-            .post('/khupskpi/api/login')
+            .post('/my-kpi/api/login')
             .send({ username: 'test_user_inactive', password: 'InactivePass123!' });
         expect(res.status).toBe(403);
         expect(res.body.message).toMatch(/ปิดใช้งาน/);

@@ -46,7 +46,7 @@ services:
     networks:
       - kpi_network
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8830/khupskpi/api/"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8830/my-kpi/api/"]
       interval: 15s
       timeout: 10s
       retries: 5

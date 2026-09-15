@@ -681,7 +681,7 @@ const isSuperAdmin = (req, res, next) => {
     }
 };
 
-// สร้าง Router เพื่อรองรับ Prefix /khupskpi/api
+// สร้าง Router เพื่อรองรับ Prefix /my-kpi/api
 const apiRouter = express.Router();
 
 // Root endpoint — used by Docker healthcheck (returns 200 so wget --spider succeeds)
@@ -705,7 +705,7 @@ const saveLog = async (username, action, details, ip) => {
 // ==========================================
 
 apiRouter.get('/status', (req, res) => {
-    res.json({ message: '🚀 API พร้อมใช้งานที่ /khupskpi/api' });
+    res.json({ message: '🚀 API พร้อมใช้งานที่ /my-kpi/api' });
 });
 
 // GET /debug/my-ip — ตรวจสอบว่า backend เห็น IP อะไรจาก client (debug proxy config)
@@ -935,7 +935,7 @@ apiRouter.post('/auth/refresh-token', authenticateToken, async (req, res) => {
 // ============================================================
 // Flow:
 //  1. GET /auth/thaid/start   → redirect ไป DGA auth URL พร้อม state (CSRF)
-//  2. DGA callback กลับมาที่ /authen/thaid/callback (หรือ /khupskpi/api/auth/thaid/callback)
+//  2. DGA callback กลับมาที่ /authen/thaid/callback (หรือ /my-kpi/api/auth/thaid/callback)
 //  3. Backend แลก code → id_token JWT จาก DGA token endpoint
 //  4. Decode JWT → ดึงเลขบัตร 13 หลัก (field: pid / cid / citizen_id / national_id / sub)
 //  5. SHA-256 hash เลขบัตร → เทียบ users.cid (ซึ่งเก็บ hash ไว้)
@@ -1075,7 +1075,7 @@ function getFrontendBase(req) {
     // derive จาก request host
     const proto = req.headers['x-forwarded-proto'] || 'https';
     const host = req.headers['x-forwarded-host'] || req.headers.host || '';
-    return `${proto}://${host}/khupskpi`;
+    return `${proto}://${host}/my-kpi`;
 }
 
 // GET /auth/thaid/test-config — ตรวจสอบค่า config ที่บันทึกไว้ (super_admin) ไม่แสดง secret
@@ -1320,7 +1320,7 @@ apiRouter.get('/auth/thaid/start', async (req, res) => {
         }
 
         // สร้าง state แบบ dynamic — เก็บ origin ไว้ใน map เพื่อ redirect กลับหลัง callback
-        const state = 'khupskpi-' + crypto.randomBytes(8).toString('hex');
+        const state = 'my-kpi-' + crypto.randomBytes(8).toString('hex');
         _thaidStateMap.set(state, { origin: frontendBase, created_at: Date.now() });
 
         const thaidUrl = `${THAID_AUTH_URL}?response_type=code`
@@ -1351,7 +1351,7 @@ apiRouter.get('/auth/thaid/register-start', async (req, res) => {
         }
 
         // สร้าง dynamic state สำหรับ register flow
-        const state = 'khupskpi-reg-' + crypto.randomBytes(8).toString('hex');
+        const state = 'my-kpi-reg-' + crypto.randomBytes(8).toString('hex');
         _thaidStateMap.set(state, { origin: frontendBase, flow: 'register', created_at: Date.now() });
 
         // ใช้ URL จาก settings (configurable) หรือ default จาก hardcoded constants
@@ -1394,7 +1394,7 @@ apiRouter.get('/auth/thaid/reg-data', async (req, res) => {
 });
 
 // === ThaiD Callback Handler (shared function) ===
-// mount ทั้งบน apiRouter (/khupskpi/api/auth/thaid/callback)
+// mount ทั้งบน apiRouter (/my-kpi/api/auth/thaid/callback)
 // และบน app root (/authen/thaid/callback — ตรงกับ redirect_uri ที่ลงทะเบียนกับ DGA)
 async function handleThaidCallback(req, res) {
     const { code, state, error, error_description } = req.query;
@@ -1402,7 +1402,7 @@ async function handleThaidCallback(req, res) {
 
     const stateStr = String(state || '');
     const stateData = _thaidStateMap.get(stateStr);
-    const isKhupskpiState = stateStr.startsWith('khupskpi-');
+    const isKhupskpiState = stateStr.startsWith('my-kpi-');
     // origin: ดึงจาก state map (บันทึกตอน /start) หรือ fallback จาก request
     const frontendBase = stateData?.origin || getFrontendBase(req);
     const loginUrl = `${frontendBase}/login`;
@@ -1629,7 +1629,7 @@ async function handleThaidCallback(req, res) {
 }
 
 // Mount callback บน 2 path:
-// - /khupskpi/api/auth/thaid/callback (primary — สำหรับ redirect_uri ใหม่)
+// - /my-kpi/api/auth/thaid/callback (primary — สำหรับ redirect_uri ใหม่)
 apiRouter.get('/auth/thaid/callback', handleThaidCallback);
 // - /authen/thaid/callback (ตรงกับที่ลงทะเบียน DGA: https://apikorat.moph.go.th/authen/thaid/callback)
 //   ต้องเพิ่ม nginx: location /authen/ { proxy_pass http://backend:8830; ... }
@@ -1899,7 +1899,7 @@ async function handleProviderIdCallback(req, res) {
 }
 
 // Mount ProviderID callback — 3 paths:
-// 1. /khupskpi/api/auth/providerid/callback (dev / API-prefixed)
+// 1. /my-kpi/api/auth/providerid/callback (dev / API-prefixed)
 // 2. /authen/providerid/callback (legacy nginx alias)
 // 3. /authen/healthid/callback (redirect_uri จดทะเบียนกับ MOPH moph.id.th)
 apiRouter.get('/auth/providerid/callback', handleProviderIdCallback);
@@ -2485,7 +2485,7 @@ apiRouter.post('/register', loginIpLimiter, loginLimiter, async (req, res) => {
             try { baseUrl = new URL(referer).origin; } catch (e) { baseUrl = ''; }
         }
         if (!baseUrl) baseUrl = 'http://localhost:8881';
-        const approveUrl = `${baseUrl.replace(/\/+$/, '')}/khupskpi/login`;
+        const approveUrl = `${baseUrl.replace(/\/+$/, '')}/my-kpi/login`;
 
         // แจ้ง Telegram + Email Admin (ตาม toggle)
         notifyAdmins(
@@ -4790,7 +4790,7 @@ apiRouter.put('/users/:id/approve', authenticateToken, isAdmin, async (req, res)
         sendLineToUser(userId,
             `✅ บัญชีของคุณได้รับการอนุมัติแล้ว\n` +
             `Username: ${target.username}\n\n` +
-            `เข้าใช้งานระบบได้ที่:\nhttps://apikorat.moph.go.th/khupskpi/login`
+            `เข้าใช้งานระบบได้ที่:\nhttps://apikorat.moph.go.th/my-kpi/login`
         );
 
         // ส่ง Email แจ้งผลอนุมัติ
@@ -6321,7 +6321,7 @@ apiRouter.post('/announcements/:id/send-email', authenticateToken, isSuperAdmin,
                     </div>
                     <p style="margin:16px 0 0;color:#6b7280;font-size:12px">
                         ส่งจากระบบอัตโนมัติ — กรุณาอย่าตอบกลับอีเมลนี้<br>
-                        <a href="https://apikorat.moph.go.th/khupskpi/" style="color:#16a34a">เปิดระบบ Korat Health KPI</a>
+                        <a href="https://apikorat.moph.go.th/my-kpi/" style="color:#16a34a">เปิดระบบ Korat Health KPI</a>
                     </p>
                 </div>
             </div>
@@ -7062,8 +7062,8 @@ async function sendExportNotification(schedule, result, durationMs) {
         <div style="background:#fef9c3;border-left:4px solid #eab308;padding:12px;margin-top:16px;border-radius:4px">
           <p style="margin:0;color:#713f12;font-size:13px">
             ${sync
-              ? `📬 ระบบส่งข้อมูลเข้า HDC เรียบร้อยแล้ว — กรุณาตรวจสอบที่ <a href="https://apikorat.moph.go.th/khupskpi/">Korat Health KPI</a>`
-              : `⚠️ <b>กรุณาตรวจสอบผลก่อนส่งไปยัง HDC</b> โดยเข้าระบบที่ <a href="https://apikorat.moph.go.th/khupskpi/">Korat Health KPI</a> → จัดการข้อมูล KPI → Tab "Export ข้อมูล"`}
+              ? `📬 ระบบส่งข้อมูลเข้า HDC เรียบร้อยแล้ว — กรุณาตรวจสอบที่ <a href="https://apikorat.moph.go.th/my-kpi/">Korat Health KPI</a>`
+              : `⚠️ <b>กรุณาตรวจสอบผลก่อนส่งไปยัง HDC</b> โดยเข้าระบบที่ <a href="https://apikorat.moph.go.th/my-kpi/">Korat Health KPI</a> → จัดการข้อมูล KPI → Tab "Export ข้อมูล"`}
           </p>
         </div>
       </div>
@@ -10700,7 +10700,7 @@ const getLineProfile = async (channelToken, lineUserId) => {
 
 // === LINE Webhook — รับ event จาก LINE Platform เมื่อ user ทักเข้า bot ===
 // LINE platform จะ POST ไปที่ webhook URL ที่ตั้งใน Developers Console
-// URL ที่ต้องตั้งที่ console: https://<your-domain>/khupskpi/api/webhook/line
+// URL ที่ต้องตั้งที่ console: https://<your-domain>/my-kpi/api/webhook/line
 // ไม่ใช้ authenticateToken เพราะ LINE ไม่ส่ง JWT — verify ด้วย signature แทน
 apiRouter.post('/webhook/line', async (req, res) => {
     try {
@@ -10785,7 +10785,7 @@ apiRouter.post('/webhook/line', async (req, res) => {
                         [lineUserId]
                     );
                     const linkedUser = linkedRows[0];
-                    const baseUrl = (process.env.APP_URL || 'https://apikorat.moph.go.th/khupskpi').replace(/\/+$/, '');
+                    const baseUrl = (process.env.APP_URL || 'https://apikorat.moph.go.th/my-kpi').replace(/\/+$/, '');
                     const lowerText = (messageText || '').toLowerCase().trim();
                     const isQuestionForId = /(\buserid\b|\buser id\b|\buser_id\b|\bid\b|ไอดี|รหัส|เริ่ม|\bstart\b|\/start|\bhelp\b|\?)/i.test(lowerText);
 
@@ -11212,7 +11212,7 @@ const bkDecrypt = (ciphertext) => {
         const thaidDefaults = [
             ['thaid_enabled', 'false', 'เปิดใช้ ThaiD SSO (DGA) — true/false'],
             ['thaid_client_secret', '', 'ThaiD Client Secret (จาก DGA — กรอกในหน้า Settings)'],
-            ['thaid_login_url', '', 'URL ThaiD สำหรับ login — DGA redirect กลับมาที่ /khupskpi/login?token=<JWT>'],
+            ['thaid_login_url', '', 'URL ThaiD สำหรับ login — DGA redirect กลับมาที่ /my-kpi/login?token=<JWT>'],
             ['thaid_return_page', '/login', 'หน้าที่จะ redirect หลัง ThaiD สำเร็จ เช่น /login หรือ /register'],
             ['thaid_register_enabled', 'false', 'เปิดให้ลงทะเบียนด้วย ThaiD — true/false'],
             ['providerid_register_enabled', 'false', 'เปิดให้ลงทะเบียนด้วย ProviderID — true/false'],
@@ -13734,8 +13734,8 @@ apiRouter.post('/kpi-audit/run-digest-now', authenticateToken, isSuperAdmin, asy
     } catch (e) { res.status(500).json({ success: false, message: e.message }); }
 });
 
-// Mount Router ที่ path /khupskpi/api
-app.use('/khupskpi/api', apiRouter);
+// Mount Router ที่ path /my-kpi/api
+app.use('/my-kpi/api', apiRouter);
 
 
 // Express error middleware — capture 500 errors ที่ไม่ได้ handle ใน route → error_logs + Telegram
@@ -13785,7 +13785,7 @@ function startSessionCleanupJob() {
 // ใช้ใน integration test (supertest) — ไม่เปิด port + ไม่ start scheduler
 if (require.main === module) {
     app.listen(port, () => {
-        console.log(`🚀 API Server เปิดทำงานแล้วที่พอร์ต ${port} (Path: /khupskpi/api)`);
+        console.log(`🚀 API Server เปิดทำงานแล้วที่พอร์ต ${port} (Path: /my-kpi/api)`);
         try { startExportScheduler(); } catch (e) { console.error('[Scheduler] start failed:', e.message); }
         try { startBackupScheduler(); } catch (e) { console.error('[BackupScheduler] start failed:', e.message); }
         try { startKpiAuditScheduler(); } catch (e) { console.error('[KPI Audit] start failed:', e.message); }

@@ -20,10 +20,10 @@ afterAll(async () => {
     await cleanupErrorLogs(db);
 });
 
-describe('POST /khupskpi/api/errors/report', () => {
+describe('POST /my-kpi/api/errors/report', () => {
     test('✅ รับ error report จาก anon ได้ (ไม่ต้อง token)', async () => {
         const res = await request(app)
-            .post('/khupskpi/api/errors/report')
+            .post('/my-kpi/api/errors/report')
             .send({
                 source: 'frontend',
                 severity: 'error',
@@ -43,9 +43,9 @@ describe('POST /khupskpi/api/errors/report', () => {
             message: 'TestError: duplicate fingerprint case',
             url: '/dup'
         };
-        const r1 = await request(app).post('/khupskpi/api/errors/report').send(payload);
-        const r2 = await request(app).post('/khupskpi/api/errors/report').send(payload);
-        const r3 = await request(app).post('/khupskpi/api/errors/report').send(payload);
+        const r1 = await request(app).post('/my-kpi/api/errors/report').send(payload);
+        const r2 = await request(app).post('/my-kpi/api/errors/report').send(payload);
+        const r3 = await request(app).post('/my-kpi/api/errors/report').send(payload);
         expect(r1.body.fingerprint).toBe(r2.body.fingerprint);
         expect(r2.body.fingerprint).toBe(r3.body.fingerprint);
         const [rows] = await db.query(
@@ -57,12 +57,12 @@ describe('POST /khupskpi/api/errors/report', () => {
     });
 });
 
-describe('GET /khupskpi/api/admin/error-logs', () => {
+describe('GET /my-kpi/api/admin/error-logs', () => {
     test('❌ non-super_admin ถูกบล็อก 403', async () => {
         const u = await ensureTestUser(db, { username: 'test_admin_cup_err', role: 'admin_cup' });
         const token = makeToken({ userId: u.id, role: 'admin_cup' });
         const res = await request(app)
-            .get('/khupskpi/api/admin/error-logs')
+            .get('/my-kpi/api/admin/error-logs')
             .set('Authorization', `Bearer ${token}`);
         expect(res.status).toBe(403);
     });
@@ -71,11 +71,11 @@ describe('GET /khupskpi/api/admin/error-logs', () => {
         const sa = await ensureTestUser(db, { username: 'test_sa_errlog', role: 'super_admin' });
         const token = makeToken({ userId: sa.id, role: 'super_admin' });
         // เพิ่ม error 1 รายการก่อน
-        await request(app).post('/khupskpi/api/errors/report').send({
+        await request(app).post('/my-kpi/api/errors/report').send({
             source: 'backend', message: 'TestError: for super admin view'
         });
         const res = await request(app)
-            .get('/khupskpi/api/admin/error-logs')
+            .get('/my-kpi/api/admin/error-logs')
             .set('Authorization', `Bearer ${token}`);
         expect(res.status).toBe(200);
         expect(res.body.success).toBe(true);

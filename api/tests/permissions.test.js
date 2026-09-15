@@ -16,9 +16,9 @@ beforeAll(async () => {
 });
 afterAll(async () => { await cleanupTestUsers(db); });
 
-describe('GET /khupskpi/api/my-permissions', () => {
+describe('GET /my-kpi/api/my-permissions', () => {
     test('❌ ไม่มี token → 401', async () => {
-        const res = await request(app).get('/khupskpi/api/my-permissions');
+        const res = await request(app).get('/my-kpi/api/my-permissions');
         expect(res.status).toBe(401);
     });
 
@@ -26,7 +26,7 @@ describe('GET /khupskpi/api/my-permissions', () => {
         const u = await ensureTestUser(db, { username: 'test_user_perm_default', role: 'user_hos' });
         const token = makeToken({ userId: u.id, username: u.username, role: 'user_hos' });
         const res = await request(app)
-            .get('/khupskpi/api/my-permissions')
+            .get('/my-kpi/api/my-permissions')
             .set('Authorization', `Bearer ${token}`);
         expect(res.status).toBe(200);
         expect(res.body.success).toBe(true);
@@ -40,7 +40,7 @@ describe('GET /khupskpi/api/my-permissions', () => {
         await db.query('UPDATE users SET can_edit_actual=0, can_edit_target=0 WHERE id=?', [u.id]);
         const token = makeToken({ userId: u.id, role: 'super_admin' });
         const res = await request(app)
-            .get('/khupskpi/api/my-permissions')
+            .get('/my-kpi/api/my-permissions')
             .set('Authorization', `Bearer ${token}`);
         expect(res.body.permissions.can_edit_actual).toBe(true);
         expect(res.body.permissions.can_edit_target).toBe(true);
@@ -51,20 +51,20 @@ describe('GET /khupskpi/api/my-permissions', () => {
         await db.query('UPDATE users SET can_edit_actual=0, can_edit_target=0 WHERE id=?', [u.id]);
         const token = makeToken({ userId: u.id, role: 'user_hos' });
         const res = await request(app)
-            .get('/khupskpi/api/my-permissions')
+            .get('/my-kpi/api/my-permissions')
             .set('Authorization', `Bearer ${token}`);
         expect(res.body.permissions.can_edit_actual).toBe(false);
         expect(res.body.permissions.can_edit_target).toBe(false);
     });
 });
 
-describe('PUT /khupskpi/api/users/:id/permissions', () => {
+describe('PUT /my-kpi/api/users/:id/permissions', () => {
     test('❌ ห้าม non-super_admin แก้สิทธิ์ user', async () => {
         const target = await ensureTestUser(db, { username: 'test_user_target' });
         const admin = await ensureTestUser(db, { username: 'test_admin_cup_perm', role: 'admin_cup' });
         const token = makeToken({ userId: admin.id, role: 'admin_cup' });
         const res = await request(app)
-            .put(`/khupskpi/api/users/${target.id}/permissions`)
+            .put(`/my-kpi/api/users/${target.id}/permissions`)
             .set('Authorization', `Bearer ${token}`)
             .send({ can_edit_actual: false, can_edit_target: false });
         expect(res.status).toBe(403);
@@ -75,7 +75,7 @@ describe('PUT /khupskpi/api/users/:id/permissions', () => {
         const sa2 = await ensureTestUser(db, { username: 'test_sa_target', role: 'super_admin' });
         const token = makeToken({ userId: sa1.id, role: 'super_admin' });
         const res = await request(app)
-            .put(`/khupskpi/api/users/${sa2.id}/permissions`)
+            .put(`/my-kpi/api/users/${sa2.id}/permissions`)
             .set('Authorization', `Bearer ${token}`)
             .send({ can_edit_actual: false, can_edit_target: false });
         expect(res.status).toBe(400);
@@ -87,7 +87,7 @@ describe('PUT /khupskpi/api/users/:id/permissions', () => {
         const sa = await ensureTestUser(db, { username: 'test_sa_modifier', role: 'super_admin' });
         const token = makeToken({ userId: sa.id, role: 'super_admin' });
         const res = await request(app)
-            .put(`/khupskpi/api/users/${target.id}/permissions`)
+            .put(`/my-kpi/api/users/${target.id}/permissions`)
             .set('Authorization', `Bearer ${token}`)
             .send({ can_edit_actual: true, can_edit_target: false });
         expect(res.status).toBe(200);
