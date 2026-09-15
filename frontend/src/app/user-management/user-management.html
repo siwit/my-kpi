@@ -1,0 +1,1192 @@
+<div class="p-6">
+  <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+    <div class="p-6 border-b border-gray-100 flex flex-wrap justify-between items-center gap-3">
+      <!-- Tab Switcher -->
+      <div class="flex items-center gap-1 bg-gray-100 rounded-xl p-1">
+        <button (click)="switchTab('stats')"
+                [ngClass]="activeTab === 'stats' ? 'bg-white text-indigo-700 shadow-sm font-bold' : 'text-gray-500 hover:text-gray-700'"
+                class="px-4 py-1.5 rounded-lg text-sm transition-all">
+          <i class="fas fa-chart-bar mr-1.5"></i> สถิติผู้ใช้งาน
+        </button>
+        <button (click)="switchTab('list')"
+                [ngClass]="activeTab === 'list' ? 'bg-white text-green-700 shadow-sm font-bold' : 'text-gray-500 hover:text-gray-700'"
+                class="px-4 py-1.5 rounded-lg text-sm transition-all">
+          <i class="fas fa-users mr-1.5"></i> รายชื่อผู้ใช้
+        </button>
+      </div>
+      <div class="flex flex-wrap items-center gap-2">
+        <div *ngIf="isSuperAdmin" class="flex gap-1">
+          <button (click)="toggleMaintenanceMode()"
+                  class="px-3 py-2 rounded-lg text-xs font-bold transition-colors shadow-sm"
+                  [ngClass]="maintenanceMode ? 'bg-amber-500 hover:bg-amber-600 text-white' : 'bg-gray-200 hover:bg-gray-300 text-gray-700'">
+            <i class="fas mr-1" [ngClass]="maintenanceMode ? 'fa-lock' : 'fa-lock-open'"></i>
+            {{ maintenanceMode ? 'ปิดปรับปรุงอยู่' : 'โหมดปิดปรับปรุง' }}
+          </button>
+          <button (click)="bulkToggleActive(true)"
+                  class="px-3 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg text-xs font-bold transition-colors shadow-sm">
+            <i class="fas fa-toggle-on mr-1"></i> เปิดใช้งานทั้งหมด
+          </button>
+          <button (click)="bulkToggleActive(false)"
+                  class="px-3 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg text-xs font-bold transition-colors shadow-sm">
+            <i class="fas fa-toggle-off mr-1"></i> ปิดใช้งานทั้งหมด
+          </button>
+          <button (click)="openUserSyncModal()"
+                  class="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition-colors shadow-sm">
+            <i class="fas fa-cloud-upload-alt mr-1"></i> Data Synchronization
+          </button>
+        </div>
+        <button (click)="openModal()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg shadow-md transition-colors text-sm font-bold">
+          <i class="fas fa-user-plus mr-2"></i> เพิ่มผู้ใช้งาน
+        </button>
+      </div>
+    </div>
+
+    <!-- ===== TAB: รายชื่อผู้ใช้ ===== -->
+    <div [hidden]="activeTab !== 'list'">
+
+    <!-- ปุ่มซ่อน/แสดงตัวกรอง + drill-down chip -->
+    <div class="px-6 py-2 border-b border-gray-100 flex flex-wrap items-center gap-3">
+      <button (click)="showFilters = !showFilters" class="flex items-center gap-2 text-xs font-bold text-gray-500 hover:text-green-600 transition-colors">
+        <i class="fas" [ngClass]="showFilters ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+        {{ showFilters ? 'ซ่อนตัวกรอง' : 'แสดงตัวกรอง' }}
+      </button>
+      <!-- Drill-down active chip -->
+      <div *ngIf="drillLabel" class="flex items-center gap-2 px-3 py-1 bg-indigo-100 border border-indigo-200 rounded-full text-xs text-indigo-700 font-semibold">
+        <i class="fas fa-filter text-indigo-400"></i>
+        กรองตาม: <span class="font-bold">{{ drillLabel }}</span>
+        <span class="text-indigo-400 mx-1">·</span>
+        <span class="text-indigo-500">{{ filteredUsers.length }} คน</span>
+        <button (click)="clearDrillFilter()" class="ml-1 text-indigo-400 hover:text-indigo-700 transition-colors" title="ล้างการกรอง">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- ส่วนค้นหาและตัวกรอง -->
+    <div *ngIf="showFilters" class="p-6 bg-gray-50 border-b border-gray-100 grid grid-cols-1 gap-4" [ngClass]="isAdmin ? 'md:grid-cols-6' : 'md:grid-cols-2'">
+      <div class="relative mt-2">
+        <label class="absolute -top-2 left-3 bg-white px-1 text-xs font-bold text-gray-500 uppercase z-10">ค้นหา</label>
+        <input type="text" [(ngModel)]="searchTerm" (input)="applyFilters()" placeholder="Username / ชื่อ-นามสกุล / Role / หน่วยบริการ / เบอร์โทร / Email..."
+               class="w-full pl-4 pr-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 outline-none text-sm hover:border-green-400 transition-colors">
+      </div>
+
+      <div *ngIf="isAdmin" class="relative mt-2">
+        <label class="absolute -top-2 left-3 bg-white px-1 text-xs font-bold text-gray-500 uppercase z-10">สิทธิ์การใช้งาน</label>
+        <select [(ngModel)]="selectedRole" (change)="applyFilters()" class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 outline-none text-sm hover:border-green-400 transition-colors">
+          <option value="">ทั้งหมด</option>
+          <option value="user_hos">User รพ.</option>
+          <option value="user_sso">User รพ.สต.</option>
+          <option value="user_cup">User CUP</option>
+          <option value="user_ssj">User SSJ</option>
+          <option value="admin_hos">Admin รพ.</option>
+          <option value="admin_sso">Admin รพ.สต.</option>
+          <option value="admin_cup">Admin CUP</option>
+          <option value="admin_ssj">Admin SSJ</option>
+        </select>
+      </div>
+
+      <div *ngIf="isAdmin" class="relative mt-2">
+        <label class="absolute -top-2 left-3 bg-white px-1 text-xs font-bold text-gray-500 uppercase z-10">หน่วยงาน</label>
+        <select [(ngModel)]="selectedDept" (change)="applyFilters()" class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 outline-none text-sm hover:border-green-400 transition-colors">
+          <option value="">ทั้งหมด</option>
+          <option *ngFor="let dept of departments" [value]="dept.id">{{ dept.dept_name }}</option>
+        </select>
+      </div>
+
+      <div *ngIf="isAdmin" class="relative mt-2">
+        <label class="absolute -top-2 left-3 bg-white px-1 text-xs font-bold text-gray-500 uppercase z-10">หน่วยบริการ</label>
+        <select [(ngModel)]="selectedHospcode" (change)="applyFilters()" class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 outline-none text-sm hover:border-green-400 transition-colors">
+          <option value="">ทั้งหมด</option>
+          <option *ngFor="let hos of hospitals" [value]="hos.hoscode">{{ hos.hosname }} ({{ hos.hoscode }})</option>
+        </select>
+      </div>
+
+      <div *ngIf="isAdmin" class="relative mt-2">
+        <label class="absolute -top-2 left-3 bg-white px-1 text-xs font-bold text-gray-500 uppercase z-10">สถานะบัญชี</label>
+        <select [(ngModel)]="selectedStatus" (change)="applyFilters()" class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 outline-none text-sm hover:border-green-400 transition-colors">
+          <option value="">ทั้งหมด</option>
+          <option value="pending">รอการอนุมัติ</option>
+          <option value="approved">อนุมัติแล้ว</option>
+          <option value="rejected">ถูกปฏิเสธ</option>
+        </select>
+      </div>
+
+      <div class="flex items-end">
+        <button (click)="searchTerm=''; selectedRole=''; selectedDept=''; selectedHospcode=''; selectedStatus=''; applyFilters()" class="w-full py-2.5 bg-red-500 hover:bg-red-600 text-white font-bold rounded-xl text-sm transition-colors shadow-md"><i class="fas fa-times-circle mr-2"></i> ล้างตัวกรอง</button>
+      </div>
+    </div>
+
+    <!-- ปุ่มอนุมัติทั้งหมด (แสดงเมื่อมี user รออนุมัติ) -->
+    <div *ngIf="isAdmin && pendingCount > 0" class="px-6 py-3 bg-yellow-50 border-b border-yellow-200 flex items-center justify-between">
+      <span class="text-sm text-yellow-800 font-bold">
+        <i class="fas fa-clock mr-1 animate-pulse"></i> มีผู้ใช้งานรออนุมัติ {{ pendingCount }} คน
+      </span>
+      <div class="flex gap-2">
+        <button (click)="approveAllPending()"
+                class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-xs font-bold transition-colors shadow-md">
+          <i class="fas fa-check-double mr-1"></i> อนุมัติทั้งหมด ({{ pendingCount }})
+        </button>
+        <button (click)="rejectAllPending()"
+                class="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg text-xs font-bold transition-colors shadow-md">
+          <i class="fas fa-times-circle mr-1"></i> ปฏิเสธทั้งหมด ({{ pendingCount }})
+        </button>
+      </div>
+    </div>
+
+    <!-- === Mobile Card View === -->
+    <div class="md:hidden space-y-3 p-4 overflow-y-auto card-scroll" style="max-height: calc(100vh - 320px);">
+      <div *ngFor="let user of pagedUsers"
+           class="bg-white rounded-xl border shadow-sm p-4 space-y-2"
+           [ngClass]="user.is_approved === 0 ? 'border-yellow-300 bg-yellow-50/50' : user.is_approved === -1 ? 'border-red-300 bg-red-50/50' : 'border-gray-200'">
+        <!-- Header: name + role badge -->
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="font-bold text-gray-900 text-sm">{{ user.firstname }} {{ user.lastname }}</p>
+            <p class="text-xs text-gray-500">@{{ user.username }}</p>
+          </div>
+          <span class="px-2 py-0.5 rounded-full text-[10px] font-bold"
+                [ngClass]="user.role === 'super_admin' ? 'bg-red-100 text-red-800' :
+                           user.role === 'admin_ssj' ? 'bg-purple-100 text-purple-800' :
+                           user.role === 'admin_cup' ? 'bg-orange-100 text-orange-800' :
+                           user.role === 'admin_hos' ? 'bg-amber-100 text-amber-800' :
+                           user.role === 'admin_sso' ? 'bg-lime-100 text-lime-800' :
+                           user.role === 'user_cup' ? 'bg-cyan-100 text-cyan-800' :
+                           user.role === 'user_ssj' ? 'bg-teal-100 text-teal-800' :
+                           user.role === 'user_sso' ? 'bg-emerald-100 text-emerald-800' :
+                           'bg-blue-100 text-blue-800'">
+            {{ user.role }}
+          </span>
+        </div>
+        <!-- Info grid -->
+        <div class="grid grid-cols-2 gap-1 text-xs">
+          <div class="text-gray-500"><i class="fas fa-building mr-1 w-4 text-center"></i>{{ user.dept_name || '-' }}</div>
+          <div class="text-gray-500"><i class="fas fa-hospital mr-1 w-4 text-center"></i>{{ user.hosname || '-' }}</div>
+          <div class="text-gray-500"><i class="fas fa-phone mr-1 w-4 text-center"></i>{{ formatPhoneDisplay(user.phone) || '-' }}</div>
+          <div class="text-gray-500"><i class="fas fa-envelope mr-1 w-4 text-center"></i>{{ user.email || '-' }}</div>
+        </div>
+        <!-- Status + Active -->
+        <div class="flex items-center justify-between pt-1 border-t border-gray-100">
+          <div>
+            <span *ngIf="user.is_approved === 0" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-yellow-100 text-yellow-700 animate-pulse"><i class="fas fa-clock"></i> รอ</span>
+            <span *ngIf="user.is_approved === 1" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-green-100 text-green-700"><i class="fas fa-check-circle"></i> อนุมัติ</span>
+            <span *ngIf="user.is_approved === -1" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-100 text-red-700"><i class="fas fa-ban"></i> ปฏิเสธ</span>
+            <span class="ml-2 text-[10px]" [ngClass]="user.is_active === 1 ? 'text-green-600' : 'text-gray-400'">
+              <i class="fas fa-circle text-[6px]"></i> {{ user.is_active === 1 ? 'Active' : 'Inactive' }}
+            </span>
+          </div>
+        </div>
+        <!-- Action buttons -->
+        <div class="flex flex-wrap gap-1.5 pt-1">
+          <button *ngIf="isAdmin && user.is_approved === 0" (click)="approveUser(user)" class="px-2.5 py-1 bg-green-600 text-white rounded-lg text-[10px] font-bold"><i class="fas fa-check mr-1"></i>อนุมัติ</button>
+          <button *ngIf="isAdmin && user.is_approved === 0" (click)="rejectUser(user)" class="px-2.5 py-1 bg-red-500 text-white rounded-lg text-[10px] font-bold"><i class="fas fa-times mr-1"></i>ปฏิเสธ</button>
+          <button *ngIf="isAdmin && user.is_approved === -1" (click)="allowReRegister(user)" class="px-2.5 py-1 bg-blue-500 text-white rounded-lg text-[10px] font-bold"><i class="fas fa-user-plus mr-1"></i>สมัครใหม่</button>
+          <button (click)="openModal(user)" class="px-2.5 py-1 bg-yellow-500 text-white rounded-lg text-[10px] font-bold"><i class="fas fa-edit mr-1"></i>แก้ไข</button>
+          <button (click)="resetPassword(user)" class="px-2.5 py-1 bg-orange-500 text-white rounded-lg text-[10px] font-bold"><i class="fas fa-key mr-1"></i>รีเซ็ต</button>
+          <button *ngIf="isSuperAdmin && user.role !== 'super_admin'" (click)="openPermModal(user)" class="px-2.5 py-1 bg-indigo-600 text-white rounded-lg text-[10px] font-bold" title="จัดการสิทธิ์การแก้ไข"><i class="fas fa-user-shield mr-1"></i>สิทธิ์</button>
+          <button *ngIf="isSuperAdmin" (click)="openLineModal(user)" class="px-2.5 py-1 bg-emerald-600 text-white rounded-lg text-[10px] font-bold relative" [title]="user.line_user_id ? 'จัดการ LINE userId (ผูกแล้ว)' : 'ตั้ง LINE userId'">
+            <i class="fab fa-line mr-1"></i>LINE
+            <span *ngIf="user.line_user_id" class="absolute -top-1 -right-1 w-2 h-2 bg-green-400 rounded-full ring-2 ring-white"></span>
+          </button>
+          <button *ngIf="isSuperAdmin && user.active_session_id" (click)="forceLogoutUser(user)" class="px-2.5 py-1 bg-purple-600 text-white rounded-lg text-[10px] font-bold" title="บังคับ logout"><i class="fas fa-sign-out-alt mr-1"></i>Logout</button>
+          <button *ngIf="isSuperAdmin" (click)="deleteUser(user.id)" class="px-2.5 py-1 bg-red-500 text-white rounded-lg text-[10px] font-bold"><i class="fas fa-trash mr-1"></i>ลบ</button>
+        </div>
+      </div>
+      <div *ngIf="pagedUsers.length === 0" class="text-center py-10 text-gray-400">
+        <i class="fas fa-users text-3xl mb-2"></i><p class="text-sm">ไม่พบผู้ใช้งาน</p>
+      </div>
+    </div>
+
+    <!-- === Desktop Table View === -->
+    <div class="hidden md:block overflow-auto max-h-[65vh]">
+      <table class="w-full text-left border-collapse">
+        <thead class="bg-gradient-to-r from-green-700 to-green-600 text-white sticky top-0 z-10">
+          <tr>
+            <th class="px-4 py-3 text-xs font-bold uppercase tracking-wider">Username</th>
+            <th class="px-4 py-3 text-xs font-bold uppercase tracking-wider">ชื่อ-นามสกุล</th>
+            <th class="px-4 py-3 text-xs font-bold uppercase tracking-wider">เลข ปชช.</th>
+            <th class="px-4 py-3 text-xs font-bold uppercase tracking-wider">สิทธิ์ (Role)</th>
+            <th class="px-4 py-3 text-xs font-bold uppercase tracking-wider">หน่วยงาน</th>
+            <th class="px-4 py-3 text-xs font-bold uppercase tracking-wider">หน่วยบริการ</th>
+            <th class="px-4 py-3 text-xs font-bold uppercase tracking-wider">เบอร์โทร</th>
+            <th class="px-4 py-3 text-xs font-bold uppercase tracking-wider">Email</th>
+            <th class="px-4 py-3 text-xs font-bold uppercase tracking-wider">สถานะ</th>
+            <th class="px-4 py-3 text-xs font-bold uppercase tracking-wider">ผู้อนุมัติ</th>
+            <th class="px-4 py-3 text-xs font-bold uppercase tracking-wider text-center">ใช้งาน</th>
+            <th class="px-4 py-3 text-xs font-bold uppercase tracking-wider text-right">จัดการ</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100">
+          <tr *ngFor="let user of pagedUsers"
+              class="hover:bg-gray-50 transition-colors"
+              [ngClass]="user.is_approved === 0 ? 'bg-yellow-50' : user.is_approved === -1 ? 'bg-red-50' : ''">
+            <td class="px-4 py-3 font-medium text-gray-900 text-sm">{{ user.username }}</td>
+            <td class="px-4 py-3 text-gray-700 text-sm">{{ user.firstname }} {{ user.lastname }}</td>
+            <td class="px-4 py-3 text-gray-600 text-xs font-mono">
+              <span *ngIf="user.cid" class="inline-flex items-center gap-1 text-green-600"><i class="fas fa-shield-alt"></i> มี (hashed)</span>
+              <span *ngIf="!user.cid" class="text-gray-400">-</span>
+            </td>
+            <td class="px-4 py-3">
+              <span class="px-2 py-1 rounded-full text-xs font-bold"
+                    [ngClass]="user.role === 'super_admin' ? 'bg-red-100 text-red-800' :
+                               user.role === 'admin_ssj' ? 'bg-purple-100 text-purple-800' :
+                               user.role === 'admin_cup' ? 'bg-orange-100 text-orange-800' :
+                               user.role === 'admin_hos' ? 'bg-amber-100 text-amber-800' :
+                               user.role === 'admin_sso' ? 'bg-lime-100 text-lime-800' :
+                               user.role === 'user_cup' ? 'bg-cyan-100 text-cyan-800' :
+                               user.role === 'user_ssj' ? 'bg-teal-100 text-teal-800' :
+                               user.role === 'user_sso' ? 'bg-emerald-100 text-emerald-800' :
+                               'bg-blue-100 text-blue-800'">
+                {{ user.role === 'super_admin' ? 'Super Admin' : user.role === 'admin_ssj' ? 'Admin SSJ' : user.role === 'admin_cup' ? 'Admin CUP' : user.role === 'admin_hos' ? 'Admin รพ.' : user.role === 'admin_sso' ? 'Admin รพ.สต.' : user.role === 'user_cup' ? 'User CUP' : user.role === 'user_ssj' ? 'User SSJ' : user.role === 'user_sso' ? 'User รพ.สต.' : 'User รพ.' }}
+              </span>
+            </td>
+            <td class="px-4 py-3 text-gray-600 text-sm">{{ user.dept_name || '-' }}</td>
+            <td class="px-4 py-3 text-gray-600 text-xs">{{ user.hosname || user.hospcode || '-' }}</td>
+            <td class="px-4 py-3 text-gray-600 text-sm">{{ formatPhoneDisplay(user.phone) || '-' }}</td>
+            <td class="px-4 py-3 text-gray-600 text-xs">
+              <span *ngIf="user.email" class="inline-flex items-center gap-1"><i class="fas fa-envelope text-blue-400"></i> {{ user.email }}</span>
+              <span *ngIf="!user.email" class="text-gray-300">-</span>
+            </td>
+            <td class="px-4 py-3">
+              <span *ngIf="user.is_approved === 0"
+                    class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold bg-yellow-100 text-yellow-700 border border-yellow-300 animate-pulse">
+                <i class="fas fa-clock"></i> รอการอนุมัติ
+              </span>
+              <span *ngIf="user.is_approved === 1"
+                    class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold bg-green-100 text-green-700">
+                <i class="fas fa-check-circle"></i> อนุมัติแล้ว
+              </span>
+              <span *ngIf="user.is_approved === -1"
+                    class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold bg-red-100 text-red-700">
+                <i class="fas fa-ban"></i> ถูกปฏิเสธ
+              </span>
+            </td>
+            <!-- ผู้อนุมัติ -->
+            <td class="px-4 py-3 text-gray-600 text-xs">
+              <span *ngIf="user.approved_by_name">{{ user.approved_by_name }} {{ user.approved_by_lastname }}</span>
+              <span *ngIf="!user.approved_by_name && user.is_approved === 1" class="text-gray-400">-</span>
+              <span *ngIf="user.is_approved === 0" class="text-yellow-500 text-[10px]">รอการอนุมัติ</span>
+              <span *ngIf="user.is_approved === -1" class="text-red-400 text-[10px]">ถูกปฏิเสธ</span>
+            </td>
+            <!-- Toggle Active Switch -->
+            <td class="px-4 py-3 text-center">
+              <button *ngIf="isAdmin; else viewOnlyActive"
+                      (click)="toggleActive(user)"
+                      [disabled]="user.id === loggedInUser?.id"
+                      [title]="user.id === loggedInUser?.id ? 'ไม่สามารถเปลี่ยนสถานะตัวเองได้' : (user.is_active === 1 ? 'คลิกเพื่อปิดใช้งาน' : 'คลิกเพื่อเปิดใช้งาน')"
+                      class="relative inline-flex items-center h-6 w-11 rounded-full transition-colors duration-200 focus:outline-none disabled:opacity-40 disabled:cursor-not-allowed"
+                      [ngClass]="user.is_active === 1 ? 'bg-green-500' : 'bg-gray-300'">
+                <span class="inline-block h-4 w-4 rounded-full bg-white shadow transform transition-transform duration-200"
+                      [ngClass]="user.is_active === 1 ? 'translate-x-6' : 'translate-x-1'"></span>
+              </button>
+              <ng-template #viewOnlyActive>
+                <span class="inline-flex h-6 w-11 rounded-full items-center justify-center"
+                      [ngClass]="user.is_active === 1 ? 'bg-green-100' : 'bg-gray-200'">
+                  <span class="text-xs font-bold" [ngClass]="user.is_active === 1 ? 'text-green-700' : 'text-gray-500'">
+                    {{ user.is_active === 1 ? 'ON' : 'OFF' }}
+                  </span>
+                </span>
+              </ng-template>
+            </td>
+            <td class="px-4 py-3 text-right">
+              <!-- อนุมัติ/ปฏิเสธ (เฉพาะ pending) -->
+              <ng-container *ngIf="isAdmin && user.is_approved === 0">
+                <button (click)="approveUser(user)"
+                        class="inline-flex items-center gap-1 px-2 py-1 bg-green-600 hover:bg-green-700 text-white rounded-lg text-xs font-bold mr-1 transition-colors"
+                        title="อนุมัติการลงทะเบียน">
+                  <i class="fas fa-check"></i> อนุมัติ
+                </button>
+                <button (click)="rejectUser(user)"
+                        class="inline-flex items-center gap-1 px-2 py-1 bg-red-500 hover:bg-red-600 text-white rounded-lg text-xs font-bold mr-1 transition-colors"
+                        title="ปฏิเสธการลงทะเบียน">
+                  <i class="fas fa-times"></i> ปฏิเสธ
+                </button>
+              </ng-container>
+              <!-- เปิดให้สมัครใหม่ (เฉพาะ rejected) -->
+              <button *ngIf="isAdmin && user.is_approved === -1" (click)="allowReRegister(user)"
+                      class="inline-flex items-center gap-1 px-2 py-1 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-xs font-bold mr-1 transition-colors"
+                      title="ลบ account ที่ถูกปฏิเสธ เปิดให้สมัครใหม่ได้">
+                <i class="fas fa-user-plus"></i> เปิดให้สมัครใหม่
+              </button>
+              <!-- ปุ่มจัดการปกติ -->
+              <button (click)="resetPassword(user)" class="text-orange-500 hover:text-orange-600 mx-1" title="รีเซ็ตรหัสผ่าน"><i class="fas fa-key"></i></button>
+              <button (click)="openModal(user)" class="text-yellow-500 hover:text-yellow-600 mx-1" title="แก้ไข"><i class="fas fa-edit"></i></button>
+              <button *ngIf="isSuperAdmin && user.role !== 'super_admin'" (click)="openPermModal(user)" class="text-indigo-600 hover:text-indigo-800 mx-1" title="จัดการสิทธิ์การแก้ไข"><i class="fas fa-user-shield"></i></button>
+              <button *ngIf="isSuperAdmin" (click)="openLineModal(user)" [title]="user.line_user_id ? 'จัดการ LINE userId (ผูกแล้ว)' : 'ตั้ง LINE userId'"
+                      class="relative mx-1" [ngClass]="user.line_user_id ? 'text-emerald-600 hover:text-emerald-800' : 'text-gray-400 hover:text-emerald-600'">
+                <i class="fab fa-line"></i>
+                <span *ngIf="user.line_user_id" class="absolute -top-1 -right-1 w-2 h-2 bg-green-400 rounded-full ring-2 ring-white"></span>
+              </button>
+              <button *ngIf="isSuperAdmin && user.active_session_id" (click)="forceLogoutUser(user)" class="text-purple-600 hover:text-purple-800 mx-1" title="บังคับ logout (กำลัง online)"><i class="fas fa-sign-out-alt"></i></button>
+              <button *ngIf="isSuperAdmin" (click)="deleteUser(user.id)" class="text-red-500 hover:text-red-600 mx-1" title="ลบ"><i class="fas fa-trash"></i></button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Summary -->
+    <div class="p-4 bg-white border-t border-gray-100">
+        <span class="text-xs text-gray-500 font-medium">ทั้งหมด {{ filteredUsers.length }} รายการ</span>
+    </div>
+
+    </div><!-- /tab:list -->
+
+    <!-- ===== TAB: สถิติผู้ใช้งาน ===== -->
+    <div [hidden]="activeTab !== 'stats'" class="p-6">
+
+      <!-- Loading -->
+      <div *ngIf="statsLoading" class="flex flex-col items-center justify-center py-16 text-gray-400">
+        <i class="fas fa-spinner fa-spin text-3xl mb-3"></i>
+        <p class="text-sm">กำลังโหลดสถิติ...</p>
+      </div>
+
+      <ng-container *ngIf="!statsLoading && stats">
+
+        <!-- === Summary Cards (คลิกเพื่อกรองรายชื่อ) === -->
+        <p class="text-xs text-gray-400 mb-2 flex items-center gap-1">
+          <i class="fas fa-hand-pointer"></i> คลิกที่การ์ดหรือรายการด้านล่างเพื่อดูรายชื่อผู้ใช้งานในกลุ่มนั้น
+        </p>
+        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
+          <div (click)="clearDrillFilter()"
+               class="bg-indigo-50 border border-indigo-100 rounded-xl p-4 text-center cursor-pointer hover:shadow-md hover:border-indigo-300 transition-all group" title="ดูผู้ใช้งานทั้งหมด">
+            <p class="text-2xl font-extrabold text-indigo-700 group-hover:scale-110 transition-transform inline-block">{{ stats.summary.total }}</p>
+            <p class="text-xs text-indigo-500 font-semibold mt-1">ผู้ใช้ทั้งหมด</p>
+            <p class="text-[9px] text-indigo-300 mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity">คลิกเพื่อดูรายชื่อ</p>
+          </div>
+          <div (click)="drillDown('status','active','ใช้งานอยู่')"
+               class="bg-emerald-50 border border-emerald-100 rounded-xl p-4 text-center cursor-pointer hover:shadow-md hover:border-emerald-300 transition-all group" title="ดูผู้ใช้ที่ใช้งานอยู่">
+            <p class="text-2xl font-extrabold text-emerald-700 group-hover:scale-110 transition-transform inline-block">{{ stats.summary.active }}</p>
+            <p class="text-xs text-emerald-500 font-semibold mt-1">ใช้งานอยู่</p>
+            <p class="text-[9px] text-emerald-300 mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity">คลิกเพื่อดูรายชื่อ</p>
+          </div>
+          <div (click)="drillDown('status','pending','รออนุมัติ')"
+               class="bg-amber-50 border border-amber-100 rounded-xl p-4 text-center cursor-pointer hover:shadow-md hover:border-amber-300 transition-all group" title="ดูผู้ใช้รออนุมัติ">
+            <p class="text-2xl font-extrabold text-amber-700 group-hover:scale-110 transition-transform inline-block">{{ stats.summary.pending }}</p>
+            <p class="text-xs text-amber-500 font-semibold mt-1">รออนุมัติ</p>
+            <p class="text-[9px] text-amber-300 mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity">คลิกเพื่อดูรายชื่อ</p>
+          </div>
+          <div (click)="drillDown('status','approved','อนุมัติแล้ว')"
+               class="bg-sky-50 border border-sky-100 rounded-xl p-4 text-center cursor-pointer hover:shadow-md hover:border-sky-300 transition-all group" title="ดูผู้ใช้ที่อนุมัติแล้ว">
+            <p class="text-2xl font-extrabold text-sky-700 group-hover:scale-110 transition-transform inline-block">{{ stats.summary.approved }}</p>
+            <p class="text-xs text-sky-500 font-semibold mt-1">อนุมัติแล้ว</p>
+            <p class="text-[9px] text-sky-300 mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity">คลิกเพื่อดูรายชื่อ</p>
+          </div>
+          <div (click)="drillDown('status','rejected','ปฏิเสธ')"
+               class="bg-red-50 border border-red-100 rounded-xl p-4 text-center cursor-pointer hover:shadow-md hover:border-red-300 transition-all group" title="ดูผู้ใช้ที่ถูกปฏิเสธ">
+            <p class="text-2xl font-extrabold text-red-700 group-hover:scale-110 transition-transform inline-block">{{ stats.summary.rejected }}</p>
+            <p class="text-xs text-red-500 font-semibold mt-1">ปฏิเสธ</p>
+            <p class="text-[9px] text-red-300 mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity">คลิกเพื่อดูรายชื่อ</p>
+          </div>
+          <div (click)="drillDown('status','disabled','ปิดใช้งาน')"
+               class="bg-gray-50 border border-gray-200 rounded-xl p-4 text-center cursor-pointer hover:shadow-md hover:border-gray-300 transition-all group" title="ดูผู้ใช้ที่ปิดใช้งาน">
+            <p class="text-2xl font-extrabold text-gray-600 group-hover:scale-110 transition-transform inline-block">{{ stats.summary.disabled }}</p>
+            <p class="text-xs text-gray-400 font-semibold mt-1">ปิดใช้งาน</p>
+            <p class="text-[9px] text-gray-300 mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity">คลิกเพื่อดูรายชื่อ</p>
+          </div>
+        </div>
+
+        <!-- === 4 กล่องสถิติ === -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+
+          <!-- 1. By Role -->
+          <div class="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden transition-all"
+               [class.ring-2]="activeDrillType"
+               [class.ring-indigo-400]="activeDrillType === 'role'"
+               [class.ring-blue-200]="activeDrillType && activeDrillType !== 'role'">
+            <div class="px-5 py-3 border-b border-gray-100 flex items-center gap-2 bg-blue-50">
+              <i class="fas fa-shield-halved text-blue-500"></i>
+              <h4 class="text-sm font-bold text-blue-800">สิทธิ์การใช้งาน (Role)</h4>
+              <span *ngIf="activeDrillType && activeDrillType !== 'role'" class="text-[9px] bg-blue-200 text-blue-700 px-1.5 py-0.5 rounded-full font-bold">กรอง</span>
+              <span class="ml-auto text-xs text-blue-400">
+                {{ activeDrillType && activeDrillType !== 'role' ? filteredByRole.length + '/' + stats.byRole.length : stats.byRole.length }} สิทธิ์
+              </span>
+            </div>
+            <div class="p-4 space-y-1 overflow-y-auto card-scroll" style="max-height:280px">
+              <div *ngFor="let r of filteredByRole"
+                   (click)="drillDown('role', r.role, getRoleLabel(r.role))"
+                   [ngClass]="isActiveDrill('role', r.role) ? 'bg-indigo-100 ring-1 ring-indigo-300' : 'hover:bg-blue-50'"
+                   class="flex items-center gap-3 px-2 py-1.5 rounded-lg cursor-pointer transition-all group" title="คลิกเพื่อดูรายชื่อ">
+                <i *ngIf="isActiveDrill('role', r.role)" class="fas fa-check-circle text-indigo-500 text-xs flex-shrink-0"></i>
+                <span class="text-xs font-semibold rounded-full px-2.5 py-0.5 min-w-[90px] text-center transition-all" [ngClass]="getRoleBadgeClass(r.role)">
+                  {{ getRoleLabel(r.role) }}
+                </span>
+                <div class="flex-1 bg-gray-100 rounded-full h-4 overflow-hidden">
+                  <div class="h-full rounded-full transition-all duration-500"
+                       [ngClass]="isActiveDrill('role', r.role) ? 'bg-indigo-500' : 'bg-blue-400'"
+                       [style.width]="getBarWidth(r.count, filteredByRole[0]?.count || 1)"></div>
+                </div>
+                <span class="text-sm font-extrabold min-w-[28px] text-right"
+                      [ngClass]="isActiveDrill('role', r.role) ? 'text-indigo-700' : 'text-gray-700'">{{ r.count }}</span>
+                <i class="fas fa-chevron-right text-[10px] text-blue-300 opacity-0 group-hover:opacity-100 transition-opacity"></i>
+              </div>
+            </div>
+          </div>
+
+          <!-- 2. By Dept -->
+          <div class="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden transition-all"
+               [class.ring-2]="activeDrillType"
+               [class.ring-teal-400]="activeDrillType === 'dept'"
+               [class.ring-teal-200]="activeDrillType && activeDrillType !== 'dept'">
+            <div class="px-5 py-3 border-b border-gray-100 flex items-center gap-2 bg-teal-50">
+              <i class="fas fa-sitemap text-teal-500"></i>
+              <h4 class="text-sm font-bold text-teal-800">กลุ่มงาน / หน่วยงาน</h4>
+              <span *ngIf="activeDrillType && activeDrillType !== 'dept'" class="text-[9px] bg-teal-200 text-teal-700 px-1.5 py-0.5 rounded-full font-bold">กรอง</span>
+              <span class="ml-auto text-xs text-teal-400">
+                {{ activeDrillType && activeDrillType !== 'dept' ? filteredByDept.length + '/' + stats.byDept.length : stats.byDept.length }} หน่วยงาน
+              </span>
+            </div>
+            <div class="p-4 space-y-1 overflow-y-auto card-scroll" style="max-height:280px">
+              <div *ngFor="let d of filteredByDept"
+                   (click)="drillDown('dept', '' + d.dept_id, d.dept_name || '(ไม่ระบุ)')"
+                   [ngClass]="isActiveDrill('dept', '' + d.dept_id) ? 'bg-teal-100 ring-1 ring-teal-300' : 'hover:bg-teal-50'"
+                   class="flex items-center gap-3 px-2 py-1.5 rounded-lg cursor-pointer transition-all group" title="คลิกเพื่อดูรายชื่อ">
+                <i *ngIf="isActiveDrill('dept', '' + d.dept_id)" class="fas fa-check-circle text-teal-500 text-xs flex-shrink-0"></i>
+                <span class="text-xs text-gray-600 truncate min-w-0 flex-1">
+                  <i class="fas fa-building mr-1 transition-colors" [ngClass]="isActiveDrill('dept', '' + d.dept_id) ? 'text-teal-500' : 'text-gray-300'"></i>
+                  {{ d.dept_name || '(ไม่ระบุ)' }}
+                </span>
+                <div class="w-28 bg-gray-100 rounded-full h-4 overflow-hidden flex-shrink-0">
+                  <div class="h-full rounded-full transition-all duration-500"
+                       [ngClass]="isActiveDrill('dept', '' + d.dept_id) ? 'bg-teal-600' : 'bg-teal-400'"
+                       [style.width]="getBarWidth(d.count, filteredByDept[0]?.count || 1)"></div>
+                </div>
+                <span class="text-sm font-extrabold min-w-[28px] text-right flex-shrink-0"
+                      [ngClass]="isActiveDrill('dept', '' + d.dept_id) ? 'text-teal-700' : 'text-gray-700'">{{ d.count }}</span>
+                <i class="fas fa-chevron-right text-[10px] text-teal-300 opacity-0 group-hover:opacity-100 transition-opacity"></i>
+              </div>
+            </div>
+          </div>
+
+          <!-- 3. By District -->
+          <div class="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden transition-all"
+               [class.ring-2]="activeDrillType"
+               [class.ring-purple-400]="activeDrillType === 'district'"
+               [class.ring-purple-200]="activeDrillType && activeDrillType !== 'district'">
+            <div class="px-5 py-3 border-b border-gray-100 flex items-center gap-2 bg-purple-50">
+              <i class="fas fa-map-marker-alt text-purple-500"></i>
+              <h4 class="text-sm font-bold text-purple-800">อำเภอ</h4>
+              <span *ngIf="activeDrillType && activeDrillType !== 'district'" class="text-[9px] bg-purple-200 text-purple-700 px-1.5 py-0.5 rounded-full font-bold">กรอง</span>
+              <span class="ml-auto text-xs text-purple-400">
+                {{ activeDrillType && activeDrillType !== 'district' ? filteredByDistrict.length + '/' + stats.byDistrict.length : stats.byDistrict.length }} อำเภอ
+              </span>
+            </div>
+            <div class="p-4 space-y-1 overflow-y-auto card-scroll" style="max-height:280px">
+              <div *ngFor="let dist of filteredByDistrict"
+                   (click)="drillDown('district', dist.distid, dist.distname || '(ไม่ระบุอำเภอ)')"
+                   [ngClass]="isActiveDrill('district', dist.distid) ? 'bg-purple-100 ring-1 ring-purple-300' : 'hover:bg-purple-50'"
+                   class="flex items-center gap-3 px-2 py-1.5 rounded-lg cursor-pointer transition-all group" title="คลิกเพื่อดูรายชื่อ">
+                <i *ngIf="isActiveDrill('district', dist.distid)" class="fas fa-check-circle text-purple-500 text-xs flex-shrink-0"></i>
+                <span class="text-xs text-gray-600 truncate min-w-0 flex-1">
+                  <i class="fas fa-location-dot mr-1 transition-colors" [ngClass]="isActiveDrill('district', dist.distid) ? 'text-purple-500' : 'text-gray-300'"></i>
+                  {{ dist.distname || '(ไม่ระบุอำเภอ)' }}
+                </span>
+                <div class="w-28 bg-gray-100 rounded-full h-4 overflow-hidden flex-shrink-0">
+                  <div class="h-full rounded-full transition-all duration-500"
+                       [ngClass]="isActiveDrill('district', dist.distid) ? 'bg-purple-600' : 'bg-purple-400'"
+                       [style.width]="getBarWidth(dist.count, filteredByDistrict[0]?.count || 1)"></div>
+                </div>
+                <span class="text-sm font-extrabold min-w-[28px] text-right flex-shrink-0"
+                      [ngClass]="isActiveDrill('district', dist.distid) ? 'text-purple-700' : 'text-gray-700'">{{ dist.count }}</span>
+                <i class="fas fa-chevron-right text-[10px] text-purple-300 opacity-0 group-hover:opacity-100 transition-opacity"></i>
+              </div>
+            </div>
+          </div>
+
+          <!-- 4. By Hospital -->
+          <div class="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden transition-all"
+               [class.ring-2]="activeDrillType"
+               [class.ring-orange-400]="activeDrillType === 'hospcode'"
+               [class.ring-orange-200]="activeDrillType && activeDrillType !== 'hospcode'">
+            <div class="px-5 py-3 border-b border-gray-100 flex items-center gap-2 bg-orange-50">
+              <i class="fas fa-hospital text-orange-500"></i>
+              <h4 class="text-sm font-bold text-orange-800">หน่วยบริการ</h4>
+              <span *ngIf="activeDrillType && activeDrillType !== 'hospcode'" class="text-[9px] bg-orange-200 text-orange-700 px-1.5 py-0.5 rounded-full font-bold">กรอง</span>
+              <span class="ml-auto text-xs text-orange-400">
+                {{ activeDrillType && activeDrillType !== 'hospcode' ? filteredByHospital.length + '/' + stats.byHospital.length : stats.byHospital.length }} แห่ง
+              </span>
+            </div>
+            <div class="p-4 space-y-1 overflow-y-auto card-scroll" style="max-height:280px">
+              <div *ngFor="let h of filteredByHospital"
+                   (click)="drillDown('hospcode', h.hospcode, h.hosname || h.hospcode)"
+                   [ngClass]="isActiveDrill('hospcode', h.hospcode) ? 'bg-orange-100 ring-1 ring-orange-300' : 'hover:bg-orange-50'"
+                   class="flex items-center gap-2 px-2 py-1.5 rounded-lg cursor-pointer transition-all group" title="คลิกเพื่อดูรายชื่อ">
+                <i *ngIf="isActiveDrill('hospcode', h.hospcode)" class="fas fa-check-circle text-orange-500 text-xs flex-shrink-0"></i>
+                <div class="min-w-0 flex-1">
+                  <p class="text-xs font-medium truncate transition-colors" [ngClass]="isActiveDrill('hospcode', h.hospcode) ? 'text-orange-700' : 'text-gray-700'">{{ h.hosname || h.hospcode || '(ไม่ระบุ)' }}</p>
+                  <p class="text-[10px] text-gray-400 truncate">
+                    <span class="bg-cyan-100 text-cyan-700 rounded px-1 mr-1">{{ getHostypeLabel(h.hostype) }}</span>
+                    {{ h.distname || '' }}
+                  </p>
+                </div>
+                <div class="w-20 bg-gray-100 rounded-full h-4 overflow-hidden flex-shrink-0">
+                  <div class="h-full rounded-full transition-all duration-500"
+                       [ngClass]="isActiveDrill('hospcode', h.hospcode) ? 'bg-orange-500' : 'bg-orange-400'"
+                       [style.width]="getBarWidth(h.count, filteredByHospital[0]?.count || 1)"></div>
+                </div>
+                <span class="text-sm font-extrabold min-w-[28px] text-right flex-shrink-0"
+                      [ngClass]="isActiveDrill('hospcode', h.hospcode) ? 'text-orange-700' : 'text-gray-700'">{{ h.count }}</span>
+                <i class="fas fa-chevron-right text-[10px] text-orange-300 opacity-0 group-hover:opacity-100 transition-opacity"></i>
+              </div>
+            </div>
+          </div>
+
+        </div><!-- /grid 4 boxes -->
+
+        <!-- ===== Detail Panel + Donut Chart (แสดงเมื่อเลือกหัวข้อ) ===== -->
+        <div *ngIf="activeDrillType" class="mt-5 rounded-2xl border overflow-hidden"
+             [ngStyle]="{'border-color': getDrillColorRgba(0.27)}">
+          <!-- Header -->
+          <div class="px-5 py-3 flex flex-wrap items-center gap-3" [ngStyle]="{'background-color': getDrillColorRgba(0.09)}">
+            <div class="flex items-center gap-2 min-w-0">
+              <i class="fas fa-filter text-sm" [style.color]="getDrillColor()"></i>
+              <span class="text-xs font-bold uppercase text-gray-500">{{ getDrillCategoryLabel() }}</span>
+              <i class="fas fa-chevron-right text-gray-300 text-xs"></i>
+              <span class="text-sm font-extrabold text-gray-800 truncate">{{ drillLabel }}</span>
+            </div>
+            <div class="ml-auto flex items-center gap-2">
+              <button (click)="clearDrillFilter()"
+                      class="px-3 py-1.5 bg-white border border-gray-200 hover:border-red-300 hover:text-red-600 rounded-lg text-xs font-bold text-gray-500 transition-colors shadow-sm">
+                <i class="fas fa-times mr-1"></i>ล้างการเลือก
+              </button>
+            </div>
+          </div>
+
+          <!-- Body: Donut + Stats -->
+          <div class="p-5 flex flex-wrap items-center gap-6 bg-white">
+            <!-- CSS Donut Chart -->
+            <div class="flex-shrink-0 flex flex-col items-center gap-2">
+              <div class="relative w-32 h-32">
+                <div class="w-32 h-32 rounded-full transition-all duration-700"
+                     [ngStyle]="getDonutStyle()">
+                </div>
+                <div class="absolute inset-0 flex items-center justify-center">
+                  <div class="w-20 h-20 rounded-full bg-white shadow-inner flex flex-col items-center justify-center">
+                    <span class="text-2xl font-extrabold leading-none" [style.color]="getDrillColor()">{{ drillPct }}%</span>
+                    <span class="text-[10px] text-gray-400 mt-0.5">ของทั้งหมด</span>
+                  </div>
+                </div>
+              </div>
+              <!-- Mini legend -->
+              <div class="flex items-center gap-2 text-xs">
+                <span class="w-3 h-3 rounded-full flex-shrink-0" [style.background-color]="getDrillColor()"></span>
+                <span class="text-gray-600">{{ drillLabel }}</span>
+              </div>
+              <div class="flex items-center gap-2 text-xs">
+                <span class="w-3 h-3 rounded-full bg-slate-200 flex-shrink-0"></span>
+                <span class="text-gray-400">กลุ่มอื่นๆ</span>
+              </div>
+            </div>
+
+            <!-- Numbers -->
+            <div class="flex-1 min-w-0 grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <div class="text-center p-3 rounded-xl" [ngStyle]="{'background-color': getDrillColorRgba(0.07)}">
+                <div class="text-3xl font-extrabold" [style.color]="getDrillColor()">{{ drillUsers.length }}</div>
+                <div class="text-xs text-gray-500 mt-1">จำนวนผู้ใช้</div>
+              </div>
+              <div class="text-center p-3 bg-gray-50 rounded-xl">
+                <div class="text-3xl font-extrabold text-gray-600">{{ stats?.summary?.total }}</div>
+                <div class="text-xs text-gray-400 mt-1">ทั้งหมดในระบบ</div>
+              </div>
+              <div class="text-center p-3 bg-emerald-50 rounded-xl">
+                <div class="text-3xl font-extrabold text-emerald-600">
+                  {{ getDrillActiveCount() }}
+                </div>
+                <div class="text-xs text-emerald-500 mt-1">ใช้งานได้</div>
+              </div>
+              <div class="text-center p-3 bg-amber-50 rounded-xl">
+                <div class="text-3xl font-extrabold text-amber-600">
+                  {{ getDrillPendingCount() }}
+                </div>
+                <div class="text-xs text-amber-500 mt-1">รออนุมัติ</div>
+              </div>
+            </div>
+
+            <!-- Stacked percentage bar -->
+            <div class="w-full mt-2">
+              <div class="flex items-center gap-2 mb-1">
+                <span class="text-xs text-gray-400">สัดส่วน</span>
+                <div class="flex-1 bg-slate-100 rounded-full h-5 overflow-hidden flex">
+                  <div class="h-full rounded-l-full transition-all duration-700 flex items-center justify-center"
+                       [style.width.%]="drillPct" [style.background-color]="getDrillColor()">
+                    <span *ngIf="drillPct >= 10" class="text-white text-[10px] font-bold px-1">{{ drillPct }}%</span>
+                  </div>
+                  <div class="flex-1 h-full bg-slate-200 rounded-r-full flex items-center pl-2">
+                    <span *ngIf="drillPct < 10" class="text-slate-500 text-[10px] font-bold">{{ drillPct }}%</span>
+                  </div>
+                </div>
+                <span class="text-xs text-gray-400">{{ 100 - drillPct }}% กลุ่มอื่น</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ===== User Table (แสดงเมื่อเลือกหัวข้อและมีข้อมูล) ===== -->
+        <div *ngIf="drillUsers.length > 0" class="mt-4 bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
+          <div class="px-5 py-3 border-b border-gray-100 flex flex-wrap items-center gap-3"
+               [ngStyle]="{'background-color': getDrillColorRgba(0.06)}">
+            <i class="fas fa-users text-sm" [style.color]="getDrillColor()"></i>
+            <h4 class="text-sm font-bold text-gray-700">รายชื่อผู้ใช้งาน — {{ drillLabel }}</h4>
+            <span class="px-2.5 py-0.5 rounded-full text-xs font-bold text-white" [style.background-color]="getDrillColor()">
+              {{ drillUsers.length }} คน
+            </span>
+            <p class="ml-auto text-xs text-gray-400">
+              <i class="fas fa-info-circle mr-1"></i>คลิก "จัดการ" เพื่อไปหน้าจัดการผู้ใช้งาน
+            </p>
+          </div>
+          <div class="overflow-x-auto overflow-y-auto card-scroll" style="max-height: 400px">
+            <table class="w-full text-sm min-w-[640px]">
+              <thead class="sticky top-0 z-10 shadow-sm">
+                <tr class="text-xs font-bold text-gray-500 uppercase bg-gray-50 border-b border-gray-100">
+                  <th class="px-4 py-2.5 text-center w-20">จัดการ</th>
+                  <th class="px-4 py-2.5 text-left">ชื่อ-นามสกุล</th>
+                  <th class="px-4 py-2.5 text-left">Username</th>
+                  <th class="px-4 py-2.5 text-left">สิทธิ์</th>
+                  <th class="px-4 py-2.5 text-left">หน่วยบริการ</th>
+                  <th class="px-4 py-2.5 text-left">กลุ่มงาน</th>
+                  <th class="px-4 py-2.5 text-center">สถานะ</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-gray-50">
+                <tr *ngFor="let u of drillUsers; trackBy: trackByUserId"
+                    class="hover:bg-slate-50 transition-colors">
+                  <td class="px-4 py-2.5 text-center">
+                    <button (click)="goManageUser(u)"
+                            class="px-3 py-1.5 text-white rounded-lg text-xs font-bold shadow-sm transition-all hover:scale-105 hover:shadow-md"
+                            [ngStyle]="{'background-color': getDrillColor()}" title="ไปยังหน้าจัดการผู้ใช้งาน">
+                      <i class="fas fa-arrow-right mr-1"></i>จัดการ
+                    </button>
+                  </td>
+                  <td class="px-4 py-2.5">
+                    <div class="font-medium text-gray-800 text-sm">{{ u.firstname }} {{ u.lastname }}</div>
+                    <div *ngIf="u.email" class="text-xs text-gray-400 truncate max-w-[160px]">{{ u.email }}</div>
+                  </td>
+                  <td class="px-4 py-2.5 font-mono text-xs text-gray-500">{{ u.username }}</td>
+                  <td class="px-4 py-2.5">
+                    <span class="text-xs px-2 py-0.5 rounded-full font-semibold" [ngClass]="getRoleBadgeClass(u.role)">
+                      {{ getRoleLabel(u.role) }}
+                    </span>
+                  </td>
+                  <td class="px-4 py-2.5">
+                    <div class="text-xs text-gray-700 font-medium">{{ u.hosname || u.hospcode || '-' }}</div>
+                    <div class="text-[10px] text-gray-400">{{ getHostypeLabel(u.hostype) }}</div>
+                  </td>
+                  <td class="px-4 py-2.5 text-xs text-gray-600">{{ u.dept_name || '-' }}</td>
+                  <td class="px-4 py-2.5 text-center">
+                    <span class="text-xs px-2 py-0.5 rounded-full font-semibold" [ngClass]="getUserStatusBadge(u).cls">
+                      {{ getUserStatusBadge(u).text }}
+                    </span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Empty state เมื่อเลือกหัวข้อแต่ไม่มีผู้ใช้ -->
+        <div *ngIf="activeDrillType && drillUsers.length === 0" class="mt-4 flex flex-col items-center justify-center py-10 text-gray-400 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
+          <i class="fas fa-users-slash text-3xl mb-2"></i>
+          <p class="text-sm">ไม่พบผู้ใช้งานในกลุ่มนี้</p>
+        </div>
+
+        <!-- ปุ่ม refresh (ซ้าย) -->
+        <div class="mt-5 flex justify-end">
+          <button (click)="stats = null; activeDrillType = ''; activeDrillValue = ''; drillLabel = ''; loadStats()"
+                  class="px-4 py-2 bg-indigo-100 hover:bg-indigo-200 text-indigo-700 rounded-xl text-xs font-bold transition-colors">
+            <i class="fas fa-rotate-right mr-1.5"></i> รีเฟรชข้อมูลสถิติ
+          </button>
+        </div>
+
+      </ng-container><!-- /stats loaded -->
+
+    </div><!-- /tab:stats -->
+
+  </div><!-- /card -->
+</div>
+
+<!-- Modal เพิ่ม/แก้ไขผู้ใช้งาน -->
+<div *ngIf="showModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl p-6 transform transition-all scale-100 overflow-y-auto max-h-[90vh]">
+    <h3 class="text-xl font-bold text-gray-800 mb-4">{{ isEditMode ? 'แก้ไขข้อมูลผู้ใช้งาน' : 'เพิ่มผู้ใช้งานใหม่' }}</h3>
+
+    <div class="space-y-4">
+      <!-- Username -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Username <span class="text-red-500">*</span></label>
+        <input type="text" [(ngModel)]="currentUser.username" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 outline-none hover:border-green-400 transition-colors"
+               [ngClass]="currentUser.username && validateUsername(currentUser.username) ? 'border-red-400' : 'border-gray-300'"
+               placeholder="ขั้นต่ำ 6 ตัวอักษร (a-z, A-Z, 0-9, อักขระพิเศษ)">
+        <p *ngIf="currentUser.username && validateUsername(currentUser.username)" class="text-xs text-red-500 mt-1">
+          <i class="fas fa-exclamation-circle mr-1"></i>{{ validateUsername(currentUser.username) }}
+        </p>
+      </div>
+
+      <!-- Password -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">
+          Password <span *ngIf="!isEditMode" class="text-red-500">*</span>
+          <span *ngIf="isEditMode" class="text-gray-400 text-xs font-normal">(เว้นว่างถ้าไม่เปลี่ยน)</span>
+        </label>
+        <div class="relative">
+          <input [type]="showPassword ? 'text' : 'password'" [(ngModel)]="currentUser.password"
+                 class="w-full px-4 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none hover:border-green-400 transition-colors"
+                 placeholder="ขั้นต่ำ 6 ตัวอักษร">
+          <button type="button" (click)="showPassword = !showPassword"
+                  class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600">
+            <i class="fas" [ngClass]="showPassword ? 'fa-eye-slash' : 'fa-eye'"></i>
+          </button>
+        </div>
+        <p class="text-xs text-gray-400 mt-1">ต้องมี: พิมพ์เล็ก (a-z), พิมพ์ใหญ่ (A-Z), ตัวเลข (0-9), อักขระพิเศษ ขั้นต่ำ 6 ตัว</p>
+        <p *ngIf="currentUser.password && validatePassword(currentUser.password)" class="text-xs text-red-500 mt-1">
+          <i class="fas fa-exclamation-circle mr-1"></i>{{ validatePassword(currentUser.password) }}
+        </p>
+        <!-- Password Strength Bar -->
+        <div *ngIf="currentUser.password" class="mt-2">
+          <div class="flex items-center gap-2">
+            <div class="flex-1 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+              <div class="h-full rounded-full transition-all duration-300"
+                   [ngClass]="getPasswordStrength(currentUser.password).color"
+                   [style.width.%]="getPasswordStrength(currentUser.password).level * 16.7"></div>
+            </div>
+            <span class="text-xs font-bold" [ngClass]="getPasswordStrength(currentUser.password).color === 'bg-red-500' ? 'text-red-500' : getPasswordStrength(currentUser.password).color === 'bg-yellow-500' ? 'text-yellow-600' : 'text-green-600'">
+              {{ getPasswordStrength(currentUser.password).text }}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Confirm Password (แสดงเมื่อสร้างใหม่ หรือ แก้ไขที่กรอก password) -->
+      <div *ngIf="!isEditMode || currentUser.password">
+        <label class="block text-sm font-medium text-gray-700 mb-1">ยืนยันรหัสผ่าน <span *ngIf="!isEditMode" class="text-red-500">*</span></label>
+        <div class="relative">
+          <input [type]="showConfirmPassword ? 'text' : 'password'" [(ngModel)]="confirmPassword"
+                 class="w-full px-4 py-2 pr-10 border rounded-lg focus:ring-2 focus:ring-green-500 outline-none hover:border-green-400 transition-colors"
+                 [ngClass]="confirmPassword && confirmPassword !== currentUser.password ? 'border-red-400' : 'border-gray-300'"
+                 placeholder="กรอกรหัสผ่านอีกครั้ง">
+          <button type="button" (click)="showConfirmPassword = !showConfirmPassword"
+                  class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600">
+            <i class="fas" [ngClass]="showConfirmPassword ? 'fa-eye-slash' : 'fa-eye'"></i>
+          </button>
+        </div>
+        <p *ngIf="confirmPassword && confirmPassword !== currentUser.password" class="text-xs text-red-500 mt-1">
+          <i class="fas fa-times-circle mr-1"></i>รหัสผ่านไม่ตรงกัน
+        </p>
+        <p *ngIf="confirmPassword && confirmPassword === currentUser.password && currentUser.password" class="text-xs text-green-600 mt-1">
+          <i class="fas fa-check-circle mr-1"></i>รหัสผ่านตรงกัน
+        </p>
+      </div>
+
+      <!-- ชื่อ / นามสกุล -->
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">ชื่อ <span class="text-red-500">*</span></label>
+          <input type="text" [(ngModel)]="currentUser.firstname" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none hover:border-green-400 transition-colors" placeholder="กรอกชื่อ">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">นามสกุล <span class="text-red-500">*</span></label>
+          <input type="text" [(ngModel)]="currentUser.lastname" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none hover:border-green-400 transition-colors" placeholder="กรอกนามสกุล">
+        </div>
+      </div>
+
+      <!-- อำเภอ / หน่วยบริการ -->
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">อำเภอ</label>
+          <select [(ngModel)]="selectedDistrictId" (change)="onDistrictChange()" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none hover:border-green-400 transition-colors">
+            <option value="">-- เลือกอำเภอ --</option>
+            <option *ngFor="let d of districts" [value]="d.distid">{{ d.distname }}</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">หน่วยบริการ (รพ./สสอ.) <span class="text-red-500">*</span></label>
+          <select [(ngModel)]="currentUser.hospcode" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none hover:border-green-400 transition-colors">
+            <option value="">-- เลือกหน่วยบริการ --</option>
+            <option *ngFor="let h of filteredHospitals" [value]="h.hoscode">{{ h.hoscode }}: {{ h.hosname }}</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- เบอร์โทร -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">เบอร์โทรศัพท์ <span class="text-red-500">*</span></label>
+        <div class="relative">
+          <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <i class="fas fa-phone text-gray-400"></i>
+          </div>
+          <input type="text" [value]="formatPhoneDisplay(currentUser.phone)" (input)="onPhoneInput($event)"
+                 class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none hover:border-green-400 transition-colors"
+                 placeholder="0X-XXXX-XXXX" maxlength="12">
+        </div>
+        <p class="text-xs text-gray-400 mt-1">ตัวเลข 10 หลัก (ระบบจะจัดรูปแบบให้อัตโนมัติ)</p>
+        <p *ngIf="currentUser.phone && !validatePhone(currentUser.phone)" class="text-xs text-red-500 mt-1">
+          <i class="fas fa-exclamation-circle mr-1"></i>เบอร์โทรศัพท์ต้องเป็นตัวเลข 10 หลัก (ขณะนี้ {{ currentUser.phone.length }} หลัก)
+        </p>
+      </div>
+
+      <!-- อีเมล -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">อีเมล (Email)</label>
+        <div class="relative">
+          <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <i class="fas fa-envelope text-gray-400"></i>
+          </div>
+          <input type="email" [(ngModel)]="currentUser.email"
+                 class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none hover:border-green-400 transition-colors"
+                 placeholder="example@email.com">
+        </div>
+      </div>
+
+      <!-- เลขบัตรประชาชน — เพิ่มใหม่: กรอกได้ / แก้ไข: แสดงสถานะเท่านั้น -->
+      <div *ngIf="!isEditMode">
+        <label class="block text-sm font-medium text-gray-700 mb-1">เลขบัตรประชาชน 13 หลัก <span class="text-red-500">*</span></label>
+        <input type="text" [value]="formatNationalIdDisplay(currentUser.cid)" (input)="onNationalIdInput($event)"
+               class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 outline-none hover:border-green-400 transition-colors font-mono"
+               [ngClass]="currentUser.cid && currentUser.cid.length === 13 && !validateNationalId(currentUser.cid) ? 'border-red-400' : 'border-gray-300'"
+               placeholder="X-XXXX-XXXXX-XX-X" maxlength="17">
+        <p *ngIf="currentUser.cid && currentUser.cid.length < 13" class="text-xs text-amber-500 mt-1">
+          <i class="fas fa-info-circle mr-1"></i>กรอกแล้ว {{ currentUser.cid.length }}/13 หลัก
+        </p>
+        <p *ngIf="currentUser.cid && currentUser.cid.length === 13 && !validateNationalId(currentUser.cid)" class="text-xs text-red-500 mt-1">
+          <i class="fas fa-times-circle mr-1"></i>เลขบัตรประชาชนไม่ถูกต้อง (Check Digit ไม่ผ่าน)
+        </p>
+        <p *ngIf="currentUser.cid && currentUser.cid.length === 13 && validateNationalId(currentUser.cid)" class="text-xs text-green-600 mt-1">
+          <i class="fas fa-check-circle mr-1"></i>เลขบัตรประชาชนถูกต้อง
+        </p>
+      </div>
+      <div *ngIf="isEditMode">
+        <label class="block text-sm font-medium text-gray-700 mb-1">เลขบัตรประชาชน</label>
+        <!-- สถานะปัจจุบัน -->
+        <div class="flex items-center gap-2 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg mb-2">
+          <i class="fas fa-shield-alt" [class.text-green-500]="currentUser.cid" [class.text-gray-400]="!currentUser.cid"></i>
+          <span *ngIf="currentUser.cid" class="text-sm text-green-600 font-medium">เข้ารหัสแล้ว — สามารถ login ด้วย ThaiD ได้</span>
+          <span *ngIf="!currentUser.cid" class="text-sm text-red-400">ยังไม่มีข้อมูล — ยังเชื่อม ThaiD ไม่ได้</span>
+        </div>
+        <!-- ช่องกรอกเลขบัตรฯ ใหม่ (admin / super_admin เท่านั้น) -->
+        <input type="text" [value]="formatNationalIdDisplay(editNewCid)" (input)="onEditCidInput($event)"
+               class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 outline-none hover:border-green-400 transition-colors font-mono text-sm"
+               [ngClass]="editNewCid && editNewCid.length === 13 && !validateNationalId(editNewCid) ? 'border-red-400' : 'border-gray-300'"
+               placeholder="กรอกเลขบัตรใหม่เพื่ออัปเดต (ว่างไว้ = ไม่เปลี่ยน)" maxlength="17">
+        <p *ngIf="!editNewCid" class="text-xs text-gray-400 mt-1">
+          <i class="fas fa-info-circle mr-1"></i>ว่างไว้เพื่อคงข้อมูลเดิม หรือกรอก 13 หลักเพื่ออัปเดตและเชื่อม ThaiD
+        </p>
+        <p *ngIf="editNewCid && editNewCid.length < 13" class="text-xs text-amber-500 mt-1">
+          กรอกแล้ว {{ editNewCid.length }}/13 หลัก
+        </p>
+        <p *ngIf="editNewCid && editNewCid.length === 13 && !validateNationalId(editNewCid)" class="text-xs text-red-500 mt-1">
+          <i class="fas fa-times-circle mr-1"></i>เลขบัตรประชาชนไม่ถูกต้อง (Check Digit ไม่ผ่าน)
+        </p>
+        <p *ngIf="editNewCid && editNewCid.length === 13 && validateNationalId(editNewCid)" class="text-xs text-green-600 mt-1">
+          <i class="fas fa-check-circle mr-1"></i>จะอัปเดตและเชื่อมกับ ThaiD ได้ทันที
+        </p>
+      </div>
+
+      <!-- Role (เฉพาะ Admin เท่านั้นที่เห็น) -->
+      <div *ngIf="isSuperAdmin || loggedInUser?.role === 'admin_ssj'">
+        <label class="block text-sm font-medium text-gray-700 mb-1">สิทธิ์การใช้งาน (Role) <span class="text-red-500">*</span></label>
+        <select [(ngModel)]="currentUser.role" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none hover:border-green-400 transition-colors">
+          <option value="user_hos">User รพ. (โรงพยาบาล)</option>
+          <option value="user_sso">User รพ.สต. (รพ.สต.)</option>
+          <option value="user_cup">User CUP (อำเภอ)</option>
+          <option value="user_ssj">User SSJ (สสจ.)</option>
+          <option value="admin_hos">Admin รพ. (โรงพยาบาล)</option>
+          <option value="admin_sso">Admin รพ.สต. (รพ.สต.)</option>
+          <option value="admin_cup">Admin CUP (อำเภอ)</option>
+          <option value="admin_ssj">Admin SSJ (สสจ.)</option>
+        </select>
+      </div>
+
+      <!-- Department (เฉพาะ Admin เท่านั้นที่เปลี่ยนได้) -->
+      <div *ngIf="isAdmin">
+        <label class="block text-sm font-medium text-gray-700 mb-1">สังกัดหน่วยงาน <span class="text-red-500">*</span></label>
+        <select [(ngModel)]="currentUser.dept_id" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none hover:border-green-400 transition-colors">
+          <option value="">-- ไม่ระบุ --</option>
+          <option *ngFor="let dept of departments" [value]="dept.id">{{ dept.dept_name }}</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="mt-6 flex justify-end gap-3">
+      <button (click)="closeModal()" class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg font-bold">ยกเลิก</button>
+      <button (click)="saveUser()" class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-bold shadow-md">บันทึก</button>
+    </div>
+  </div>
+</div>
+
+<!-- Data Sync Modal -->
+<div *ngIf="showSyncModal" class="fixed inset-0 z-50 flex items-start justify-center bg-black/60 overflow-y-auto py-4 px-2">
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-5xl my-auto">
+    <div class="flex items-center justify-between px-6 py-4 border-b bg-gradient-to-r from-blue-700 to-blue-600 rounded-t-2xl">
+      <div>
+        <h3 class="text-lg font-bold text-white"><i class="fas fa-cloud-upload-alt mr-2"></i>Data Synchronization — Users</h3>
+        <p class="text-blue-200 text-xs mt-0.5">เปรียบเทียบและ sync users Local ↔ HDC</p>
+      </div>
+      <button (click)="closeSyncModal()" class="text-white/70 hover:text-white"><i class="fas fa-times text-xl"></i></button>
+    </div>
+    <div class="p-6">
+      <!-- Loading -->
+      <div *ngIf="syncLoading" class="flex items-center justify-center py-12">
+        <div class="text-center">
+          <div class="animate-spin rounded-full h-12 w-12 border-4 border-blue-200 border-t-blue-600 mx-auto mb-3"></div>
+          <p class="text-gray-500 text-sm">กำลังเปรียบเทียบข้อมูล...</p>
+        </div>
+      </div>
+
+      <!-- Summary Cards -->
+      <div *ngIf="!syncLoading && syncResult" class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+        <div class="bg-green-50 border border-green-200 rounded-xl p-3 text-center">
+          <p class="text-2xl font-bold text-green-600">{{ syncResult.summary.matched }}</p>
+          <p class="text-[10px] text-green-700 font-bold"><i class="fas fa-check-circle mr-1"></i>ตรงกัน</p>
+        </div>
+        <div class="bg-amber-50 border border-amber-200 rounded-xl p-3 text-center cursor-pointer hover:shadow-md" (click)="toggleSyncFilter('different')" [class.ring-2]="syncFilter === 'different'">
+          <p class="text-2xl font-bold text-amber-600">{{ syncResult.summary.different }}</p>
+          <p class="text-[10px] text-amber-700 font-bold"><i class="fas fa-exclamation-triangle mr-1"></i>ต่างกัน</p>
+        </div>
+        <div class="bg-blue-50 border border-blue-200 rounded-xl p-3 text-center cursor-pointer hover:shadow-md" (click)="toggleSyncFilter('local_only')" [class.ring-2]="syncFilter === 'local_only'">
+          <p class="text-2xl font-bold text-blue-600">{{ syncResult.summary.local_only }}</p>
+          <p class="text-[10px] text-blue-700 font-bold"><i class="fas fa-arrow-up mr-1"></i>เฉพาะ Local</p>
+        </div>
+        <div class="bg-gray-50 border border-gray-200 rounded-xl p-3 text-center cursor-pointer hover:shadow-md" (click)="toggleSyncFilter('hdc_only')" [class.ring-2]="syncFilter === 'hdc_only'">
+          <p class="text-2xl font-bold text-gray-500">{{ syncResult.summary.hdc_only }}</p>
+          <p class="text-[10px] text-gray-600 font-bold"><i class="fas fa-arrow-down mr-1"></i>เฉพาะ HDC</p>
+        </div>
+      </div>
+
+      <!-- Filter -->
+      <div *ngIf="!syncLoading && syncResult" class="flex flex-wrap items-center gap-2 mb-2 text-xs">
+        <span class="text-gray-500">แสดง:</span>
+        <button (click)="syncFilter = ''; buildSyncList()" class="px-2 py-1 rounded" [ngClass]="syncFilter === '' ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-600'">ทั้งหมด</button>
+        <button (click)="toggleSyncFilter('different')" class="px-2 py-1 rounded" [ngClass]="syncFilter === 'different' ? 'bg-amber-500 text-white' : 'bg-amber-50 text-amber-700'">ต่างกัน</button>
+        <button (click)="toggleSyncFilter('local_only')" class="px-2 py-1 rounded" [ngClass]="syncFilter === 'local_only' ? 'bg-blue-500 text-white' : 'bg-blue-50 text-blue-700'">เฉพาะ Local</button>
+        <span class="text-gray-400 ml-auto">เลือก: <b>{{ syncSelected.size }}</b> / {{ syncListFiltered.length }}</span>
+      </div>
+
+      <!-- List -->
+      <div *ngIf="!syncLoading && syncResult" class="border border-gray-200 rounded-xl max-h-[50vh] overflow-y-auto">
+        <table class="w-full text-sm">
+          <thead class="bg-gray-50 text-xs sticky top-0">
+            <tr>
+              <th class="px-3 py-2 text-center w-10">
+                <input type="checkbox" [checked]="isSyncAllSelected()" (change)="toggleSyncAll()">
+              </th>
+              <th class="px-3 py-2 text-left">Username</th>
+              <th class="px-3 py-2 text-left">ชื่อ-นามสกุล</th>
+              <th class="px-3 py-2 text-left">Role</th>
+              <th class="px-3 py-2 text-left">Hospcode</th>
+              <th class="px-3 py-2 text-center">สถานะ</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100">
+            <tr *ngFor="let u of syncListFiltered" class="hover:bg-gray-50" [class.bg-blue-50]="syncSelected.has(u.username)">
+              <td class="px-3 py-2 text-center">
+                <input type="checkbox" [checked]="syncSelected.has(u.username)" (change)="toggleSyncUser(u.username)" [disabled]="u._syncStatus === 'hdc_only'">
+              </td>
+              <td class="px-3 py-2 font-mono font-bold text-gray-800">{{ u.username }}</td>
+              <td class="px-3 py-2 text-gray-600">{{ u.firstname }} {{ u.lastname }}</td>
+              <td class="px-3 py-2 text-gray-600 text-xs">{{ u.role }}</td>
+              <td class="px-3 py-2 text-gray-600 text-xs">{{ u.hospcode || '-' }}</td>
+              <td class="px-3 py-2 text-center">
+                <span *ngIf="u._syncStatus === 'matched'" class="px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-[10px] font-bold">ตรงกัน</span>
+                <span *ngIf="u._syncStatus === 'different'" class="px-2 py-0.5 bg-amber-100 text-amber-700 rounded-full text-[10px] font-bold">ต่างกัน</span>
+                <span *ngIf="u._syncStatus === 'local_only'" class="px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full text-[10px] font-bold">เฉพาะ Local</span>
+                <span *ngIf="u._syncStatus === 'hdc_only'" class="px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full text-[10px] font-bold">เฉพาะ HDC</span>
+              </td>
+            </tr>
+            <tr *ngIf="syncListFiltered.length === 0">
+              <td colspan="6" class="px-3 py-10 text-center text-gray-400 text-sm">ไม่มีข้อมูล</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="px-6 py-4 border-t flex justify-between items-center bg-gray-50 rounded-b-2xl">
+      <p class="text-xs text-gray-500"><i class="fas fa-info-circle mr-1"></i>UPSERT: ข้อมูลซ้ำจะถูกอัปเดต, ที่ไม่ซ้ำใน HDC ยังอยู่</p>
+      <div class="flex gap-2">
+        <button (click)="closeSyncModal()" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-xl text-sm font-bold">ยกเลิก</button>
+        <button (click)="executeSyncUsers()" [disabled]="syncSelected.size === 0 || syncExecuting"
+                class="px-6 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white rounded-xl text-sm font-bold shadow">
+          <i class="fas fa-cloud-upload-alt mr-1"></i>Sync → HDC ({{ syncSelected.size }})
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: จัดการสิทธิ์การแก้ไข (per-user) -->
+<div *ngIf="showPermModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg p-6">
+    <div class="flex justify-between items-center mb-4">
+      <h3 class="text-lg font-bold text-gray-800"><i class="fas fa-user-shield text-indigo-600 mr-2"></i>จัดการสิทธิ์การแก้ไข</h3>
+      <button (click)="closePermModal()" class="text-gray-400 hover:text-gray-600 text-xl"><i class="fas fa-times"></i></button>
+    </div>
+
+    <div *ngIf="permUser" class="space-y-4">
+      <!-- ข้อมูล user -->
+      <div class="bg-gray-50 rounded-xl p-3 border border-gray-200 text-sm">
+        <div class="font-bold text-gray-800">{{ permUser.firstname }} {{ permUser.lastname }}
+          <span class="text-gray-400 font-normal">(@{{ permUser.username }})</span>
+        </div>
+        <div class="text-xs text-gray-500 mt-1">
+          <span class="bg-gray-200 px-2 py-0.5 rounded-full">{{ permUser.role }}</span>
+          <span class="ml-2"><i class="fas fa-building text-blue-400 mr-1"></i>{{ permUser.dept_name || '-' }}</span>
+          <span class="ml-2"><i class="fas fa-hospital text-green-400 mr-1"></i>{{ permUser.hosname || permUser.hospcode || '-' }}</span>
+        </div>
+      </div>
+
+      <!-- คำอธิบาย -->
+      <div class="bg-blue-50 border border-blue-200 rounded-xl p-3 text-xs text-blue-900">
+        <i class="fas fa-info-circle mr-1"></i>กำหนดว่าผู้ใช้คนนี้แก้ไขอะไรได้บ้างในหน้าบันทึกผลงาน — ถ้าปิดสิทธิ์ ระบบจะคงค่าเดิมไว้ตอนบันทึก (แก้ไม่ได้)
+      </div>
+
+      <!-- Preset -->
+      <div class="flex flex-wrap gap-2">
+        <button (click)="permPresetActualOnly()" class="px-3 py-1.5 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-lg text-xs font-bold">แก้ผลงานอย่างเดียว</button>
+        <button (click)="permPresetBoth()" class="px-3 py-1.5 bg-emerald-100 hover:bg-emerald-200 text-emerald-700 rounded-lg text-xs font-bold">แก้เป้าหมาย+ผลงาน</button>
+        <button (click)="permPresetReadonly()" class="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-lg text-xs font-bold">ดูอย่างเดียว</button>
+      </div>
+
+      <!-- Toggles -->
+      <div class="space-y-2">
+        <label class="flex items-center justify-between gap-2 p-3 border rounded-xl cursor-pointer"
+               [ngClass]="permForm.can_edit_actual ? 'border-emerald-300 bg-emerald-50' : 'border-gray-200'">
+          <div>
+            <div class="font-medium text-gray-800"><i class="fas fa-chart-line text-emerald-600 mr-1"></i>แก้ไขผลงาน (actual)</div>
+            <div class="text-xs text-gray-500">กรอก/แก้ไขค่าผลงานรายเดือนได้</div>
+          </div>
+          <input type="checkbox" [(ngModel)]="permForm.can_edit_actual" class="w-5 h-5 accent-emerald-600">
+        </label>
+        <label class="flex items-center justify-between gap-2 p-3 border rounded-xl cursor-pointer"
+               [ngClass]="permForm.can_edit_target ? 'border-orange-300 bg-orange-50' : 'border-gray-200'">
+          <div>
+            <div class="font-medium text-gray-800"><i class="fas fa-bullseye text-orange-600 mr-1"></i>แก้ไขเป้าหมาย (target)</div>
+            <div class="text-xs text-gray-500">กรอก/แก้ไขค่าเป้าหมายได้</div>
+          </div>
+          <input type="checkbox" [(ngModel)]="permForm.can_edit_target" class="w-5 h-5 accent-orange-600">
+        </label>
+      </div>
+    </div>
+
+    <div class="mt-6 flex justify-end gap-2">
+      <button (click)="closePermModal()" class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg font-bold text-sm">ยกเลิก</button>
+      <button (click)="savePermissions()" [disabled]="permSaving" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-lg font-bold text-sm shadow-md">
+        <i class="fas fa-save mr-1"></i>{{ permSaving ? 'กำลังบันทึก...' : 'บันทึกสิทธิ์' }}
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: จัดการ LINE userId (super_admin) -->
+<div *ngIf="showLineModal" class="fixed inset-0 z-50 flex items-start justify-center bg-black/60 overflow-y-auto py-6 px-3">
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl my-auto">
+    <!-- Header -->
+    <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-emerald-600 to-emerald-500 rounded-t-2xl">
+      <div>
+        <h3 class="text-white font-bold flex items-center gap-2"><i class="fab fa-line text-xl"></i>จัดการ LINE userId</h3>
+        <p class="text-emerald-100 text-xs mt-0.5">{{ lineUser?.firstname }} {{ lineUser?.lastname }} ({{ lineUser?.username }})</p>
+      </div>
+      <button (click)="closeLineModal()" class="text-white/80 hover:text-white"><i class="fas fa-times text-xl"></i></button>
+    </div>
+
+    <div class="p-6 space-y-5">
+      <!-- Current state -->
+      <div class="bg-gray-50 border border-gray-200 rounded-xl p-3">
+        <p class="text-xs font-bold text-gray-500 uppercase mb-1">ปัจจุบัน</p>
+        <div *ngIf="lineUser?.line_user_id" class="flex items-center gap-2 text-sm">
+          <span class="inline-block w-2 h-2 bg-green-500 rounded-full"></span>
+          <code class="font-mono text-xs text-gray-700 bg-white border border-gray-200 rounded px-1.5 py-0.5">{{ lineUser.line_user_id }}</code>
+          <span class="text-xs text-gray-500">{{ lineUser.notif_line_enabled ? '(แจ้งเตือนเปิด)' : '(แจ้งเตือนปิด)' }}</span>
+        </div>
+        <p *ngIf="!lineUser?.line_user_id" class="text-sm text-gray-400 italic"><i class="fas fa-circle-minus mr-1"></i>ยังไม่ผูก LINE userId</p>
+      </div>
+
+      <!-- Input + toggle -->
+      <div>
+        <label class="block text-xs font-bold text-gray-600 mb-1">LINE userId</label>
+        <input type="text" [(ngModel)]="lineForm.line_user_id"
+               placeholder="Uxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+               class="w-full px-3 py-2 border border-emerald-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-400 outline-none font-mono">
+        <p class="text-[10px] text-gray-500 mt-1">U + 32 hex chars — หรือเลือกจาก Inbox ด้านล่าง / ปล่อยว่างเพื่อยกเลิก</p>
+      </div>
+
+      <label class="flex items-center gap-3 cursor-pointer p-3 bg-emerald-50/60 border border-emerald-200 rounded-lg">
+        <input type="checkbox" [(ngModel)]="lineForm.notif_line_enabled" class="w-5 h-5 accent-emerald-600">
+        <div>
+          <span class="font-bold text-sm text-gray-800">เปิดการแจ้งเตือน LINE สำหรับ user นี้</span>
+          <p class="text-[11px] text-gray-500">ปิดได้กรณี user ขอ unsubscribe — line_user_id ยังคงอยู่</p>
+        </div>
+      </label>
+
+      <!-- LINE Inbox (recent users who chatted with bot) -->
+      <div>
+        <div class="flex items-center justify-between mb-2">
+          <h4 class="text-sm font-bold text-gray-700 flex items-center gap-2">
+            <i class="fas fa-inbox text-emerald-600"></i>
+            LINE Inbox <span class="text-xs font-normal text-gray-500">(ผู้ทักเข้า bot ล่าสุด)</span>
+          </h4>
+          <button (click)="loadLineInbox()" class="text-xs text-emerald-600 hover:text-emerald-800">
+            <i class="fas fa-sync mr-1"></i>โหลดใหม่
+          </button>
+        </div>
+
+        <div *ngIf="lineInboxLoading" class="text-center py-6 text-gray-400">
+          <i class="fas fa-spinner fa-spin text-2xl mb-2"></i>
+          <p class="text-xs">กำลังโหลด...</p>
+        </div>
+
+        <div *ngIf="!lineInboxLoading && lineInbox.length === 0" class="text-center py-6 bg-gray-50 rounded-lg border border-dashed border-gray-300">
+          <i class="fas fa-inbox text-3xl text-gray-300 mb-2"></i>
+          <p class="text-xs text-gray-500">ยังไม่มีผู้ทักเข้า bot</p>
+          <p class="text-[10px] text-gray-400 mt-1">แจ้ง user ให้ add bot เป็นเพื่อนและทักข้อความ → จะปรากฏที่นี่</p>
+        </div>
+
+        <div *ngIf="!lineInboxLoading && lineInbox.length > 0" class="max-h-60 overflow-y-auto space-y-2 border border-gray-200 rounded-lg p-2 bg-gray-50">
+          <div *ngFor="let item of lineInbox" class="bg-white border rounded-lg p-2 transition-all"
+               [ngClass]="item.linked_user_id ? 'border-emerald-300' : 'border-gray-200 hover:border-emerald-400'">
+            <div class="flex items-start gap-2">
+              <img *ngIf="item.picture_url" [src]="item.picture_url" class="w-10 h-10 rounded-full flex-shrink-0">
+              <div *ngIf="!item.picture_url" class="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0">
+                <i class="fas fa-user text-emerald-600"></i>
+              </div>
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-2 flex-wrap">
+                  <span class="font-bold text-sm text-gray-800">{{ item.display_name || '(ไม่มีชื่อ)' }}</span>
+                  <span *ngIf="item.linked_user_id" class="text-[10px] px-1.5 py-0.5 bg-emerald-100 text-emerald-700 rounded-full font-bold">
+                    <i class="fas fa-link mr-0.5"></i>ผูกกับ {{ item.username }}
+                  </span>
+                  <span *ngIf="!item.linked_user_id" class="text-[10px] px-1.5 py-0.5 bg-gray-100 text-gray-500 rounded-full font-bold">ยังไม่ผูก</span>
+                </div>
+                <code class="block text-[10px] text-gray-600 font-mono mt-0.5 break-all">{{ item.line_user_id }}</code>
+                <p *ngIf="item.last_message" class="text-[11px] text-gray-500 mt-1 italic line-clamp-1">"{{ item.last_message }}"</p>
+                <p class="text-[10px] text-gray-400 mt-0.5">
+                  <i class="fas fa-clock"></i> {{ item.received_at | date:'short' }}
+                  <span class="ml-2"><i class="fas fa-comments"></i> {{ item.message_count }} ครั้ง</span>
+                </p>
+              </div>
+              <div class="flex flex-col gap-1 flex-shrink-0">
+                <button (click)="pickFromInbox(item)" class="px-2 py-1 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded text-[10px] font-bold transition-colors" title="วางใส่ช่องด้านบน">
+                  <i class="fas fa-arrow-up"></i>
+                </button>
+                <button (click)="assignInboxToUser(item)" class="px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-[10px] font-bold transition-colors" title="ผูกกับ user นี้ทันที">
+                  <i class="fas fa-link"></i>
+                </button>
+                <button (click)="archiveInbox(item)" class="px-2 py-1 bg-gray-200 hover:bg-gray-300 text-gray-600 rounded text-[10px] transition-colors" title="ซ่อน">
+                  <i class="fas fa-eye-slash"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="flex items-center justify-end gap-2 px-6 py-3 border-t border-gray-100 bg-gray-50 rounded-b-2xl">
+      <button (click)="testUserLine()" [disabled]="!lineForm.line_user_id"
+              class="px-4 py-2 bg-blue-500 hover:bg-blue-600 disabled:opacity-50 text-white rounded-lg text-sm font-bold transition-colors">
+        <i class="fab fa-line mr-1"></i>ทดสอบส่ง
+      </button>
+      <button (click)="saveUserLine()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-bold transition-colors">
+        <i class="fas fa-save mr-1"></i>บันทึก
+      </button>
+      <button (click)="closeLineModal()" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg text-sm font-bold transition-colors">ปิด</button>
+    </div>
+  </div>
+</div>

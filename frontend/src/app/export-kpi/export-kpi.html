@@ -1,0 +1,957 @@
+<div class="p-6">
+  <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+    <div class="p-6">
+
+      <!-- หัวข้อ -->
+      <div class="mb-2">
+        <h3 class="text-lg font-bold text-gray-800 mb-1">
+          <i class="fas fa-database me-2 text-indigo-600"></i>Export ข้อมูล KPI ลงตารางรายตัวชี้วัด
+        </h3>
+        <div class="flex flex-wrap items-center gap-2">
+          <p class="text-sm text-gray-500">สร้าง/อัปเดตตาราง MySQL แยกสำหรับแต่ละตัวชี้วัด เฉพาะ hospcode ที่มีข้อมูล อัปเดตเฉพาะค่าที่เปลี่ยนแปลง</p>
+          <button (click)="showGuide = !showGuide" class="text-xs text-blue-600 hover:text-blue-800 font-bold flex items-center gap-1 shrink-0">
+            <i class="fas" [class]="showGuide ? 'fa-chevron-up' : 'fa-question-circle'"></i>
+            {{showGuide ? 'ซ่อนคำแนะนำ' : 'คำแนะนำ'}}
+          </button>
+        </div>
+      </div>
+
+      <!-- คำแนะนำขั้นตอน (ซ่อนได้) — ครอบคลุมฟีเจอร์ทั้งหมด -->
+      @if (showGuide) {
+        <div class="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-xl space-y-4">
+
+          <!-- Section A: ขั้นตอนพื้นฐาน -->
+          <div>
+            <h5 class="font-bold text-blue-800 text-sm mb-2"><i class="fas fa-list-ol mr-1"></i>A. ขั้นตอนการ Export (พื้นฐาน)</h5>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 text-xs text-blue-700">
+              <div class="flex gap-2 p-2 bg-white rounded-lg">
+                <span class="flex items-center justify-center w-5 h-5 rounded-full bg-blue-600 text-white font-bold shrink-0">1</span>
+                <div><b>เลือกปีงบประมาณ</b> + ตัวกรอง (หมวดหมู่ / หน่วยงาน / สถานะ)</div>
+              </div>
+              <div class="flex gap-2 p-2 bg-white rounded-lg">
+                <span class="flex items-center justify-center w-5 h-5 rounded-full bg-amber-500 text-white font-bold shrink-0">2</span>
+                <div>กดปุ่ม <b class="text-amber-600">"ตรวจสอบข้อมูล"</b> — เทียบ kpi_results กับตาราง export (progress bar)</div>
+              </div>
+              <div class="flex gap-2 p-2 bg-white rounded-lg">
+                <span class="flex items-center justify-center w-5 h-5 rounded-full bg-indigo-600 text-white font-bold shrink-0">3</span>
+                <div>เลือก KPI ติ๊ก checkbox หรือคลิก card สรุปเพื่อกรองสถานะ</div>
+              </div>
+              <div class="flex gap-2 p-2 bg-white rounded-lg">
+                <span class="flex items-center justify-center w-5 h-5 rounded-full bg-green-600 text-white font-bold shrink-0">4</span>
+                <div>กด <b class="text-indigo-700">"ส่งออกข้อมูล"</b> — สร้าง/อัปเดตตาราง MySQL (local)</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Section B: ส่งเข้า HDC -->
+          <div class="border-t border-blue-200 pt-3">
+            <h5 class="font-bold text-teal-800 text-sm mb-2"><i class="fas fa-cloud-upload-alt mr-1"></i>B. ส่งข้อมูลเข้า HDC (Manual)</h5>
+            <ol class="list-decimal ml-5 text-xs text-gray-700 space-y-1">
+              <li>หลัง export เสร็จ → กดปุ่ม <b class="text-teal-700">"ส่งข้อมูลเข้า HDC"</b> (teal)</li>
+              <li>Modal แสดงรายการตาราง + จำนวน rows local/remote + สถานะ (<span class="text-green-600">ready</span> / <span class="text-gray-500">empty</span> / <span class="text-red-600">no_remote</span>)</li>
+              <li>เลือกตารางที่ต้องการ → กด "ส่งข้อมูล" — ใช้ <b>UPSERT</b> (INSERT ... ON DUPLICATE KEY UPDATE) ข้อมูลเดิมใน HDC ที่ไม่ซ้ำยังคงอยู่</li>
+            </ol>
+          </div>
+
+          <!-- Section C: Schedule อัตโนมัติ -->
+          <div class="border-t border-blue-200 pt-3">
+            <h5 class="font-bold text-indigo-800 text-sm mb-2"><i class="fas fa-clock mr-1"></i>C. ตารางเวลา Export อัตโนมัติ (Schedule)</h5>
+            <p class="text-xs text-gray-700 mb-2">ตั้งให้ระบบ export (และส่ง HDC) อัตโนมัติตามวัน-เวลาที่กำหนด พร้อมส่งรายงานสรุป</p>
+            <ol class="list-decimal ml-5 text-xs text-gray-700 space-y-1">
+              <li>กดปุ่ม <b class="text-purple-700">"ตารางเวลา Export อัตโนมัติ"</b> (gradient ม่วง-คราม) → Modal รายการ schedule</li>
+              <li>กด <b>"+ เพิ่ม Schedule"</b> → ตั้งค่า:
+                <ul class="list-disc ml-5 mt-1 space-y-0.5">
+                  <li>ชื่อ, เปิดใช้งาน (toggle), เวลา (HH:MM), ปีงบฯ, เลือกวัน จ.-อา.</li>
+                  <li><b>ขอบเขตตัวชี้วัด</b> (3 โหมด) — เลือกวิธีคัดกรอง KPI</li>
+                  <li><b>Auto Sync HDC</b> (optional) — หลัง export เสร็จจะ sync ทันที</li>
+                  <li><b>Email/Telegram</b> — toggle ส่งรายงาน (recipients จากหน้าตั้งค่าระบบ)</li>
+                </ul>
+              </li>
+              <li>กด <b>บันทึก</b> → scheduler backend ตรวจทุก 1 นาที — ถ้าตรง HH:MM + วัน → รัน export</li>
+            </ol>
+            <div class="mt-2 grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+              <div class="bg-indigo-100 rounded-lg p-2 text-indigo-700">
+                <b><i class="fas fa-magic mr-1"></i>changes_only</b> (แนะนำ) — ตรวจสอบก่อน export เฉพาะตัวชี้วัดที่มีการเพิ่ม/แก้ไข
+              </div>
+              <div class="bg-gray-100 rounded-lg p-2 text-gray-700">
+                <b><i class="fas fa-globe mr-1"></i>all</b> — export ทุกตัวชี้วัดเสมอ (ไม่เช็คความเปลี่ยนแปลง)
+              </div>
+              <div class="bg-gray-100 rounded-lg p-2 text-gray-700">
+                <b><i class="fas fa-check-square mr-1"></i>selected</b> — ใช้รายการที่ติ๊กใน checkbox ด้านบน
+              </div>
+            </div>
+            <div class="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+              <div class="bg-teal-100 rounded-lg p-2 text-teal-800">
+                <b><i class="fas fa-play mr-1"></i>รันตอนนี้</b> — ทดลองรัน schedule ทันที (ใช้การตั้งค่าปัจจุบัน)
+              </div>
+              <div class="bg-gray-200 rounded-lg p-2 text-gray-700">
+                <b><i class="fas fa-history mr-1"></i>ประวัติ (logs)</b> — ดูผลการรัน 50 ครั้งล่าสุด (inserted, updated, errors)
+              </div>
+              <div class="bg-amber-100 rounded-lg p-2 text-amber-800">
+                <b><i class="fas fa-edit mr-1"></i>แก้ไข</b> — ปรับการตั้งค่า schedule
+              </div>
+              <div class="bg-red-100 rounded-lg p-2 text-red-700">
+                <b><i class="fas fa-trash mr-1"></i>ลบ</b> — ลบ schedule (ไม่กระทบข้อมูลที่ export ไปแล้ว)
+              </div>
+            </div>
+          </div>
+
+          <!-- Section D: Tips & Warnings -->
+          <div class="border-t border-blue-200 pt-3">
+            <h5 class="font-bold text-gray-800 text-sm mb-2"><i class="fas fa-lightbulb mr-1 text-yellow-500"></i>D. เคล็ดลับ + คำเตือน</h5>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+              <div class="bg-green-50 border border-green-200 rounded-lg p-2 text-green-800">
+                <i class="fas fa-shield-alt mr-1"></i><b>Content-based diff</b> — ระบบเทียบค่า target, result, m10-m09, form fields ทีละคอลัมน์ → ข้ามถ้าเหมือนเดิม
+              </div>
+              <div class="bg-blue-50 border border-blue-200 rounded-lg p-2 text-blue-800">
+                <i class="fas fa-bolt mr-1"></i><b>result = ค่าเดือนล่าสุดที่คีย์</b> (ไม่ใช่ SUM) — เหมือน last_actual
+              </div>
+              <div class="bg-amber-50 border border-amber-200 rounded-lg p-2 text-amber-800">
+                <i class="fas fa-mouse-pointer mr-1"></i><b>คลิก Card สรุป</b> เพื่อกรองเฉพาะสถานะนั้น — คลิกซ้ำเพื่อยกเลิก
+              </div>
+              <div class="bg-red-50 border border-red-200 rounded-lg p-2 text-red-800">
+                <i class="fas fa-exclamation-triangle mr-1"></i><b>Auto Sync HDC</b> — ข้อมูลจะเข้า HDC โดยไม่ผ่านการตรวจสอบ — เปิดเมื่อมั่นใจในคุณภาพข้อมูล
+              </div>
+              <div class="bg-purple-50 border border-purple-200 rounded-lg p-2 text-purple-800">
+                <i class="fas fa-envelope mr-1"></i><b>Email/Telegram recipients</b> ตั้งในหน้า <b>ตั้งค่าระบบ</b> (keys: admin_emails, telegram_chat_id, telegram_bot_token)
+              </div>
+              <div class="bg-gray-100 border border-gray-300 rounded-lg p-2 text-gray-700">
+                <i class="fas fa-layer-group mr-1"></i><b>Dedupe:</b> หลายตัวชี้วัดที่ใช้ table_process เดียวกันนับเป็น 1 ตารางเสมอ
+              </div>
+            </div>
+          </div>
+        </div>
+      }
+
+      <!-- ขั้นตอนที่ 1: ปีงบประมาณ + ขั้นตอนที่ 2: ตรวจสอบ + Reset -->
+      <div class="flex flex-wrap items-end gap-3 mb-4">
+        <div>
+          <div class="text-xs font-bold text-gray-600 mb-1 flex items-center gap-1">
+            <span class="flex items-center justify-center w-4 h-4 rounded-full bg-blue-600 text-white text-[10px] font-bold">1</span>
+            ปีงบประมาณ
+          </div>
+          <select [(ngModel)]="exportYear"
+                  class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none w-28">
+            @for (y of yearOptions; track y) {
+              <option [value]="y">{{y}}</option>
+            }
+          </select>
+        </div>
+        <div class="flex items-end gap-2">
+          <button (click)="checkBeforeExport()" [disabled]="checkLoading || exportLoading"
+                  class="px-4 py-2 bg-amber-500 hover:bg-amber-600 disabled:bg-gray-400 text-white font-bold text-sm rounded-lg shadow transition-colors flex items-center gap-1.5">
+            <span class="flex items-center justify-center w-4 h-4 rounded-full bg-white/30 text-white text-[10px] font-bold">2</span>
+            @if (checkLoading) {
+              <i class="fas fa-spinner fa-spin"></i>กำลังตรวจสอบ...
+            } @else {
+              <i class="fas fa-search-plus"></i>ตรวจสอบข้อมูล
+            }
+          </button>
+          <button (click)="resetAll()" [disabled]="checkLoading || exportLoading"
+                  class="px-4 py-2 bg-gray-500 hover:bg-gray-600 disabled:bg-gray-300 text-white font-bold text-sm rounded-lg shadow transition-colors">
+            <i class="fas fa-undo me-1"></i>Reset
+          </button>
+        </div>
+      </div>
+
+      <!-- Progress Bar -->
+      @if (checkLoading) {
+        <div class="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-xl">
+          <div class="flex justify-between items-center mb-1">
+            <span class="text-xs font-bold text-gray-600">
+              ตรวจสอบแล้ว {{checkProgress.done}}/{{checkProgress.total}} รายการ
+              <span class="text-gray-400 ms-1">(คงเหลือ {{checkProgress.total - checkProgress.done}})</span>
+            </span>
+            <span class="text-xs font-bold text-indigo-600">{{checkProgress.percent}}%</span>
+          </div>
+          <div class="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+            <div class="bg-gradient-to-r from-amber-400 to-amber-500 h-3 rounded-full transition-all duration-300 ease-out"
+                 [style.width.%]="checkProgress.percent"></div>
+          </div>
+        </div>
+      }
+
+      <!-- สรุปจำนวน (เลขวิ่ง animated, คงค่าจากผลตรวจสอบ) -->
+      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-4">
+        <div class="bg-white rounded-xl p-4 border-2 text-center cursor-pointer hover:border-indigo-400 transition-all"
+             [class.border-indigo-400]="!filterCheckStatus" [class.shadow-md]="!filterCheckStatus"
+             (click)="filterCheckStatus = ''; applyFilters()">
+          <div class="text-3xl font-bold text-gray-800 tabular-nums">{{displayCounters.total}}</div>
+          <div class="text-xs text-gray-500 mt-1">ตัวชี้วัดทั้งหมด</div>
+        </div>
+        <div class="bg-white rounded-xl p-4 border-2 text-center cursor-pointer hover:border-orange-400 transition-all"
+             [class.border-orange-400]="filterCheckStatus === 'has_changes'" [class.shadow-md]="filterCheckStatus === 'has_changes'"
+             (click)="filterCheckStatus = filterCheckStatus === 'has_changes' ? '' : 'has_changes'; applyFilters()">
+          <div class="text-3xl font-bold text-orange-600 tabular-nums">{{displayCounters.has_changes}}</div>
+          <div class="text-xs text-orange-600 mt-1">ตัวชี้วัดที่เพิ่ม/แก้ไข</div>
+        </div>
+        <div class="bg-white rounded-xl p-4 border-2 text-center">
+          <div class="text-3xl font-bold text-rose-600 tabular-nums">{{displayCounters.data_changes}}</div>
+          <div class="text-xs text-rose-600 mt-1">จำนวนข้อมูลที่เปลี่ยนแปลง</div>
+        </div>
+        <div class="bg-white rounded-xl p-4 border-2 text-center cursor-pointer hover:border-green-400 transition-all"
+             [class.border-green-400]="filterCheckStatus === 'up_to_date'" [class.shadow-md]="filterCheckStatus === 'up_to_date'"
+             (click)="filterCheckStatus = filterCheckStatus === 'up_to_date' ? '' : 'up_to_date'; applyFilters()">
+          <div class="text-3xl font-bold text-green-600 tabular-nums">{{displayCounters.up_to_date}}</div>
+          <div class="text-xs text-green-600 mt-1">ข้อมูลล่าสุดแล้ว</div>
+        </div>
+        <div class="bg-white rounded-xl p-4 border-2 text-center cursor-pointer hover:border-gray-400 transition-all"
+             [class.border-gray-400]="filterCheckStatus === 'no_data'" [class.shadow-md]="filterCheckStatus === 'no_data'"
+             (click)="filterCheckStatus = filterCheckStatus === 'no_data' ? '' : 'no_data'; applyFilters()">
+          <div class="text-3xl font-bold text-gray-400 tabular-nums">{{displayCounters.no_data}}</div>
+          <div class="text-xs text-gray-400 mt-1">ไม่มีข้อมูล</div>
+        </div>
+        <div class="bg-white rounded-xl p-4 border-2 text-center">
+          <div class="text-3xl font-bold text-slate-400 tabular-nums">{{displayCounters.unchecked}}</div>
+          <div class="text-xs text-slate-400 mt-1">ยังไม่ตรวจสอบ</div>
+        </div>
+      </div>
+
+      @if (checkResult) {
+        <div class="flex flex-wrap items-center gap-3 text-xs mb-4 px-1">
+          <span class="text-gray-500"><i class="fas fa-clock me-1"></i>ตรวจสอบเมื่อ: {{checkResult.check_date | date:'dd/MM/yyyy HH:mm:ss'}}</span>
+          @if (checkResult.summary.has_changes > 0) {
+            <button (click)="selectOnlyChanged()" class="text-orange-600 hover:text-orange-800 font-bold underline">
+              <i class="fas fa-filter me-1"></i>เลือกเฉพาะที่มีการเปลี่ยนแปลง ({{checkResult.summary.has_changes}})
+            </button>
+          }
+        </div>
+      }
+
+      <!-- ตัวกรอง -->
+      <div class="mb-4">
+        <div class="text-xs font-bold text-gray-500 mb-2">ตัวกรองรายการ</div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div>
+            <label class="block text-xs font-bold text-gray-600 mb-1"><i class="fas fa-layer-group me-1 text-purple-500"></i>หมวดหมู่หลัก</label>
+            <select [(ngModel)]="filterMainIndicator" (ngModelChange)="onFilterChange()"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+              <option value="">ทั้งหมด</option>
+              @for (mi of mainIndicators; track mi.id) {
+                <option [value]="mi.id">{{mi.main_indicator_name}}</option>
+              }
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-gray-600 mb-1"><i class="fas fa-building me-1 text-green-500"></i>หน่วยงาน</label>
+            <select [(ngModel)]="filterDept" (ngModelChange)="onFilterChange()"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+              <option value="">ทั้งหมด</option>
+              @for (dept of departments; track dept.id) {
+                <option [value]="dept.id">{{dept.dept_name}}</option>
+              }
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-gray-600 mb-1"><i class="fas fa-toggle-on me-1 text-yellow-500"></i>สถานะ</label>
+            <select [(ngModel)]="filterStatus" (ngModelChange)="onFilterChange()"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+              <option value="">ทั้งหมด</option>
+              <option value="active">เปิดใช้งาน</option>
+              <option value="inactive">ปิดใช้งาน</option>
+            </select>
+          </div>
+          <div class="flex items-end">
+            <button (click)="clearFilters()"
+                    class="w-full px-3 py-2 border border-gray-300 hover:bg-gray-50 text-gray-600 text-sm rounded-lg transition-colors">
+              <i class="fas fa-times me-1"></i>ล้างตัวกรอง
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ขั้นตอนที่ 3: เลือกตัวชี้วัด -->
+      <div class="mb-4">
+        <div class="text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
+          <span class="flex items-center justify-center w-5 h-5 rounded-full bg-indigo-600 text-white text-xs font-bold">3</span>
+          เลือกตัวชี้วัดที่ต้องการส่งออก
+          <span class="text-indigo-600 font-normal text-xs ms-1">(เลือกแล้ว {{selectedIndicatorIds.size}} / แสดง {{filteredExportIndicators.length}} / ทั้งหมด {{exportIndicators.length}})</span>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-4 mb-3">
+          <label class="inline-flex items-center cursor-pointer">
+            <input type="checkbox" [(ngModel)]="selectAll" (change)="toggleSelectAll()" class="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500">
+            <span class="ms-2 text-sm font-medium text-gray-700">เลือกทั้งหมด</span>
+          </label>
+          <div class="flex-1 min-w-[200px] max-w-md">
+            <input type="text" [(ngModel)]="exportSearch" (ngModelChange)="applyFilters()" placeholder="ค้นหาตัวชี้วัด..."
+                   class="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+          </div>
+        </div>
+
+        <div class="border border-gray-200 rounded-lg max-h-80 overflow-y-auto bg-gray-50">
+          @for (ind of filteredExportIndicators; track ind.id) {
+            <label class="flex items-start gap-3 px-4 py-2.5 hover:bg-indigo-50 cursor-pointer border-b border-gray-100 last:border-b-0 transition-colors"
+                   [class.bg-orange-50]="getCheckStatus(ind.id)?.status === 'has_changes'"
+                   [class.bg-green-50]="getCheckStatus(ind.id)?.status === 'up_to_date'">
+              <input type="checkbox" [checked]="isIndicatorSelected(ind.id)" (change)="toggleIndicator(ind.id)"
+                     class="w-4 h-4 mt-0.5 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500">
+              <div class="flex-1 min-w-0">
+                <div class="text-sm text-gray-800 leading-snug">{{ind.kpi_indicators_name}}</div>
+                <div class="flex flex-wrap gap-x-4 gap-y-0.5 mt-1">
+                  <span class="text-xs text-gray-400">table: {{ind.table_process}}</span>
+                  <span *ngIf="ind.dept_name" class="text-xs text-green-600"><i class="fas fa-building me-0.5"></i>{{ind.dept_name}}</span>
+                  <span *ngIf="ind.main_indicator_name" class="text-xs text-purple-600"><i class="fas fa-layer-group me-0.5"></i>{{ind.main_indicator_name}}</span>
+                  <span class="text-xs" [class]="ind.is_active ? 'text-emerald-500' : 'text-red-400'">
+                    <i class="fas" [class]="ind.is_active ? 'fa-check-circle' : 'fa-times-circle'"></i>
+                    {{ind.is_active ? 'เปิดใช้งาน' : 'ปิดใช้งาน'}}
+                  </span>
+                </div>
+                @if (getCheckStatus(ind.id); as chk) {
+                  <div class="flex flex-wrap gap-x-3 mt-1">
+                    @if (chk.status === 'has_changes') {
+                      <span class="text-xs font-bold text-orange-600"><i class="fas fa-exclamation-circle me-0.5"></i>มีการเปลี่ยนแปลง</span>
+                      <span class="text-xs text-blue-600">+{{chk.new_count}} ใหม่</span>
+                      <span class="text-xs text-orange-500">~{{chk.changed_count}} แก้ไข</span>
+                      <span class="text-xs text-gray-400">=={{chk.unchanged_count}} เหมือนเดิม</span>
+                      <span class="text-xs text-gray-400">({{chk.hospcode_count}} hospcode)</span>
+                    } @else if (chk.status === 'up_to_date') {
+                      <span class="text-xs font-bold text-green-600"><i class="fas fa-check-circle me-0.5"></i>ข้อมูลล่าสุดแล้ว ({{chk.hospcode_count}} hospcode)</span>
+                    } @else if (chk.status === 'no_data') {
+                      <span class="text-xs font-bold text-gray-400"><i class="fas fa-minus-circle me-0.5"></i>ไม่มีข้อมูลในปีนี้</span>
+                    } @else if (chk.status === 'invalid_name') {
+                      <span class="text-xs font-bold text-red-400"><i class="fas fa-times-circle me-0.5"></i>ชื่อตารางไม่ถูกต้อง</span>
+                    }
+                  </div>
+                }
+              </div>
+            </label>
+          }
+          @if (filteredExportIndicators.length === 0) {
+            <div class="px-4 py-6 text-center text-sm text-gray-400">ไม่พบตัวชี้วัดที่ตรงกับเงื่อนไข</div>
+          }
+        </div>
+      </div>
+
+      <!-- ขั้นตอนที่ 4: ส่งออก -->
+      <div class="mb-4">
+        <div class="text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
+          <span class="flex items-center justify-center w-5 h-5 rounded-full bg-green-600 text-white text-xs font-bold">4</span>
+          ส่งออกข้อมูล
+        </div>
+        <div class="flex flex-wrap items-center gap-3">
+          <!-- Action กลุ่ม: ส่งออก + ส่งเข้า HDC -->
+          <button (click)="exportKpiTables()" [disabled]="exportLoading || selectedIndicatorIds.size === 0"
+                  class="inline-flex items-center gap-2 px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-400 text-white font-bold rounded-xl shadow-md transition-colors">
+            @if (exportLoading) {
+              <i class="fas fa-spinner fa-spin"></i><span>กำลังส่งออก...</span>
+            } @else {
+              <i class="fas fa-file-export"></i><span>ส่งออกข้อมูล ({{selectedIndicatorIds.size}})</span>
+            }
+          </button>
+          <button (click)="openSyncToHdc()"
+                  class="inline-flex items-center gap-2 px-6 py-2.5 bg-teal-600 hover:bg-teal-700 text-white font-bold rounded-xl shadow-md transition-colors">
+            <i class="fas fa-cloud-upload-alt"></i>
+            <span>ส่งข้อมูลเข้า HDC</span>
+          </button>
+
+          <!-- ตัวคั่นกลุ่ม: Settings -->
+          <span class="hidden sm:inline-block h-8 w-px bg-gray-300 mx-1"></span>
+
+          <!-- Settings: ตารางเวลา -->
+          <button (click)="openSettingsModal()"
+                  class="inline-flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-bold rounded-xl shadow-md transition-colors">
+            <i class="fas fa-clock"></i>
+            <span>ตารางเวลา Export อัตโนมัติ</span>
+            <span *ngIf="schedules.length > 0" class="ml-1 px-2 py-0.5 bg-white/20 rounded-full text-xs font-bold">
+              {{ schedules.length }}
+            </span>
+          </button>
+        </div>
+      </div>
+
+      <!-- ผลการส่งออก -->
+      @if (exportResult) {
+        <div class="mt-4 p-4 rounded-lg" [class]="exportResult.success ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'">
+          <div class="font-bold text-sm mb-2" [class]="exportResult.success ? 'text-green-800' : 'text-red-800'">
+            <i [class]="exportResult.success ? 'fas fa-check-circle me-1' : 'fas fa-times-circle me-1'"></i>
+            {{exportResult.message}}
+          </div>
+
+          @if (exportResult.success && exportResult.summary) {
+            <div class="flex flex-wrap gap-4 text-xs mb-3">
+              <span class="text-blue-600"><i class="fas fa-plus-circle me-1"></i>เพิ่มใหม่: {{exportResult.summary.inserted}}</span>
+              <span class="text-orange-600"><i class="fas fa-sync-alt me-1"></i>อัปเดต: {{exportResult.summary.updated}}</span>
+              <span class="text-gray-500"><i class="fas fa-check me-1"></i>ไม่เปลี่ยนแปลง: {{exportResult.summary.unchanged}}</span>
+              <span class="text-gray-400"><i class="fas fa-minus-circle me-1"></i>ไม่มีผลงาน (ข้าม): {{exportResult.summary.no_data || 0}}</span>
+            </div>
+          }
+
+          @if (exportResult.success && exportResult.created_tables?.length > 0) {
+            <div class="text-xs text-green-700 mb-2">ตารางที่ดำเนินการ ({{exportResult.created_tables.length}}):</div>
+            <div class="max-h-40 overflow-y-auto">
+              @for (t of exportResult.created_tables; track t.table) {
+                <div class="text-xs text-green-600 py-0.5">
+                  <i class="fas fa-table me-1"></i>{{t.table}}
+                  <span class="text-gray-400 ms-1">(hospcode: {{t.total_hospcode}} | +{{t.inserted}} / ~{{t.updated}} / ={{t.unchanged}} / ✗{{t.no_data || 0}})</span>
+                </div>
+              }
+            </div>
+          }
+
+          @if (exportResult.skipped?.length > 0) {
+            <div class="text-xs text-orange-700 mt-2 mb-1">ข้ามรายการ ({{exportResult.skipped.length}}):</div>
+            @for (s of exportResult.skipped; track s.id) {
+              <div class="text-xs text-orange-600 py-0.5"><i class="fas fa-exclamation-triangle me-1"></i>{{s.name}} - {{s.reason}}</div>
+            }
+          }
+        </div>
+      }
+
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Sync to HDC -->
+@if (showSyncModal) {
+<div class="fixed inset-0 z-50 flex items-start justify-center bg-black/60 overflow-y-auto py-4 px-2">
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-5xl my-auto">
+    <!-- Header -->
+    <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-teal-700 to-teal-600 rounded-t-2xl">
+      <div>
+        <h3 class="text-lg font-bold text-white flex items-center gap-2">
+          <i class="fas fa-cloud-upload-alt"></i> ส่งข้อมูลเข้า HDC
+        </h3>
+        <p class="text-teal-200 text-sm mt-0.5">ตรวจสอบตารางที่จะส่งออกไปยัง HDC Remote Database</p>
+      </div>
+      <button (click)="showSyncModal = false" class="text-white/70 hover:text-white"><i class="fas fa-times text-xl"></i></button>
+    </div>
+
+    <div class="p-6">
+      <!-- คำแนะนำขั้นตอน (ซ่อนได้) -->
+      <div class="mb-4">
+        <button (click)="showSyncGuide = !showSyncGuide" class="flex items-center gap-2 text-sm font-bold text-teal-700 hover:text-teal-900 transition-colors">
+          <i class="fas" [ngClass]="showSyncGuide ? 'fa-chevron-up' : 'fa-question-circle'"></i>
+          {{ showSyncGuide ? 'ซ่อนคำแนะนำ' : 'คำแนะนำขั้นตอน' }}
+        </button>
+        <div *ngIf="showSyncGuide" class="mt-3 bg-teal-50 border border-teal-200 rounded-xl p-4">
+          <h4 class="font-bold text-teal-800 text-sm mb-3"><i class="fas fa-list-ol mr-2"></i>ขั้นตอนการส่งข้อมูลเข้า HDC</h4>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+            <div class="flex items-start gap-3">
+              <span class="flex items-center justify-center w-7 h-7 rounded-full bg-teal-600 text-white text-xs font-bold shrink-0">1</span>
+              <div>
+                <p class="font-bold text-gray-800">ตรวจสอบตาราง</p>
+                <p class="text-xs text-gray-500">ระบบตรวจสอบตาราง export ใน Local เทียบกับ HDC อัตโนมัติ</p>
+              </div>
+            </div>
+            <div class="flex items-start gap-3">
+              <span class="flex items-center justify-center w-7 h-7 rounded-full bg-teal-600 text-white text-xs font-bold shrink-0">2</span>
+              <div>
+                <p class="font-bold text-gray-800">ตรวจสอบสถานะ</p>
+                <p class="text-xs text-gray-500"><b class="text-green-600">พร้อมส่ง</b> = มีข้อมูล + มีตารางใน HDC | <b class="text-amber-600">ไม่มีใน HDC</b> = ต้องสร้างตารางก่อน</p>
+              </div>
+            </div>
+            <div class="flex items-start gap-3">
+              <span class="flex items-center justify-center w-7 h-7 rounded-full bg-teal-600 text-white text-xs font-bold shrink-0">3</span>
+              <div>
+                <p class="font-bold text-gray-800">เลือกตารางที่ต้องการ</p>
+                <p class="text-xs text-gray-500">เลือก checkbox ทีละตาราง หรือกด "เลือกทั้งหมดที่พร้อมส่ง"</p>
+              </div>
+            </div>
+            <div class="flex items-start gap-3">
+              <span class="flex items-center justify-center w-7 h-7 rounded-full bg-teal-600 text-white text-xs font-bold shrink-0">4</span>
+              <div>
+                <p class="font-bold text-gray-800">กดส่งข้อมูล</p>
+                <p class="text-xs text-gray-500">ระบบ UPSERT ข้อมูล — อัปเดตเฉพาะ key ที่ตรงกัน ข้อมูลเดิมใน HDC ที่ไม่ซ้ำยังอยู่</p>
+              </div>
+            </div>
+          </div>
+          <div class="mt-3 bg-white border border-teal-200 rounded-lg p-3 text-xs text-teal-700">
+            <p><i class="fas fa-info-circle mr-1"></i><b>Sync columns</b> = คอลัมน์ที่มีทั้ง Local และ HDC — ระบบจะอัปเดตเฉพาะคอลัมน์เหล่านี้</p>
+            <p class="mt-1"><i class="fas fa-shield-alt mr-1"></i>ระบบใช้ <b>INSERT ... ON DUPLICATE KEY UPDATE</b> ไม่ลบข้อมูลเดิม</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Loading -->
+      @if (syncLoading && syncPreviewData.length === 0) {
+        <div class="flex items-center justify-center py-12">
+          <div class="text-center">
+            <div class="animate-spin rounded-full h-12 w-12 border-4 border-teal-200 border-t-teal-600 mx-auto mb-3"></div>
+            <p class="text-gray-500">กำลังตรวจสอบตาราง...</p>
+          </div>
+        </div>
+      }
+
+      <!-- Preview Table -->
+      @if (syncPreviewData.length > 0) {
+        <!-- Filter + Search -->
+        <div class="flex flex-col sm:flex-row gap-2 mb-3 items-stretch sm:items-end">
+          <div class="relative flex-1">
+            <label class="absolute -top-2 left-3 bg-white px-1 text-xs font-bold text-gray-500 z-10">ค้นหา</label>
+            <input type="text" [(ngModel)]="syncSearch"
+                   placeholder="ชื่อตาราง / ชื่อตัวชี้วัด..."
+                   class="w-full pl-4 pr-9 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 outline-none text-sm hover:border-teal-400 transition-colors">
+            <button *ngIf="syncSearch" (click)="syncSearch = ''"
+                    class="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-500 p-1" title="ล้างค้นหา">
+              <i class="fas fa-times-circle"></i>
+            </button>
+          </div>
+          <div class="flex gap-1 flex-wrap">
+            <button (click)="syncStatusFilter = ''"
+                    [ngClass]="syncStatusFilter === '' ? 'bg-gray-700 text-white' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'"
+                    class="px-3 py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap">
+              ทั้งหมด ({{ syncPreviewData.length }})
+            </button>
+            <button (click)="syncStatusFilter = 'ready'"
+                    [ngClass]="syncStatusFilter === 'ready' ? 'bg-green-600 text-white' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'"
+                    class="px-3 py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap">
+              <i class="fas fa-check-circle mr-1"></i>พร้อมส่ง ({{ getSyncCount('ready') }})
+            </button>
+            <button (click)="syncStatusFilter = 'no_remote'"
+                    [ngClass]="syncStatusFilter === 'no_remote' ? 'bg-amber-500 text-white' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'"
+                    class="px-3 py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap">
+              <i class="fas fa-exclamation-circle mr-1"></i>ไม่มีใน HDC ({{ getSyncCount('no_remote') }})
+            </button>
+            <button (click)="syncStatusFilter = 'empty'"
+                    [ngClass]="syncStatusFilter === 'empty' ? 'bg-gray-500 text-white' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'"
+                    class="px-3 py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap">
+              <i class="fas fa-inbox mr-1"></i>ไม่มีข้อมูล ({{ getSyncCount('empty') }})
+            </button>
+            <button *ngIf="syncSearch || syncStatusFilter" (click)="clearSyncFilters()"
+                    class="px-3 py-2 bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 rounded-lg text-xs font-bold transition-all whitespace-nowrap" title="ล้างตัวกรองทั้งหมด">
+              <i class="fas fa-times mr-1"></i>ล้างตัวกรอง
+            </button>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-between mb-2">
+          <label class="flex items-center gap-2 text-sm font-bold text-teal-700 cursor-pointer">
+            <input type="checkbox" [checked]="isAllSyncSelected"
+                   [indeterminate]="isPartialSyncSelected"
+                   (change)="toggleSyncAll()"
+                   class="rounded text-teal-600 focus:ring-teal-400 h-4 w-4">
+            เลือกทั้งหมดที่พร้อมส่ง (ในรายการที่กรอง)
+          </label>
+          <span class="text-sm text-gray-500">
+            แสดง: <b class="text-teal-700">{{ filteredSyncPreview.length }}</b> / {{ syncPreviewData.length }} ตาราง
+            | เลือก: <b class="text-emerald-700">{{ syncSelectedTables.size }}</b>
+          </span>
+        </div>
+
+        <div class="max-h-[50vh] overflow-y-auto border border-gray-200 rounded-xl" style="scrollbar-width: thin;">
+          <table class="w-full text-sm">
+            <thead class="bg-teal-700 text-white sticky top-0">
+              <tr>
+                <th class="px-4 py-3 w-10"></th>
+                <th class="px-4 py-3 text-left">ตาราง</th>
+                <th class="px-4 py-3 text-left">ชื่อตัวชี้วัด</th>
+                <th class="px-4 py-3 text-center">Local rows</th>
+                <th class="px-4 py-3 text-center">HDC rows</th>
+                <th class="px-4 py-3 text-center">Sync columns</th>
+                <th class="px-4 py-3 text-center">สถานะ</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+              @if (filteredSyncPreview.length === 0) {
+                <tr><td colspan="7" class="px-4 py-8 text-center text-gray-400 text-sm">
+                  <i class="fas fa-filter text-2xl mb-2 block"></i>ไม่พบรายการที่ตรงกับตัวกรอง
+                </td></tr>
+              }
+              @for (t of filteredSyncPreview; track t.table) {
+                <tr class="hover:bg-teal-50/30" [class.bg-teal-50]="syncSelectedTables.has(t.table)">
+                  <td class="px-4 py-3 text-center">
+                    <input type="checkbox" [checked]="syncSelectedTables.has(t.table)"
+                           (change)="toggleSyncTable(t.table)" [disabled]="t.status !== 'ready'"
+                           class="rounded text-teal-600 focus:ring-teal-400 h-4 w-4">
+                  </td>
+                  <td class="px-4 py-3 font-mono font-bold text-gray-800">{{ t.table }}</td>
+                  <td class="px-4 py-3 text-gray-600 max-w-[250px] truncate" [title]="t.name">{{ t.name }}</td>
+                  <td class="px-4 py-3 text-center font-bold text-green-700">{{ t.local_rows }}</td>
+                  <td class="px-4 py-3 text-center font-bold text-blue-700">{{ t.remote_rows }}</td>
+                  <td class="px-4 py-3 text-center text-gray-500">{{ t.sync_columns?.length || 0 }}</td>
+                  <td class="px-4 py-3 text-center">
+                    @if (t.status === 'ready') {
+                      <span class="px-2.5 py-1 bg-green-100 text-green-700 rounded-full text-xs font-bold">พร้อมส่ง</span>
+                    } @else if (t.status === 'empty') {
+                      <span class="px-2.5 py-1 bg-gray-100 text-gray-500 rounded-full text-xs font-bold">ไม่มีข้อมูล</span>
+                    } @else if (t.status === 'no_remote') {
+                      <span class="px-2.5 py-1 bg-amber-100 text-amber-700 rounded-full text-xs font-bold">ไม่มีใน HDC</span>
+                    } @else {
+                      <span class="px-2.5 py-1 bg-red-100 text-red-600 rounded-full text-xs font-bold">{{ t.status }}</span>
+                    }
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </div>
+
+    <!-- Footer -->
+    <div class="px-6 py-4 border-t border-gray-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-gray-50 rounded-b-2xl">
+      <p class="text-sm text-gray-500"><i class="fas fa-info-circle text-teal-500 mr-1"></i>อัปเดตเฉพาะข้อมูลที่ตรง key — ข้อมูลเดิมใน HDC ที่ไม่ซ้ำจะยังอยู่</p>
+      <div class="flex gap-2">
+        <button (click)="showSyncModal = false" class="px-5 py-2.5 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-xl text-sm font-bold transition-all">
+          ยกเลิก
+        </button>
+        <button (click)="executeSyncToHdc()" [disabled]="syncLoading || syncSelectedTables.size === 0"
+                class="px-6 py-2.5 bg-teal-600 hover:bg-teal-700 text-white rounded-xl text-sm font-bold shadow-md transition-all disabled:opacity-40">
+          @if (syncLoading) {
+            <i class="fas fa-spinner fa-spin mr-1"></i>กำลังส่ง...
+          } @else {
+            <i class="fas fa-cloud-upload-alt mr-1"></i>ส่งข้อมูล ({{ syncSelectedTables.size }})
+          }
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+}
+
+<!-- ========== Settings Modal (ตารางเวลา Export อัตโนมัติ) ========== -->
+<div *ngIf="showSettingsModal" class="fixed inset-0 bg-black/50 z-40 flex items-center justify-center p-4 overflow-y-auto">
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-5xl my-8">
+    <div class="flex items-start gap-2 p-4 border-b border-gray-200 bg-gradient-to-r from-purple-50 to-indigo-50 rounded-t-2xl">
+      <div class="flex items-center gap-3 flex-1 min-w-0">
+        <div class="w-10 h-10 shrink-0 rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center shadow-md">
+          <i class="fas fa-clock text-white"></i>
+        </div>
+        <div class="min-w-0">
+          <h3 class="text-sm sm:text-base font-bold text-gray-800">ตั้งค่าตารางเวลา Export อัตโนมัติ</h3>
+          <p class="text-[11px] sm:text-xs text-gray-500">กำหนดวัน-เวลาให้ระบบ export อัตโนมัติ พร้อมส่งรายงานทาง Email/Telegram</p>
+        </div>
+      </div>
+      <button (click)="showSettingsModal = false" class="text-gray-400 hover:text-gray-600 shrink-0">
+        <i class="fas fa-times text-xl"></i>
+      </button>
+    </div>
+
+    <div class="p-4">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
+        <div class="text-xs sm:text-sm text-gray-600">
+          <i class="fas fa-info-circle text-indigo-500 mr-1"></i>
+          Schedule รันที่ backend ทุกๆ 1 นาที — ถ้าตรงวันและเวลา จะสั่ง export อัตโนมัติ และส่งรายงานให้ตรวจสอบก่อน sync เข้า HDC
+        </div>
+        <button (click)="openCreateSchedule()"
+                class="shrink-0 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-bold shadow-md transition-all">
+          <i class="fas fa-plus mr-1"></i>เพิ่ม Schedule
+        </button>
+      </div>
+
+      <div *ngIf="schedulesLoading" class="text-center py-8 text-gray-400">
+        <i class="fas fa-spinner fa-spin text-2xl"></i>
+        <p class="text-sm mt-2">กำลังโหลด...</p>
+      </div>
+
+      <div *ngIf="!schedulesLoading && schedules.length === 0" class="text-center py-10 text-gray-400 border-2 border-dashed border-gray-200 rounded-xl">
+        <i class="fas fa-calendar-times text-4xl mb-2"></i>
+        <p class="text-sm">ยังไม่มี schedule — กด "เพิ่ม Schedule" เพื่อเริ่มต้น</p>
+      </div>
+
+      <div *ngIf="!schedulesLoading && schedules.length > 0" class="overflow-auto max-h-[60vh] border border-gray-200 rounded-xl">
+        <table class="min-w-[900px] w-full text-sm">
+          <thead class="sticky top-0 bg-gray-50 z-10">
+            <tr class="border-b border-gray-200">
+              <th class="px-3 py-2 text-left font-bold text-gray-700">ชื่อ</th>
+              <th class="px-3 py-2 text-center font-bold text-gray-700">สถานะ</th>
+              <th class="px-3 py-2 text-center font-bold text-gray-700">วัน</th>
+              <th class="px-3 py-2 text-center font-bold text-gray-700">เวลา</th>
+              <th class="px-3 py-2 text-center font-bold text-gray-700">ปี</th>
+              <th class="px-3 py-2 text-center font-bold text-gray-700">แจ้งเตือน</th>
+              <th class="px-3 py-2 text-center font-bold text-gray-700">รันล่าสุด</th>
+              <th class="px-3 py-2 text-center font-bold text-gray-700">การทำงาน</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let s of schedules" class="border-b border-gray-100 hover:bg-gray-50">
+              <td class="px-3 py-2">
+                <div class="font-semibold text-gray-800">{{ s.name }}</div>
+                <div class="text-xs text-indigo-600" *ngIf="s.indicator_scope === 'changes_only'">
+                  <i class="fas fa-magic mr-1"></i>เฉพาะที่มีการเพิ่ม/แก้ไข
+                </div>
+                <div class="text-xs text-gray-500" *ngIf="s.indicator_scope === 'selected'">
+                  <i class="fas fa-check-square mr-1"></i>เลือก {{ s.indicator_ids_arr?.length || 0 }} ตัวชี้วัด
+                </div>
+                <div class="text-xs text-gray-500" *ngIf="!s.indicator_scope || s.indicator_scope === 'all'">
+                  <i class="fas fa-globe mr-1"></i>ทุกตัวชี้วัด
+                </div>
+                <div class="text-xs text-teal-700 mt-0.5" *ngIf="s.auto_sync_hdc">
+                  <i class="fas fa-cloud-upload-alt mr-1"></i>Auto Sync HDC
+                </div>
+              </td>
+              <td class="px-3 py-2 text-center">
+                <span *ngIf="s.is_enabled" class="px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-xs font-bold">
+                  <i class="fas fa-check-circle mr-1"></i>เปิด
+                </span>
+                <span *ngIf="!s.is_enabled" class="px-2 py-0.5 bg-gray-200 text-gray-600 rounded-full text-xs font-bold">
+                  <i class="fas fa-pause-circle mr-1"></i>ปิด
+                </span>
+              </td>
+              <td class="px-3 py-2 text-center text-xs">{{ dayShortLabel(s.days_arr) }}</td>
+              <td class="px-3 py-2 text-center font-mono text-xs">{{ s.time_of_day }}</td>
+              <td class="px-3 py-2 text-center text-xs">{{ s.year_bh || 'ปีปัจจุบัน' }}</td>
+              <td class="px-3 py-2 text-center">
+                <span *ngIf="s.notify_email" class="inline-block px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded text-xs mr-1" title="Email">
+                  <i class="fas fa-envelope"></i>
+                </span>
+                <span *ngIf="s.notify_telegram" class="inline-block px-1.5 py-0.5 bg-sky-100 text-sky-700 rounded text-xs mr-1" title="Telegram">
+                  <i class="fab fa-telegram"></i>
+                </span>
+                <span *ngIf="s.notify_line" class="inline-block px-1.5 py-0.5 bg-emerald-100 text-emerald-700 rounded text-xs" title="LINE">
+                  <i class="fab fa-line"></i>
+                </span>
+                <span *ngIf="!s.notify_email && !s.notify_telegram && !s.notify_line" class="text-xs text-gray-400">-</span>
+              </td>
+              <td class="px-3 py-2 text-center text-xs">
+                <div *ngIf="s.last_run_at">{{ formatDateTime(s.last_run_at) }}</div>
+                <span *ngIf="!s.last_run_at" class="text-gray-400">ยังไม่เคยรัน</span>
+                <div *ngIf="s.last_status" class="mt-0.5">
+                  <span [ngClass]="s.last_status === 'success' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'" class="px-1.5 py-0.5 rounded text-[10px] font-bold">
+                    {{ s.last_status }}
+                  </span>
+                </div>
+              </td>
+              <td class="px-3 py-2 text-center whitespace-nowrap">
+                <button (click)="runScheduleNow(s)" title="รันตอนนี้"
+                        class="px-2 py-1 bg-teal-500 hover:bg-teal-600 text-white rounded-lg text-xs mr-1">
+                  <i class="fas fa-play"></i>
+                </button>
+                <button (click)="openLogs(s)" title="ประวัติการรัน"
+                        class="px-2 py-1 bg-gray-500 hover:bg-gray-600 text-white rounded-lg text-xs mr-1">
+                  <i class="fas fa-history"></i>
+                </button>
+                <button (click)="openEditSchedule(s)" title="แก้ไข"
+                        class="px-2 py-1 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-xs mr-1">
+                  <i class="fas fa-edit"></i>
+                </button>
+                <button (click)="deleteSchedule(s)" title="ลบ"
+                        class="px-2 py-1 bg-red-500 hover:bg-red-600 text-white rounded-lg text-xs">
+                  <i class="fas fa-trash"></i>
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="flex items-center justify-end p-4 border-t border-gray-200">
+      <button (click)="showSettingsModal = false"
+              class="px-5 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-xl text-sm font-bold">
+        ปิด
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ========== Schedule Create/Edit Modal ========== -->
+<div *ngIf="showScheduleModal" class="fixed inset-0 bg-black/60 z-[60] flex items-center justify-center p-4 overflow-y-auto">
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl my-8">
+    <div class="flex items-center justify-between p-4 border-b border-gray-200">
+      <h3 class="text-lg font-bold text-gray-800">
+        <i class="fas fa-clock text-indigo-500 mr-2"></i>
+        {{ editingSchedule ? 'แก้ไข' : 'เพิ่ม' }} Schedule
+      </h3>
+      <button (click)="showScheduleModal = false" class="text-gray-400 hover:text-gray-600">
+        <i class="fas fa-times text-xl"></i>
+      </button>
+    </div>
+
+    <div class="p-5 space-y-4">
+      <div>
+        <label class="block text-sm font-bold text-gray-700 mb-1">ชื่อ Schedule <span class="text-red-500">*</span></label>
+        <input type="text" [(ngModel)]="scheduleForm.name" placeholder="เช่น Export รายวัน ตี 2"
+               class="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm">
+      </div>
+
+      <div class="flex items-center gap-3">
+        <label class="flex items-center gap-2 cursor-pointer">
+          <input type="checkbox" [(ngModel)]="scheduleForm.is_enabled" class="w-4 h-4 text-indigo-600 rounded">
+          <span class="text-sm font-semibold text-gray-700">เปิดใช้งาน (Enabled)</span>
+        </label>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div>
+          <label class="block text-sm font-bold text-gray-700 mb-1">เวลา (HH:MM) <span class="text-red-500">*</span></label>
+          <input type="time" [(ngModel)]="scheduleForm.time_of_day"
+                 class="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 text-sm">
+        </div>
+        <div>
+          <label class="block text-sm font-bold text-gray-700 mb-1">ปีงบประมาณ</label>
+          <select [(ngModel)]="scheduleForm.year_bh"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 text-sm">
+            <option value="">ปีปัจจุบัน (อัตโนมัติ)</option>
+            <option *ngFor="let y of yearOptions" [value]="y">{{ y }}</option>
+          </select>
+        </div>
+      </div>
+
+      <div>
+        <label class="block text-sm font-bold text-gray-700 mb-1">วันที่ต้องการรัน <span class="text-red-500">*</span></label>
+        <div class="flex flex-wrap gap-2">
+          <button type="button" *ngFor="let d of dayLabels"
+                  (click)="toggleScheduleDay(d.v)"
+                  [ngClass]="isScheduleDay(d.v) ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-gray-600 border-gray-300'"
+                  class="px-4 py-2 rounded-xl border-2 text-sm font-bold transition-all">
+            {{ d.label }}
+          </button>
+        </div>
+      </div>
+
+      <div>
+        <label class="block text-sm font-bold text-gray-700 mb-2">ขอบเขตตัวชี้วัด</label>
+        <div class="space-y-2">
+          <label class="flex items-start gap-2 p-3 rounded-xl border-2 cursor-pointer transition-all"
+                 [ngClass]="scheduleForm.indicator_scope === 'changes_only' ? 'border-indigo-500 bg-indigo-50' : 'border-gray-200 hover:border-gray-300'">
+            <input type="radio" name="scope" [(ngModel)]="scheduleForm.indicator_scope" value="changes_only" class="w-4 h-4 text-indigo-600 mt-0.5">
+            <div class="text-sm">
+              <div class="font-bold text-indigo-700">
+                <i class="fas fa-magic mr-1"></i>ตรวจสอบก่อน — export เฉพาะตัวชี้วัดที่เพิ่ม/แก้ไข <span class="ml-1 px-2 py-0.5 bg-indigo-200 text-indigo-800 text-xs rounded-full">แนะนำ</span>
+              </div>
+              <div class="text-xs text-gray-600 mt-1">
+                ระบบจะตรวจสอบข้อมูลผลงานของตัวชี้วัดทุกตัวก่อน แล้วส่งออกเฉพาะตัวที่มีการเปลี่ยนแปลงเท่านั้น (ชื่อตารางตรงกับ HDC)
+              </div>
+            </div>
+          </label>
+
+          <label class="flex items-start gap-2 p-3 rounded-xl border-2 cursor-pointer transition-all"
+                 [ngClass]="scheduleForm.indicator_scope === 'all' ? 'border-indigo-500 bg-indigo-50' : 'border-gray-200 hover:border-gray-300'">
+            <input type="radio" name="scope" [(ngModel)]="scheduleForm.indicator_scope" value="all" class="w-4 h-4 text-indigo-600 mt-0.5">
+            <div class="text-sm">
+              <div class="font-bold text-gray-700"><i class="fas fa-globe mr-1"></i>ทุกตัวชี้วัด</div>
+              <div class="text-xs text-gray-500 mt-1">ส่งออกทุกตัวชี้วัดเสมอ (ไม่เช็คว่ามีการเปลี่ยนแปลงหรือไม่)</div>
+            </div>
+          </label>
+
+          <label class="flex items-start gap-2 p-3 rounded-xl border-2 cursor-pointer transition-all"
+                 [ngClass]="scheduleForm.indicator_scope === 'selected' ? 'border-indigo-500 bg-indigo-50' : 'border-gray-200 hover:border-gray-300'">
+            <input type="radio" name="scope" [(ngModel)]="scheduleForm.indicator_scope" value="selected" class="w-4 h-4 text-indigo-600 mt-0.5">
+            <div class="text-sm flex-1">
+              <div class="font-bold text-gray-700"><i class="fas fa-check-square mr-1"></i>เฉพาะที่เลือก</div>
+              <div class="text-xs text-gray-500 mt-1">ใช้รายการที่ถูก check ในตารางด้านบน (ปัจจุบัน {{ selectedIndicatorIds.size }} ตัว)</div>
+              <div *ngIf="scheduleForm.indicator_scope === 'selected'" class="mt-2 flex items-center gap-2">
+                <button type="button" (click)="copySelectedIntoSchedule()"
+                        class="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-xs font-semibold">
+                  <i class="fas fa-sync-alt mr-1"></i>ใช้รายการที่เลือกปัจจุบัน ({{ selectedIndicatorIds.size }})
+                </button>
+                <span class="text-xs text-gray-500">เก็บไว้ {{ scheduleForm.indicator_ids.length }} ตัวชี้วัด</span>
+              </div>
+            </div>
+          </label>
+        </div>
+      </div>
+
+      <!-- Auto Sync to HDC -->
+      <div class="border-t pt-3">
+        <label class="flex items-start gap-2 p-3 rounded-xl border-2 cursor-pointer transition-all"
+               [ngClass]="scheduleForm.auto_sync_hdc ? 'border-teal-500 bg-teal-50' : 'border-gray-200 hover:border-gray-300'">
+          <input type="checkbox" [(ngModel)]="scheduleForm.auto_sync_hdc" class="w-4 h-4 text-teal-600 rounded mt-0.5">
+          <div class="text-sm flex-1">
+            <div class="font-bold text-teal-800">
+              <i class="fas fa-cloud-upload-alt mr-1"></i>ส่งข้อมูลเข้า HDC อัตโนมัติ (หลัง Export เสร็จ)
+            </div>
+            <div class="text-xs text-gray-600 mt-1">
+              ระบบจะส่งตารางที่ export แล้วเข้า HDC ทันที (UPSERT) — รายงานสรุปจะรวมผล sync ด้วย
+            </div>
+            <div *ngIf="scheduleForm.auto_sync_hdc" class="mt-2 text-xs text-red-700 bg-red-50 border border-red-200 rounded-lg p-2">
+              <i class="fas fa-exclamation-triangle mr-1"></i>
+              <b>โปรดระวัง:</b> ข้อมูลจะถูกส่งเข้า HDC โดยไม่ผ่านการตรวจสอบจาก super_admin — ใช้เฉพาะเมื่อมั่นใจในคุณภาพข้อมูลแล้ว
+            </div>
+          </div>
+        </label>
+      </div>
+
+      <!-- แจ้งเตือน — ใช้ recipients จากหน้าตั้งค่าระบบ -->
+      <div class="border-t pt-3">
+        <div class="text-sm font-bold text-gray-700 mb-2">
+          <i class="fas fa-bell text-amber-500 mr-1"></i>ส่งรายงานสรุป
+        </div>
+        <div class="bg-amber-50 border border-amber-200 rounded-xl p-3 mb-3 text-xs text-amber-800">
+          <i class="fas fa-info-circle mr-1"></i>
+          ระบบจะส่งรายงานตาม Email / Telegram / LINE ที่ตั้งไว้ใน <button type="button" (click)="goToSettings()" class="underline font-bold hover:text-amber-900">หน้าตั้งค่าระบบ</button>
+          (admin_emails, telegram_chat_id, line_channel_token + group_id) — เลือกเฉพาะว่าจะเปิดส่งหรือไม่
+        </div>
+        <div class="space-y-2">
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" [(ngModel)]="scheduleForm.notify_email" class="w-4 h-4 text-indigo-600 rounded">
+            <span class="text-sm text-gray-700"><i class="fas fa-envelope text-blue-500 mr-1"></i>ส่ง Email รายงานสรุป</span>
+          </label>
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" [(ngModel)]="scheduleForm.notify_telegram" class="w-4 h-4 text-indigo-600 rounded">
+            <span class="text-sm text-gray-700"><i class="fab fa-telegram text-sky-500 mr-1"></i>ส่ง Telegram รายงานสรุป</span>
+          </label>
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" [(ngModel)]="scheduleForm.notify_line" class="w-4 h-4 text-indigo-600 rounded">
+            <span class="text-sm text-gray-700"><i class="fab fa-line text-emerald-500 mr-1"></i>ส่ง LINE Group รายงานสรุป</span>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <div class="flex items-center justify-end gap-2 p-4 border-t border-gray-200">
+      <button (click)="showScheduleModal = false" class="px-5 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-xl text-sm font-bold">
+        ยกเลิก
+      </button>
+      <button (click)="saveSchedule()" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-bold shadow-md">
+        <i class="fas fa-save mr-1"></i>บันทึก
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ========== Logs Modal ========== -->
+<div *ngIf="showLogsModal" class="fixed inset-0 bg-black/60 z-[60] flex items-center justify-center p-4 overflow-y-auto">
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-3xl my-8">
+    <div class="flex items-center justify-between p-4 border-b border-gray-200">
+      <h3 class="text-lg font-bold text-gray-800">
+        <i class="fas fa-history text-gray-500 mr-2"></i>ประวัติการรัน: {{ logsScheduleName }}
+      </h3>
+      <button (click)="showLogsModal = false" class="text-gray-400 hover:text-gray-600">
+        <i class="fas fa-times text-xl"></i>
+      </button>
+    </div>
+
+    <div class="p-4 max-h-[60vh] overflow-auto">
+      <div *ngIf="logsData.length === 0" class="text-center py-8 text-gray-400">
+        <i class="fas fa-inbox text-3xl mb-2"></i>
+        <p class="text-sm">ยังไม่มีประวัติการรัน</p>
+      </div>
+
+      <table *ngIf="logsData.length > 0" class="min-w-[800px] w-full text-sm">
+        <thead>
+          <tr class="bg-gray-50 border-b border-gray-200">
+            <th class="px-3 py-2 text-left font-bold text-gray-700">เวลา</th>
+            <th class="px-3 py-2 text-center font-bold text-gray-700">สถานะ</th>
+            <th class="px-3 py-2 text-center font-bold text-gray-700">ตาราง</th>
+            <th class="px-3 py-2 text-center font-bold text-gray-700">Inserted</th>
+            <th class="px-3 py-2 text-center font-bold text-gray-700">Updated</th>
+            <th class="px-3 py-2 text-center font-bold text-gray-700">Unchanged</th>
+            <th class="px-3 py-2 text-center font-bold text-gray-700">Duration</th>
+            <th class="px-3 py-2 text-center font-bold text-gray-700">แจ้งเตือน</th>
+            <th class="px-3 py-2 text-left font-bold text-gray-700">Error</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let log of logsData" class="border-b border-gray-100">
+            <td class="px-3 py-2 text-xs">{{ formatDateTime(log.run_at) }}</td>
+            <td class="px-3 py-2 text-center">
+              <span [ngClass]="log.status === 'success' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'" class="px-2 py-0.5 rounded-full text-xs font-bold">
+                {{ log.status }}
+              </span>
+            </td>
+            <td class="px-3 py-2 text-center font-mono text-xs">{{ log.tables_count || 0 }}</td>
+            <td class="px-3 py-2 text-center font-mono text-xs text-blue-700">{{ log.inserted || 0 }}</td>
+            <td class="px-3 py-2 text-center font-mono text-xs text-amber-700">{{ log.updated_count || 0 }}</td>
+            <td class="px-3 py-2 text-center font-mono text-xs text-gray-500">{{ log.unchanged || 0 }}</td>
+            <td class="px-3 py-2 text-center text-xs">{{ log.duration_ms ? (log.duration_ms / 1000).toFixed(1) + 's' : '-' }}</td>
+            <td class="px-3 py-2 text-center">
+              <i *ngIf="log.notified_email" class="fas fa-envelope text-blue-500 mr-1" title="ส่ง Email แล้ว"></i>
+              <i *ngIf="log.notified_telegram" class="fab fa-telegram text-sky-500" title="ส่ง Telegram แล้ว"></i>
+              <span *ngIf="!log.notified_email && !log.notified_telegram" class="text-xs text-gray-400">-</span>
+            </td>
+            <td class="px-3 py-2 text-xs text-red-600">{{ log.error_msg || '-' }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="flex items-center justify-end p-4 border-t border-gray-200">
+      <button (click)="showLogsModal = false" class="px-5 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-xl text-sm font-bold">
+        ปิด
+      </button>
+    </div>
+  </div>
+</div>

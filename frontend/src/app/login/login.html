@@ -1,0 +1,341 @@
+<!-- Outer: soft mint-teal-pink gradient background + flowing wave decoration -->
+<div class="min-h-screen relative font-sans overflow-hidden dark:bg-[#1e1e2e]"
+     style="background: linear-gradient(135deg, #eaf6ee 0%, #c8ecd9 22%, #a8e6c8 45%, #b8e8d2 68%, #f0e0ea 100%);">
+
+  <!-- Decorative wave layers (SVG) -->
+  <svg class="absolute inset-0 w-full h-full pointer-events-none opacity-70 dark:opacity-20" preserveAspectRatio="none" viewBox="0 0 1600 900" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M0,520 C240,460 380,640 720,540 C1060,440 1280,620 1600,500 L1600,900 L0,900 Z" fill="#a8e6c8" fill-opacity="0.45"/>
+    <path d="M0,640 C260,560 460,760 800,660 C1140,560 1340,720 1600,620 L1600,900 L0,900 Z" fill="#7dd3a8" fill-opacity="0.30"/>
+    <path d="M0,760 C300,680 540,840 880,760 C1200,680 1380,820 1600,740 L1600,900 L0,900 Z" fill="#5cc28d" fill-opacity="0.22"/>
+  </svg>
+  <!-- subtle sparkle dots -->
+  <div class="absolute inset-0 pointer-events-none opacity-40">
+    <span class="absolute w-1 h-1 bg-white rounded-full" style="top:18%; left:8%"></span>
+    <span class="absolute w-1.5 h-1.5 bg-white rounded-full" style="top:32%; left:22%"></span>
+    <span class="absolute w-1 h-1 bg-white rounded-full" style="top:55%; left:14%"></span>
+    <span class="absolute w-1 h-1 bg-white rounded-full" style="top:72%; left:30%"></span>
+    <span class="absolute w-1 h-1 bg-white rounded-full" style="top:25%; right:18%"></span>
+    <span class="absolute w-1.5 h-1.5 bg-white rounded-full" style="top:65%; right:8%"></span>
+    <span class="absolute w-1 h-1 bg-white rounded-full" style="top:80%; right:25%"></span>
+  </div>
+
+  <!-- Maintenance Mode Banner -->
+  <div *ngIf="maintenanceMode"
+       class="fixed inset-x-0 top-0 z-[100] bg-red-600 text-white py-3 px-6 shadow-lg">
+    <div class="max-w-3xl mx-auto flex items-center justify-center gap-3 text-center">
+      <i class="fas fa-exclamation-triangle text-xl animate-pulse"></i>
+      <div>
+        <p class="font-bold text-sm">{{ maintenanceMessage }}</p>
+        <p class="text-red-200 text-xs mt-0.5">กรุณาเข้าใช้งานอีกครั้งในภายหลัง</p>
+      </div>
+      <i class="fas fa-exclamation-triangle text-xl animate-pulse"></i>
+    </div>
+  </div>
+
+  <!-- Dark Mode toggle (ลอยมุมขวาบน) -->
+  <div class="fixed top-4 right-4 z-50 flex items-center gap-2">
+    <button (click)="themeService.toggle()" class="w-9 h-9 rounded-full bg-white/90 dark:bg-gray-700 shadow-md flex items-center justify-center hover:scale-110 transition-all" [title]="themeService.isDark ? 'Light Mode' : 'Dark Mode'">
+      <i class="fas text-base" [ngClass]="themeService.isDark ? 'fa-sun text-yellow-400' : 'fa-moon text-gray-600'"></i>
+    </button>
+  </div>
+
+  <!-- Back to home (top-left) -->
+  <a href="https://apikorat.moph.go.th/kpikorat/" class="fixed top-4 left-4 z-50 inline-flex items-center gap-1.5 px-3 py-1.5 bg-white/70 hover:bg-white text-green-800 hover:text-green-900 backdrop-blur-sm border border-white/60 rounded-full text-xs font-bold transition-all shadow-sm">
+    <i class="fas fa-arrow-left"></i><span class="hidden sm:inline">กลับหน้าหลัก</span>
+  </a>
+
+  <!-- Centered Content -->
+  <div class="relative z-10 w-full h-screen flex flex-col lg:items-center lg:justify-center px-4 sm:px-6 py-8 lg:px-12 overflow-y-auto lg:overflow-hidden">
+    <div class="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 lg:items-center">
+
+      <!-- LEFT: Logo + Branding (desktop) -->
+      <div class="hidden lg:flex flex-col items-center text-center">
+        <div class="bg-white rounded-full p-1 mb-7 shadow-[0_20px_60px_-15px_rgba(16,185,129,0.5),0_8px_30px_-5px_rgba(0,0,0,0.15)] hover:shadow-[0_25px_70px_-15px_rgba(16,185,129,0.6),0_10px_35px_-5px_rgba(0,0,0,0.2)] transition-shadow duration-300">
+          <img alt="ตรากระทรวงสาธารณสุข" src="logo_ssj_nma.png"
+               decoding="async" class="h-52 w-52 object-contain rounded-full">
+        </div>
+        <h1 class="text-4xl font-bold mb-2 text-green-900 drop-shadow-sm">ระบบบันทึกผลงาน KPI ด้านสุขภาพ</h1>
+        <h2 class="text-xl font-semibold mb-4 text-green-700">สำนักงานสาธารณสุขจังหวัดนครราชสีมา</h2>
+
+        <div class="w-20 h-1 bg-green-500 rounded-full mb-5"></div>
+
+        <p class="text-green-800/90 text-base mb-6 leading-relaxed max-w-md">เชื่อมโยงข้อมูล ยกระดับบริการ เพื่อสุขภาพที่ดีของชาวโคราช</p>
+
+        <button (click)="showAbout = !showAbout"
+                class="inline-flex items-center gap-2 px-5 py-2.5 bg-white/70 hover:bg-white backdrop-blur-md text-green-800 hover:text-green-900 rounded-xl text-sm font-bold transition-all border border-white/60 shadow-sm hover:shadow-md">
+          <i class="fas fa-info-circle"></i>
+          เกี่ยวกับระบบและวัตถุประสงค์
+          <i class="fas fa-chevron-down text-xs transition-transform" [class.rotate-180]="showAbout"></i>
+        </button>
+      </div>
+
+      <!-- RIGHT: Glassmorphism Login Card -->
+      <div class="w-full max-w-md mx-auto">
+        <!-- Mobile: Logo header -->
+        <div class="lg:hidden mb-6">
+          <div class="bg-white/70 backdrop-blur-xl rounded-2xl p-5 text-center shadow-lg border border-white/60">
+            <div class="bg-white rounded-full w-20 h-20 mx-auto mb-3 p-0.5 shadow-[0_10px_30px_-8px_rgba(16,185,129,0.5),0_4px_15px_-3px_rgba(0,0,0,0.15)]">
+              <img alt="ตรากระทรวงสาธารณสุข" src="logo_ssj_nma.png" decoding="async" class="w-full h-full object-contain rounded-full">
+            </div>
+            <h1 class="text-lg font-bold leading-tight text-green-900">ระบบบันทึกผลงาน KPI ด้านสุขภาพ</h1>
+            <p class="text-green-700 text-sm mt-1">สำนักงานสาธารณสุขจังหวัดนครราชสีมา</p>
+            <div class="w-12 h-0.5 bg-green-500 rounded-full mx-auto mt-3 mb-2"></div>
+            <p class="text-green-800/80 text-xs mb-3">เชื่อมโยงข้อมูล ยกระดับบริการ เพื่อสุขภาพที่ดีของชาวโคราช</p>
+            <button (click)="showAbout = !showAbout"
+                    class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white/80 hover:bg-white text-green-800 hover:text-green-900 rounded-lg text-xs font-bold transition-all border border-white/70 shadow-sm">
+              <i class="fas fa-info-circle"></i>
+              เกี่ยวกับระบบและวัตถุประสงค์
+              <i class="fas fa-chevron-down text-[10px] transition-transform" [class.rotate-180]="showAbout"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- Glassmorphism Card -->
+        <div class="bg-white/65 backdrop-blur-xl rounded-3xl shadow-2xl p-7 sm:p-9 border border-white/60 dark:bg-[#24243a]/80 dark:border-gray-700 max-h-[90vh] overflow-y-scroll card-scroll" style="scrollbar-width: thin; scrollbar-color: rgba(16, 185, 129, 0.5) rgba(229, 231, 235, 0.3);">
+
+          <div class="text-center mb-7">
+            <h2 class="text-3xl font-bold text-green-900 dark:text-white">เข้าสู่ระบบ</h2>
+            <div class="flex items-center justify-center gap-2 mt-2">
+              <div class="w-8 h-px bg-green-300"></div>
+              <span class="w-2 h-2 bg-green-500 rounded-full"></span>
+              <div class="w-8 h-px bg-green-300"></div>
+            </div>
+            <p class="text-gray-600 mt-2 text-sm dark:text-gray-400">กรุณากรอกข้อมูลเพื่อเข้าถึงระบบบันทึกผลงานตัวชี้วัด</p>
+          </div>
+
+          <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="space-y-5">
+
+            <div>
+              <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2" for="username">ชื่อผู้ใช้งาน</label>
+              <div class="relative">
+                <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                </div>
+                <input type="text" id="username" formControlName="username" autocomplete="username"
+                       class="w-full pl-11 pr-4 py-3 bg-white/80 border border-white/80 rounded-2xl shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 focus:bg-white transition-all text-gray-800 placeholder-gray-400"
+                       placeholder="Username">
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2" for="password">รหัสผ่าน</label>
+              <div class="relative">
+                <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                  </svg>
+                </div>
+                <input [type]="showPassword ? 'text' : 'password'" id="password" formControlName="password" autocomplete="current-password"
+                       class="w-full pl-11 pr-11 py-3 bg-white/80 border border-white/80 rounded-2xl shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 focus:bg-white transition-all text-gray-800 placeholder-gray-400"
+                       placeholder="Password">
+                <button type="button" (click)="showPassword = !showPassword"
+                        class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-gray-400 hover:text-gray-600">
+                  <i class="fas" [ngClass]="showPassword ? 'fa-eye-slash' : 'fa-eye'"></i>
+                </button>
+              </div>
+            </div>
+
+            <div class="flex items-center justify-end">
+              <button type="button" (click)="forgotPassword()" class="text-sm font-semibold text-green-700 hover:text-green-900 transition-colors">
+                <i class="fas fa-key mr-1"></i>ลืมรหัสผ่าน?
+              </button>
+            </div>
+
+            <button type="submit" [disabled]="thaidAutoFilling"
+              class="w-full py-3 px-4 bg-gradient-to-r from-green-700 to-green-600 hover:from-green-800 hover:to-green-700 text-white font-bold rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed disabled:transform-none">
+              <span *ngIf="!thaidAutoFilling">เข้าสู่ระบบ</span>
+              <span *ngIf="thaidAutoFilling">
+                <svg class="inline animate-spin h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                </svg>กำลังเข้าสู่ระบบ...
+              </span>
+            </button>
+          </form>
+
+          <!-- SSO Buttons: ThaiD + ProviderID -->
+          <div *ngIf="isThaIdEnabled || isProviderIdEnabled" class="mt-5">
+            <div class="flex items-center gap-3 mb-4">
+              <hr class="flex-1 border-gray-200/60">
+              <span class="text-xs text-gray-400 font-medium whitespace-nowrap">หรือเข้าสู่ระบบด้วย</span>
+              <hr class="flex-1 border-gray-200/60">
+            </div>
+
+            <!-- ThaiD Button -->
+            <div *ngIf="isThaIdEnabled" class="mb-3">
+              <button type="button" (click)="loginWithThaID()" [disabled]="thaidVerifying"
+                      class="w-full flex items-center justify-center gap-3 py-3 px-4 bg-white/80 hover:bg-white border-2 border-blue-200 hover:border-blue-400 text-blue-800 font-bold rounded-2xl shadow-sm hover:shadow-md transition-all duration-200 backdrop-blur-sm disabled:opacity-60 disabled:cursor-not-allowed">
+                <span *ngIf="thaidVerifying" class="flex items-center gap-2">
+                  <i class="fas fa-spinner fa-spin text-blue-500"></i>
+                  <span class="text-sm">กำลังตรวจสอบ ThaID...</span>
+                </span>
+                <span *ngIf="!thaidVerifying" class="flex items-center gap-3 w-full">
+                  <img src="thaid.png" alt="ThaID" class="h-7 w-auto object-contain">
+                  <span class="text-sm">เข้าสู่ระบบด้วย ThaID</span>
+                  <i class="fas fa-arrow-right text-blue-400 ml-auto text-xs"></i>
+                </span>
+              </button>
+              <div class="flex items-center justify-between mt-1.5 px-0.5">
+                <p class="text-[10px] text-gray-400">
+                  <i class="fas fa-shield-halved mr-1 text-blue-300"></i>ยืนยันตัวตนด้วยบัตรประชาชนผ่าน DGA ThaID
+                </p>
+                <span class="flex items-center gap-1 text-[10px] shrink-0"
+                      [ngClass]="thaidConnected==='ok' ? 'text-green-600' : thaidConnected==='error' ? 'text-red-500' : 'text-gray-400'">
+                  <span class="w-1.5 h-1.5 rounded-full inline-block"
+                        [ngClass]="thaidConnected==='ok' ? 'bg-green-500' : thaidConnected==='error' ? 'bg-red-500' : 'bg-gray-400 animate-pulse'"></span>
+                  {{ thaidConnected==='ok' ? 'เชื่อมต่อได้' : thaidConnected==='error' ? 'ไม่สามารถเชื่อมต่อ' : 'กำลังตรวจสอบ...' }}
+                </span>
+              </div>
+            </div>
+
+            <!-- ProviderID Button -->
+            <div *ngIf="isProviderIdEnabled">
+              <button type="button" (click)="loginWithProviderID()"
+                      class="w-full flex items-center justify-center gap-3 py-3 px-4 bg-white/80 hover:bg-white border-2 border-teal-200 hover:border-teal-400 text-teal-800 font-bold rounded-2xl shadow-sm hover:shadow-md transition-all duration-200 backdrop-blur-sm">
+                <span class="flex items-center gap-3 w-full">
+                  <img src="provider-id.png" alt="ProviderID MOPH" class="h-7 w-auto object-contain p-0.5"
+                       onerror="this.onerror=null; this.style.display='none'; this.nextElementSibling.style.display='inline-flex'">
+                  <span class="hidden items-center justify-center h-7 w-7 rounded bg-teal-100 text-teal-700 text-xs font-bold">
+                    <i class="fas fa-hospital"></i>
+                  </span>
+                  <span class="text-sm">เข้าสู่ระบบด้วย ProviderID</span>
+                  <i class="fas fa-arrow-right text-teal-400 ml-auto text-xs"></i>
+                </span>
+              </button>
+              <div class="flex items-center justify-between mt-1.5 px-0.5">
+                <p class="text-[10px] text-gray-400">
+                  <i class="fas fa-shield-halved mr-1 text-teal-300"></i>ยืนยันตัวตนผ่าน MOPH Provider ID
+                </p>
+                <span class="flex items-center gap-1 text-[10px] shrink-0"
+                      [ngClass]="providerIdConnected==='ok' ? 'text-green-600' : providerIdConnected==='error' ? 'text-red-500' : 'text-gray-400'">
+                  <span class="w-1.5 h-1.5 rounded-full inline-block"
+                        [ngClass]="providerIdConnected==='ok' ? 'bg-green-500' : providerIdConnected==='error' ? 'bg-red-500' : 'bg-gray-400 animate-pulse'"></span>
+                  {{ providerIdConnected==='ok' ? 'เชื่อมต่อได้' : providerIdConnected==='error' ? 'ไม่สามารถเชื่อมต่อ' : 'กำลังตรวจสอบ...' }}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div class="text-center mt-6">
+            <p class="text-sm text-gray-600 dark:text-gray-400">
+              ยังไม่มีบัญชี?
+              <a routerLink="/register" class="font-semibold text-green-700 hover:text-green-900 transition-colors">ลงทะเบียน</a>
+            </p>
+          </div>
+
+          <!-- Links ด้านล่าง -->
+          <div class="flex items-center justify-center gap-4 mt-4 text-xs text-gray-500">
+            <a routerLink="/help-public" class="hover:text-green-700 transition-colors">
+              <i class="fas fa-book-open mr-1"></i>คู่มือการใช้งาน
+            </a>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- About Overlay -->
+  <div *ngIf="showAbout" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" (click)="showAbout = false">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto" (click)="$event.stopPropagation()">
+      <!-- Header -->
+      <div class="bg-gradient-to-r from-green-700 to-teal-600 text-white p-6 rounded-t-2xl">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <div class="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+              <i class="fas fa-heartbeat text-2xl"></i>
+            </div>
+            <div>
+              <h2 class="text-xl font-bold">เกี่ยวกับระบบ</h2>
+              <p class="text-green-100 text-sm">ระบบบันทึกผลงาน KPI ด้านสุขภาพ</p>
+            </div>
+          </div>
+          <button (click)="showAbout = false" class="text-white/70 hover:text-white text-xl"><i class="fas fa-times"></i></button>
+        </div>
+      </div>
+
+      <div class="p-6 space-y-5">
+        <!-- วัตถุประสงค์ -->
+        <div>
+          <h3 class="text-lg font-bold text-gray-800 mb-3 flex items-center gap-2">
+            <i class="fas fa-bullseye text-green-600"></i>วัตถุประสงค์
+          </h3>
+          <ol class="space-y-2 text-sm text-gray-600">
+            <li class="flex gap-3">
+              <span class="shrink-0 w-6 h-6 bg-green-100 text-green-700 rounded-full flex items-center justify-center text-xs font-bold">1</span>
+              <span>เพื่อเป็นเครื่องมือในการ <b>บันทึก ติดตาม และประเมินผลตัวชี้วัดด้านสุขภาพ</b> ของหน่วยบริการในจังหวัดนครราชสีมาอย่างเป็นระบบ</span>
+            </li>
+            <li class="flex gap-3">
+              <span class="shrink-0 w-6 h-6 bg-green-100 text-green-700 rounded-full flex items-center justify-center text-xs font-bold">2</span>
+              <span>เพื่อ <b>ลดขั้นตอนการรวบรวมข้อมูล</b> จากเอกสารกระดาษและ Excel เป็นระบบออนไลน์ที่เข้าถึงได้ทุกที่ทุกเวลา</span>
+            </li>
+            <li class="flex gap-3">
+              <span class="shrink-0 w-6 h-6 bg-green-100 text-green-700 rounded-full flex items-center justify-center text-xs font-bold">3</span>
+              <span>เพื่อให้ผู้บริหารและผู้ที่เกี่ยวข้อง สามารถ <b>ดูรายงานสรุปผลเปรียบเทียบ</b> ได้แบบ Real-time ผ่านกราฟและแผนที่</span>
+            </li>
+            <li class="flex gap-3">
+              <span class="shrink-0 w-6 h-6 bg-green-100 text-green-700 rounded-full flex items-center justify-center text-xs font-bold">4</span>
+              <span>เพื่อ <b>เพิ่มความโปร่งใส</b> ในกระบวนการตรวจสอบและอนุมัติข้อมูลผลงาน ผ่านระบบสิทธิ์หลายระดับ</span>
+            </li>
+            <li class="flex gap-3">
+              <span class="shrink-0 w-6 h-6 bg-green-100 text-green-700 rounded-full flex items-center justify-center text-xs font-bold">5</span>
+              <span>เพื่อ <b>รองรับการทำงานแบบกระจายศูนย์</b> โดยหน่วยบริการแต่ละแห่งสามารถบันทึกข้อมูลของตนเอง และส่งให้ส่วนกลางตรวจสอบ</span>
+            </li>
+          </ol>
+        </div>
+
+        <!-- ความจำเป็น -->
+        <div>
+          <h3 class="text-lg font-bold text-gray-800 mb-3 flex items-center gap-2">
+            <i class="fas fa-exclamation-circle text-amber-500"></i>ความจำเป็นที่ต้องพัฒนาระบบนี้
+          </h3>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div class="bg-amber-50 border border-amber-200 rounded-xl p-3">
+              <p class="text-sm font-bold text-amber-800"><i class="fas fa-file-excel mr-1"></i>ปัญหาเดิม</p>
+              <p class="text-xs text-gray-600 mt-1">การรวบรวมข้อมูล KPI ใช้ไฟล์ Excel ส่งผ่าน Email ทำให้ข้อมูลกระจัดกระจาย ตรวจสอบย้อนหลังยาก และเกิดข้อผิดพลาดจากการคัดลอก</p>
+            </div>
+            <div class="bg-red-50 border border-red-200 rounded-xl p-3">
+              <p class="text-sm font-bold text-red-800"><i class="fas fa-clock mr-1"></i>ความล่าช้า</p>
+              <p class="text-xs text-gray-600 mt-1">การรวบรวมข้อมูลจากหน่วยบริการกว่า 300 แห่ง ใน 32 อำเภอ ใช้เวลามาก ผู้บริหารไม่สามารถดูผลงานแบบ Real-time ได้</p>
+            </div>
+            <div class="bg-blue-50 border border-blue-200 rounded-xl p-3">
+              <p class="text-sm font-bold text-blue-800"><i class="fas fa-shield-alt mr-1"></i>ความปลอดภัย</p>
+              <p class="text-xs text-gray-600 mt-1">ต้องการระบบที่มีการแบ่งสิทธิ์ชัดเจน ตรวจสอบได้ว่าใครแก้ไขข้อมูลอะไร เมื่อไหร่ พร้อม Audit Trail</p>
+            </div>
+            <div class="bg-green-50 border border-green-200 rounded-xl p-3">
+              <p class="text-sm font-bold text-green-800"><i class="fas fa-chart-line mr-1"></i>การวิเคราะห์</p>
+              <p class="text-xs text-gray-600 mt-1">ต้องการรายงานกราฟ แผนที่ เปรียบเทียบผลงานรายอำเภอ เพื่อวางแผนและจัดสรรทรัพยากรได้อย่างมีประสิทธิภาพ</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- ขอบเขตของระบบ -->
+        <div>
+          <h3 class="text-lg font-bold text-gray-800 mb-3 flex items-center gap-2">
+            <i class="fas fa-sitemap text-indigo-500"></i>ขอบเขตของระบบ
+          </h3>
+          <div class="flex flex-wrap gap-2 text-xs font-bold">
+            <span class="bg-green-100 text-green-700 px-3 py-1.5 rounded-full"><i class="fas fa-check mr-1"></i>บันทึกผลงาน KPI รายเดือน</span>
+            <span class="bg-green-100 text-green-700 px-3 py-1.5 rounded-full"><i class="fas fa-check mr-1"></i>อนุมัติ/ตรวจสอบผลงาน</span>
+            <span class="bg-green-100 text-green-700 px-3 py-1.5 rounded-full"><i class="fas fa-check mr-1"></i>ระบบอุทธรณ์</span>
+            <span class="bg-green-100 text-green-700 px-3 py-1.5 rounded-full"><i class="fas fa-check mr-1"></i>รายงานกราฟ/แผนที่</span>
+            <span class="bg-green-100 text-green-700 px-3 py-1.5 rounded-full"><i class="fas fa-check mr-1"></i>จัดการผู้ใช้ 10 ระดับสิทธิ์</span>
+            <span class="bg-green-100 text-green-700 px-3 py-1.5 rounded-full"><i class="fas fa-check mr-1"></i>แบบฟอร์มบันทึกข้อมูลแบบกำหนดเอง</span>
+            <span class="bg-green-100 text-green-700 px-3 py-1.5 rounded-full"><i class="fas fa-check mr-1"></i>แจ้งเตือนอัตโนมัติ + Email</span>
+            <span class="bg-green-100 text-green-700 px-3 py-1.5 rounded-full"><i class="fas fa-check mr-1"></i>ส่งออกข้อมูล Excel</span>
+          </div>
+        </div>
+
+        <!-- หน่วยงาน -->
+        <div class="bg-gray-50 rounded-xl p-4 text-center">
+          <p class="text-xs text-gray-400 mb-1">พัฒนาโดย</p>
+          <p class="text-sm font-bold text-gray-700">กลุ่มงานสุขภาพดิจิทัล</p>
+          <p class="text-sm text-gray-600">สำนักงานสาธารณสุขจังหวัดนครราชสีมา</p>
+          <p class="text-xs text-gray-400 mt-2">ปีงบประมาณ พ.ศ. 2569</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,1989 @@
+<div class="h-screen overflow-y-auto bg-gray-50 relative">
+
+  <!-- Back to Login (เฉพาะ public view) -->
+  <a *ngIf="isPublicView" routerLink="/login"
+     class="fixed top-4 left-4 z-50 inline-flex items-center gap-1.5 px-3 py-1.5 bg-white/90 hover:bg-white text-green-700 hover:text-green-900 backdrop-blur-sm border border-green-200 rounded-full text-xs font-bold transition-all shadow-md">
+    <i class="fas fa-arrow-left"></i>
+    <span>กลับหน้า Login</span>
+  </a>
+
+  <!-- Hero Header -->
+  <div class="bg-gradient-to-br from-green-700 via-green-600 to-teal-500 text-white px-6 py-10 rounded-b-3xl shadow-lg">
+    <div class="max-w-5xl mx-auto text-center">
+      <div class="inline-flex items-center justify-center w-16 h-16 bg-white/20 backdrop-blur-sm rounded-2xl mb-4">
+        <i class="fas fa-book-open text-3xl"></i>
+      </div>
+      <h1 class="text-3xl font-bold mb-2">คู่มือการใช้งานระบบ</h1>
+      <p class="text-green-100 text-lg">ระบบบันทึกผลงาน KPI ด้านสุขภาพ — สสจ.นครราชสีมา</p>
+      <p *ngIf="!isPublicView" class="text-green-200 text-sm mt-2">สิทธิ์ปัจจุบันของคุณ:
+        <span class="bg-white/20 px-3 py-0.5 rounded-full font-bold text-white ml-1">{{ roleLabel }}</span>
+      </p>
+      <p *ngIf="!isPublicView" class="text-green-100/80 text-xs mt-1">
+        <i class="fas fa-filter mr-1"></i>คู่มือแสดงเฉพาะเมนูที่สิทธิ์ของคุณใช้งานได้ ({{ visibleSections.length }} หัวข้อ)
+      </p>
+      <p *ngIf="isPublicView" class="text-green-100/80 text-xs mt-2">
+        <i class="fas fa-info-circle mr-1"></i>โหมดเปิดสาธารณะ — login เพื่อดูคู่มือเฉพาะสิทธิ์ของคุณ
+      </p>
+    </div>
+  </div>
+
+  <div class="max-w-6xl mx-auto px-4 py-6 flex gap-6">
+
+    <!-- Sidebar Nav (Desktop) -->
+    <nav class="hidden lg:block w-60 shrink-0 sticky top-4 self-start">
+      <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-3 space-y-1 max-h-[calc(100vh-80px)] overflow-y-auto card-scroll">
+        <p class="text-xs font-bold text-gray-400 uppercase px-3 mb-2">หัวข้อ</p>
+        <button *ngFor="let s of visibleSections" (click)="scrollTo(s.id)"
+                class="w-full text-left px-3 py-2 rounded-xl text-sm font-medium transition-all flex items-center gap-2"
+                [ngClass]="activeSection === s.id ? 'bg-green-100 text-green-800 font-bold' : 'text-gray-600 hover:bg-gray-50'">
+          <i class="fas {{ s.icon }} w-5 text-center" [ngClass]="activeSection === s.id ? 'text-green-600' : 'text-gray-400'"></i>
+          {{ s.label }}
+        </button>
+      </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="flex-1 space-y-8 min-w-0">
+
+      <!-- Mobile/Tablet Topic Menu (collapsible) -->
+      <div class="lg:hidden bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden sticky top-2 z-30">
+        <button (click)="showMobileTopics = !showMobileTopics"
+                class="w-full px-4 py-3 flex items-center justify-between text-left bg-gradient-to-r from-green-50 to-teal-50">
+          <span class="flex items-center gap-2 font-bold text-gray-700 text-sm">
+            <i class="fas fa-list-ul text-green-600"></i>
+            <span>หัวข้อ</span>
+            <span class="text-xs text-gray-400 font-normal">({{ visibleSections.length }})</span>
+          </span>
+          <i class="fas text-gray-400 transition-transform" [ngClass]="showMobileTopics ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+        </button>
+        <div *ngIf="showMobileTopics" class="p-2 max-h-[60vh] overflow-y-auto card-scroll border-t border-gray-100">
+          <button *ngFor="let s of sections" (click)="scrollTo(s.id); showMobileTopics = false"
+                  class="w-full text-left px-3 py-2 rounded-xl text-sm font-medium transition-all flex items-center gap-2"
+                  [ngClass]="activeSection === s.id ? 'bg-green-100 text-green-800 font-bold' : 'text-gray-600 hover:bg-gray-50'">
+            <i class="fas {{ s.icon }} w-5 text-center" [ngClass]="activeSection === s.id ? 'text-green-600' : 'text-gray-400'"></i>
+            {{ s.label }}
+          </button>
+        </div>
+      </div>
+
+
+      <!-- ==================== 1. ภาพรวมระบบ ==================== -->
+      <section id="section-overview" *ngIf="canSeeSection('overview')" class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+        <div class="flex items-center gap-3 mb-4">
+          <div class="w-10 h-10 rounded-xl bg-green-100 flex items-center justify-center"><i class="fas fa-home text-green-600"></i></div>
+          <div>
+            <h2 class="text-xl font-bold text-gray-800">1. ภาพรวมระบบ</h2>
+            <p class="text-xs text-gray-400">ระบบนี้ใช้สำหรับอะไร?</p>
+          </div>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+          <div class="bg-gradient-to-br from-green-50 to-teal-50 border border-green-200 rounded-xl p-4">
+            <h4 class="font-bold text-green-800 mb-2"><i class="fas fa-clipboard-check mr-2"></i>บันทึกผลงาน KPI</h4>
+            <p class="text-sm text-gray-600">บันทึกผลงานตัวชี้วัดด้านสุขภาพรายเดือน ตามปีงบประมาณ (ต.ค. - ก.ย.)</p>
+          </div>
+          <div class="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-4">
+            <h4 class="font-bold text-blue-800 mb-2"><i class="fas fa-chart-line mr-2"></i>ติดตามเป้าหมาย</h4>
+            <p class="text-sm text-gray-600">เปรียบเทียบผลงานกับเป้าหมาย แยกตามหน่วยบริการ/อำเภอ/หน่วยงาน</p>
+          </div>
+          <div class="bg-gradient-to-br from-amber-50 to-yellow-50 border border-amber-200 rounded-xl p-4">
+            <h4 class="font-bold text-amber-800 mb-2"><i class="fas fa-check-double mr-2"></i>อนุมัติ/ตรวจสอบ</h4>
+            <p class="text-sm text-gray-600">ผู้ดูแลระบบตรวจสอบและอนุมัติผลงานที่หน่วยบริการส่งมา</p>
+          </div>
+          <div class="bg-gradient-to-br from-purple-50 to-pink-50 border border-purple-200 rounded-xl p-4">
+            <h4 class="font-bold text-purple-800 mb-2"><i class="fas fa-file-alt mr-2"></i>รายงานสรุป</h4>
+            <p class="text-sm text-gray-600">รายงานกราฟ ตาราง แผนที่ แยกตามตัวชี้วัด/หน่วยบริการ/อำเภอ/ปี</p>
+          </div>
+        </div>
+
+        <!-- ปุ่มลัด / Power-user shortcuts -->
+        <div class="mt-5 bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-200 rounded-xl p-4">
+          <h4 class="font-bold text-emerald-800 mb-2"><i class="fas fa-bolt mr-2"></i>เครื่องมือเร่งงาน (ใหม่!)</h4>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
+            <div class="bg-white rounded-lg p-3 border border-emerald-100">
+              <p class="font-bold text-gray-700 mb-1"><i class="fas fa-search text-emerald-600 mr-1"></i>ค้นหาทั่วระบบ <kbd class="ml-1 px-1.5 py-0.5 text-[10px] bg-gray-100 rounded border">Ctrl+K</kbd></p>
+              <p class="text-xs text-gray-500">กด Ctrl+K (หรือคลิกปุ่ม "ค้นหา..." บน header) → ค้นหาเมนูทุกหน้า + กระโดดด้วย ↑↓ Enter</p>
+            </div>
+            <div class="bg-white rounded-lg p-3 border border-emerald-100">
+              <p class="font-bold text-gray-700 mb-1"><i class="fas fa-bookmark text-amber-500 mr-1"></i>บันทึก View (Filter Preset)</p>
+              <p class="text-xs text-gray-500">บนหน้า Dashboard กดปุ่ม <b>View</b> → "บันทึก View ปัจจุบัน" → ตั้งชื่อ → เรียกใช้ตัวกรองชุดเดียวด้วยคลิกเดียว (เก็บใน browser ของคุณ)</p>
+            </div>
+            <div class="bg-white rounded-lg p-3 border border-emerald-100">
+              <p class="font-bold text-gray-700 mb-1"><i class="fas fa-bell text-green-500 mr-1"></i>Toast Notification</p>
+              <p class="text-xs text-gray-500">แจ้งผลการบันทึก/อนุมัติ/อัพเดท ในรูปแถบเล็กมุมบนขวา (หายเอง 3 วินาที) — ไม่บล็อกหน้าจอเหมือนเดิม</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================== 2. การลงทะเบียน ==================== -->
+      <section id="section-register" *ngIf="canSeeSection('register')" class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+        <div class="flex items-center gap-3 mb-4">
+          <div class="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center"><i class="fas fa-user-plus text-blue-600"></i></div>
+          <div>
+            <h2 class="text-xl font-bold text-gray-800">2. การลงทะเบียน</h2>
+            <p class="text-xs text-gray-400">สร้างบัญชีผู้ใช้งานใหม่</p>
+          </div>
+        </div>
+
+        <!-- Flow -->
+        <div class="flex flex-wrap items-center gap-2 mb-6 text-xs font-bold">
+          <span class="bg-blue-100 text-blue-800 px-3 py-1.5 rounded-full">1. เปิดหน้าลงทะเบียน</span>
+          <i class="fas fa-arrow-right text-gray-300"></i>
+          <span class="bg-blue-100 text-blue-800 px-3 py-1.5 rounded-full">2. กรอกข้อมูล</span>
+          <i class="fas fa-arrow-right text-gray-300"></i>
+          <span class="bg-blue-100 text-blue-800 px-3 py-1.5 rounded-full">3. กดลงทะเบียน</span>
+          <i class="fas fa-arrow-right text-gray-300"></i>
+          <span class="bg-yellow-100 text-yellow-800 px-3 py-1.5 rounded-full">4. รออนุมัติ</span>
+          <i class="fas fa-arrow-right text-gray-300"></i>
+          <span class="bg-green-100 text-green-800 px-3 py-1.5 rounded-full">5. ได้รับ Email แจ้งผล</span>
+          <i class="fas fa-arrow-right text-gray-300"></i>
+          <span class="bg-green-100 text-green-800 px-3 py-1.5 rounded-full">6. เข้าสู่ระบบ</span>
+        </div>
+
+        <!-- Fields table -->
+        <h4 class="font-bold text-gray-700 mb-2"><i class="fas fa-list-alt mr-2 text-blue-500"></i>ข้อมูลที่ต้องกรอก</h4>
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm border-collapse">
+            <thead>
+              <tr class="bg-gray-50 text-gray-600">
+                <th class="px-3 py-2 text-left">ลำดับ</th>
+                <th class="px-3 py-2 text-left">ช่องข้อมูล</th>
+                <th class="px-3 py-2 text-center">บังคับ</th>
+                <th class="px-3 py-2 text-left">เงื่อนไข</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+              <tr><td class="px-3 py-2 font-bold">1</td><td class="px-3 py-2">ชื่อผู้ใช้งาน (Username)</td><td class="px-3 py-2 text-center text-green-600 font-bold">*</td><td class="px-3 py-2 text-xs text-gray-500">ขั้นต่ำ 6 ตัว, a-z A-Z 0-9 อักขระพิเศษ</td></tr>
+              <tr class="bg-gray-50"><td class="px-3 py-2 font-bold">2</td><td class="px-3 py-2">รหัสผ่าน</td><td class="px-3 py-2 text-center text-green-600 font-bold">*</td><td class="px-3 py-2 text-xs text-gray-500">ขั้นต่ำ 6 ตัว + ต้องมี a-z, A-Z, 0-9, อักขระพิเศษ ครบ</td></tr>
+              <tr><td class="px-3 py-2 font-bold">3</td><td class="px-3 py-2">ยืนยันรหัสผ่าน</td><td class="px-3 py-2 text-center text-green-600 font-bold">*</td><td class="px-3 py-2 text-xs text-gray-500">ต้องตรงกับรหัสผ่าน</td></tr>
+              <tr class="bg-gray-50"><td class="px-3 py-2 font-bold">4</td><td class="px-3 py-2">ชื่อ-นามสกุล</td><td class="px-3 py-2 text-center text-green-600 font-bold">*</td><td class="px-3 py-2 text-xs text-gray-500">—</td></tr>
+              <tr><td class="px-3 py-2 font-bold">5</td><td class="px-3 py-2">อำเภอ + หน่วยบริการ</td><td class="px-3 py-2 text-center text-green-600 font-bold">*</td><td class="px-3 py-2 text-xs text-gray-500">เลือกอำเภอแล้วเลือกหน่วยบริการ</td></tr>
+              <tr class="bg-gray-50"><td class="px-3 py-2 font-bold">6</td><td class="px-3 py-2">เบอร์โทรศัพท์</td><td class="px-3 py-2 text-center text-green-600 font-bold">*</td><td class="px-3 py-2 text-xs text-gray-500">ตัวเลข 10 หลัก</td></tr>
+              <tr><td class="px-3 py-2 font-bold">7</td><td class="px-3 py-2">อีเมล (Email)</td><td class="px-3 py-2 text-center text-gray-400">—</td><td class="px-3 py-2 text-xs text-blue-500">ใช้รับแจ้งผลอนุมัติ ถ้าไม่กรอกจะไม่ส่ง</td></tr>
+              <tr class="bg-gray-50"><td class="px-3 py-2 font-bold">8</td><td class="px-3 py-2">หน่วยงาน</td><td class="px-3 py-2 text-center text-green-600 font-bold">*</td><td class="px-3 py-2 text-xs text-gray-500">เลือกจาก dropdown</td></tr>
+              <tr><td class="px-3 py-2 font-bold">9</td><td class="px-3 py-2">เลขบัตรประชาชน 13 หลัก</td><td class="px-3 py-2 text-center text-green-600 font-bold">*</td><td class="px-3 py-2 text-xs text-gray-500">ตรวจ Check Digit + ไม่ซ้ำ</td></tr>
+              <tr class="bg-gray-50"><td class="px-3 py-2 font-bold">10</td><td class="px-3 py-2">สิทธิ์ที่ต้องการ</td><td class="px-3 py-2 text-center text-green-600 font-bold">*</td><td class="px-3 py-2 text-xs text-gray-500">เลือก Role (ผู้ดูแลเป็นผู้อนุมัติ)</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Password strength -->
+        <div class="mt-4 bg-amber-50 border border-amber-200 rounded-xl p-4">
+          <h4 class="font-bold text-amber-800 text-sm mb-2"><i class="fas fa-lock mr-2"></i>ระบบตรวจความแข็งแรงรหัสผ่าน</h4>
+          <div class="flex items-center gap-3 text-xs">
+            <span class="flex items-center gap-1"><span class="w-8 h-2 rounded-full bg-red-500 inline-block"></span> อ่อน</span>
+            <span class="flex items-center gap-1"><span class="w-8 h-2 rounded-full bg-yellow-500 inline-block"></span> ปานกลาง</span>
+            <span class="flex items-center gap-1"><span class="w-8 h-2 rounded-full bg-green-500 inline-block"></span> แข็งแรง</span>
+          </div>
+          <p class="text-xs text-amber-700 mt-2">ขณะพิมพ์รหัสผ่าน ระบบจะแสดง checklist ว่าครบเงื่อนไขหรือยัง พร้อมแถบสีแสดงความแข็งแรง</p>
+        </div>
+
+        <!-- Rejection note -->
+        <div class="mt-4 bg-red-50 border border-red-200 rounded-xl p-4">
+          <h4 class="font-bold text-red-800 text-sm mb-1"><i class="fas fa-undo mr-2"></i>ถ้าถูกปฏิเสธ?</h4>
+          <p class="text-xs text-red-700">คุณจะได้รับ Email แจ้งพร้อมเหตุผล และสามารถ <b>ลงทะเบียนใหม่</b> ด้วยเลขบัตรประชาชนเดิมได้ทันที (ระบบจะลบ account เก่าอัตโนมัติ)</p>
+        </div>
+      </section>
+
+      <!-- ==================== 3. การเข้าสู่ระบบ ==================== -->
+      <section id="section-login" *ngIf="canSeeSection('login')" class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+        <div class="flex items-center gap-3 mb-4">
+          <div class="w-10 h-10 rounded-xl bg-teal-100 flex items-center justify-center"><i class="fas fa-sign-in-alt text-teal-600"></i></div>
+          <div>
+            <h2 class="text-xl font-bold text-gray-800">3. การเข้าสู่ระบบ</h2>
+            <p class="text-xs text-gray-400">Login เข้าใช้งาน</p>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+          <div class="bg-gray-50 rounded-xl p-4 text-center">
+            <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-2"><i class="fas fa-user text-green-600 text-xl"></i></div>
+            <p class="text-sm font-bold">ขั้นตอนที่ 1</p>
+            <p class="text-xs text-gray-500">กรอก Username</p>
+          </div>
+          <div class="bg-gray-50 rounded-xl p-4 text-center">
+            <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-2"><i class="fas fa-lock text-blue-600 text-xl"></i></div>
+            <p class="text-sm font-bold">ขั้นตอนที่ 2</p>
+            <p class="text-xs text-gray-500">กรอก Password</p>
+          </div>
+          <div class="bg-gray-50 rounded-xl p-4 text-center">
+            <div class="w-12 h-12 bg-teal-100 rounded-full flex items-center justify-center mx-auto mb-2"><i class="fas fa-arrow-right text-teal-600 text-xl"></i></div>
+            <p class="text-sm font-bold">ขั้นตอนที่ 3</p>
+            <p class="text-xs text-gray-500">กดปุ่ม "เข้าสู่ระบบ"</p>
+          </div>
+        </div>
+
+        <h4 class="font-bold text-gray-700 text-sm mb-2"><i class="fas fa-info-circle mr-2 text-blue-500"></i>สถานะที่อาจพบ</h4>
+        <div class="space-y-2 text-sm">
+          <div class="flex items-center gap-2 bg-green-50 rounded-lg px-3 py-2"><i class="fas fa-check-circle text-green-600"></i><span>สำเร็จ — เข้าสู่หน้า Dashboard</span></div>
+          <div class="flex items-center gap-2 bg-yellow-50 rounded-lg px-3 py-2"><i class="fas fa-clock text-yellow-600"></i><span>รอการอนุมัติ — บัญชีของคุณยังรอผู้ดูแลอนุมัติ</span></div>
+          <div class="flex items-center gap-2 bg-red-50 rounded-lg px-3 py-2"><i class="fas fa-ban text-red-600"></i><span>ถูกปฏิเสธ — คำขอลงทะเบียนถูกปฏิเสธ</span></div>
+          <div class="flex items-center gap-2 bg-gray-100 rounded-lg px-3 py-2"><i class="fas fa-lock text-gray-500"></i><span>ถูกปิดใช้งาน — บัญชีถูกระงับ ติดต่อผู้ดูแล</span></div>
+          <div class="flex items-center gap-2 bg-orange-50 rounded-lg px-3 py-2"><i class="fas fa-exclamation-triangle text-orange-500"></i><span>Login ผิดเกินกำหนด — ถูกล็อค 15 นาที</span></div>
+        </div>
+
+        <div class="mt-4 bg-blue-50 border border-blue-200 rounded-xl p-4">
+          <h4 class="font-bold text-blue-800 text-sm"><i class="fas fa-sign-out-alt mr-2"></i>Auto Logout</h4>
+          <p class="text-xs text-blue-700 mt-1">ระบบจะออกจากระบบอัตโนมัติเมื่อไม่มีการใช้งานเกินเวลาที่กำหนด โดยจะแสดง popup นับถอยหลังก่อนออก กด "ยกเลิก" เพื่อใช้งานต่อ</p>
+        </div>
+
+        <!-- Single Session Enforcement -->
+        <div class="mt-4 bg-amber-50 border border-amber-200 rounded-xl p-4">
+          <h4 class="font-bold text-amber-800 text-sm"><i class="fas fa-user-shield mr-2"></i>กัน login ซ้อนจากหลายเครื่อง (Single Session)</h4>
+          <p class="text-xs text-amber-700 mt-1">ระบบอนุญาตให้ใช้ <b>1 บัญชี = 1 อุปกรณ์</b> ในเวลาเดียวกันเท่านั้น</p>
+          <ul class="list-disc ml-5 mt-2 text-xs text-amber-700 space-y-0.5">
+            <li>ถ้ามีคน login บัญชีเดิมจากเครื่องอื่นอยู่ + ใช้งานล่าสุด ≤ 5 นาที → <b>ถูก block</b> (HTTP 409)</li>
+            <li>ถ้าเจ้าของไม่ได้ใช้งานเกิน 5 นาที → login ใหม่ได้ (session เก่าจะถูก invalidate)</li>
+            <li>ถ้ามีคน login บัญชีเดิมจากเครื่องใหม่ → <b>เครื่องเดิมจะ logout อัตโนมัติ</b>ภายใน ~30 วินาที</li>
+            <li>กรณีฉุกเฉิน super_admin บังคับ logout user ได้ผ่านหน้า "จัดการผู้ใช้งาน"</li>
+          </ul>
+        </div>
+
+        <!-- ThaID / ProviderID SSO (Direct JWT) -->
+        <div class="mt-4 bg-gradient-to-r from-blue-50 to-cyan-50 border border-blue-200 rounded-xl p-4">
+          <h4 class="font-bold text-blue-800 text-sm mb-2"><i class="fas fa-id-card mr-2"></i>SSO Login — ThaID (DGA) / ProviderID (MOPH)</h4>
+          <p class="text-xs text-gray-600 mb-2">หน้า login รองรับการยืนยันตัวตนผ่าน 2 ผู้ให้บริการ ใช้ <b>Direct JWT Flow</b> เหมือนกันทั้งคู่ (super_admin ต้องตั้งค่าใน Settings ก่อน):</p>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs mb-2">
+            <div class="bg-white/70 rounded-lg p-2.5 border border-blue-100">
+              <p class="font-bold text-blue-700"><i class="fas fa-id-card mr-1"></i>ThaID (DGA)</p>
+              <p class="text-gray-600 mt-0.5">บัญชี Thai Digital ID — สแกน QR ยืนยันด้วยบัตรประชาชน</p>
+            </div>
+            <div class="bg-white/70 rounded-lg p-2.5 border border-cyan-100">
+              <p class="font-bold text-cyan-700"><i class="fas fa-user-md mr-1"></i>ProviderID (MOPH)</p>
+              <p class="text-gray-600 mt-0.5">บัญชี Provider ID ของกระทรวงสาธารณสุข — Login บน MOPH Portal</p>
+            </div>
+          </div>
+          <div class="bg-white border border-blue-200 rounded-lg p-3 text-[11px] text-gray-700">
+            <p class="font-bold text-blue-700 mb-1"><i class="fas fa-cogs mr-1"></i>Flow การทำงาน (Direct JWT — ทั้ง ThaID และ ProviderID)</p>
+            <ol class="list-decimal ml-4 space-y-0.5">
+              <li>กดปุ่ม ThaID หรือ ProviderID → ระบบ redirect ไปยัง DGA/MOPH</li>
+              <li>หลังยืนยันตัวตน → DGA/MOPH redirect กลับมาที่ <code>/login?token=JWT</code></li>
+              <li>ระบบ detect provider จาก sessionStorage (<code>sso_intent</code>) + JWT <code>iss</code> field อัตโนมัติ</li>
+              <li>ดึง <b>cid</b> จาก JWT → SHA-256 hash → match กับ <code>users.cid</code></li>
+              <li>ถ้า <b>พบบัญชี</b> + อนุมัติแล้ว → ออก JWT + สร้าง session → เข้าระบบ + แสดง "เข้าสู่ระบบสำเร็จ (ThaID/ProviderID)"</li>
+              <li>ถ้า <b>ไม่พบ</b> → ปฏิเสธ + แจ้ง "กรุณาลงทะเบียนก่อน"</li>
+            </ol>
+          </div>
+          <div class="mt-2 bg-white/60 border border-blue-100 rounded-lg p-2.5 text-[11px] text-gray-700">
+            <p class="font-bold text-emerald-700 mb-1"><i class="fas fa-circle-dot mr-1"></i>ตัวแสดงสถานะการเชื่อมต่อ (Connectivity Badge)</p>
+            <p>ปุ่ม ThaID / ProviderID แสดงสถานะแบบ realtime: <span class="text-green-600 font-bold">● เชื่อมต่อได้</span> / <span class="text-red-500 font-bold">● ไม่สามารถเชื่อมต่อ</span> / <span class="text-gray-400">● กำลังตรวจสอบ...</span> — ระบบ server ทำ HEAD request ตรวจสอบ origin URL ของ DGA/MOPH ทุกครั้งที่เปิดหน้า Login</p>
+          </div>
+          <div class="mt-2 bg-amber-50 border border-amber-200 rounded-lg p-2.5 text-[11px] text-amber-800">
+            <p><i class="fas fa-bell mr-1"></i>Login สำเร็จ → ระบบส่ง notification แสดง <b>วิธีที่ใช้ Login</b> ที่ถูกต้อง (Username/Password / ThaID / ProviderID) ผ่าน LINE, Telegram, Email และ in-app notification</p>
+          </div>
+          <p class="text-[10px] text-amber-600 mt-2"><i class="fas fa-info-circle mr-1"></i>super_admin ต้องเปิด toggle + กรอก Login URL ในหน้า <b>ตั้งค่าระบบ → ตั้งค่าการเข้าสู่ระบบด้วย SSO</b> | ปุ่มจะปรากฏใน login ภายใน ≤3 วินาที (poll auto)</p>
+        </div>
+
+        <!-- ลืมรหัสผ่าน -->
+        <div class="mt-4 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-4">
+          <h4 class="font-bold text-blue-800 text-sm mb-3"><i class="fas fa-key mr-2"></i>ลืมรหัสผ่าน?</h4>
+          <div class="flex flex-wrap items-center gap-2 text-xs font-bold mb-3">
+            <span class="bg-blue-100 text-blue-800 px-2.5 py-1 rounded-full">1. กด "ลืมรหัสผ่าน?"</span>
+            <i class="fas fa-arrow-right text-gray-300"></i>
+            <span class="bg-blue-100 text-blue-800 px-2.5 py-1 rounded-full">2. กรอก Username</span>
+            <i class="fas fa-arrow-right text-gray-300"></i>
+            <span class="bg-indigo-100 text-indigo-800 px-2.5 py-1 rounded-full">3. รับรหัส 6 หลักทาง Email</span>
+            <i class="fas fa-arrow-right text-gray-300"></i>
+            <span class="bg-blue-100 text-blue-800 px-2.5 py-1 rounded-full">4. Login ด้วยรหัสชั่วคราว</span>
+            <i class="fas fa-arrow-right text-gray-300"></i>
+            <span class="bg-green-100 text-green-800 px-2.5 py-1 rounded-full">5. เปลี่ยนรหัสผ่านใหม่</span>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs text-blue-700">
+            <div class="bg-white/60 rounded-lg p-2"><i class="fas fa-clock text-amber-500 mr-1"></i>รหัสชั่วคราวหมดอายุ <b>15 นาที</b></div>
+            <div class="bg-white/60 rounded-lg p-2"><i class="fas fa-shield-alt text-green-500 mr-1"></i>มี <b>Strength bar</b> + Checklist ตรวจรหัส</div>
+            <div class="bg-white/60 rounded-lg p-2"><i class="fas fa-eye text-gray-500 mr-1"></i>ปุ่มดวงตา <b>เปิด/ปิด</b> ดูรหัสที่พิมพ์</div>
+          </div>
+          <p class="text-[10px] text-blue-500 mt-2"><i class="fas fa-info-circle mr-1"></i>ต้องมี Email ลงทะเบียนไว้ ถ้าไม่มีให้ติดต่อผู้ดูแลระบบ</p>
+        </div>
+      </section>
+
+      <!-- ==================== 4. Dashboard ==================== -->
+      <section id="section-dashboard" *ngIf="canSeeSection('dashboard')" class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+        <div class="flex items-center gap-3 mb-4">
+          <div class="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center"><i class="fas fa-th-large text-amber-600"></i></div>
+          <div>
+            <h2 class="text-xl font-bold text-gray-800">4. บันทึกผลงานตัวชี้วัด</h2>
+            <p class="text-xs text-gray-400">หน้าหลักสำหรับบันทึกและตรวจสอบ KPI (เมนูแรกหลัง Login)</p>
+          </div>
+        </div>
+
+        <!-- Toolbar buttons -->
+        <h4 class="font-bold text-gray-700 text-sm mb-2"><i class="fas fa-tools mr-2 text-amber-500"></i>แถบปุ่มด้านบน</h4>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-2 mb-4">
+          <div class="bg-gray-50 rounded-lg p-3 border"><p class="text-xs font-bold text-gray-700"><i class="fas fa-sync-alt text-gray-500 mr-1"></i>ล้างตัวกรอง</p><p class="text-[10px] text-gray-400">ล้าง filter ทั้งหมด</p></div>
+          <div class="bg-green-50 rounded-lg p-3 border border-green-200"><p class="text-xs font-bold text-green-700"><i class="fas fa-plus mr-1"></i>เพิ่ม</p><p class="text-[10px] text-gray-400">เพิ่มตัวชี้วัดใหม่</p></div>
+          <div class="bg-amber-50 rounded-lg p-3 border border-amber-200"><p class="text-xs font-bold text-amber-700"><i class="fas fa-edit mr-1"></i>แก้ไข</p><p class="text-[10px] text-gray-400">เปิดโหมดแก้ไข (5 วินาที)</p></div>
+          <div class="bg-amber-50 rounded-lg p-3 border border-amber-200"><p class="text-xs font-bold text-amber-700"><i class="fas fa-lock-open mr-1"></i>ปลดล็อคทั้งหมด</p><p class="text-[10px] text-gray-400">super_admin เท่านั้น</p></div>
+          <div class="bg-teal-50 rounded-lg p-3 border border-teal-200"><p class="text-xs font-bold text-teal-700"><i class="fas fa-clipboard-check mr-1"></i>ตรวจสอบ</p><p class="text-[10px] text-gray-400">เลือกรายการ → อนุมัติ/ตีกลับ</p></div>
+          <div class="bg-blue-50 rounded-lg p-3 border border-blue-200"><p class="text-xs font-bold text-blue-700"><i class="fas fa-check-double mr-1"></i>อนุมัติทั้งหมด</p><p class="text-[10px] text-gray-400">เมื่อกรอง status = รอตรวจสอบ</p></div>
+          <div class="bg-red-50 rounded-lg p-3 border border-red-200"><p class="text-xs font-bold text-red-700"><i class="fas fa-undo-alt mr-1"></i>ตีกลับทั้งหมด</p><p class="text-[10px] text-gray-400">เมื่อกรอง status = รอตรวจสอบ</p></div>
+          <div class="bg-red-100 rounded-lg p-3 border border-red-300"><p class="text-xs font-bold text-red-700"><i class="fas fa-lock mr-1"></i>ระบบปิดการคีย์</p><p class="text-[10px] text-gray-400">แสดงเมื่อ user ถูกล็อค</p></div>
+        </div>
+
+        <!-- Table columns -->
+        <h4 class="font-bold text-gray-700 text-sm mb-2"><i class="fas fa-table mr-2 text-green-500"></i>คอลัมน์ในตาราง</h4>
+        <div class="bg-gray-50 rounded-xl p-4 text-xs text-gray-600 grid grid-cols-2 md:grid-cols-4 gap-2">
+          <span><b>หมวดหมู่</b> — ชื่อหมวดหมู่หลัก</span>
+          <span><b>ตัวชี้วัด</b> — [สถานะ] [ปีงบฯ] [R9/MOPH/SSJ/RMW] [ตัวชี้วัดของ] ชื่อ KPI + 🟡 table_process + 🏢 หน่วยงาน + 📈 ดูแนวโน้ม inline</span>
+          <span><b>จัดการ</b> — ไอคอนแนวตั้ง (อนุมัติ/ตีกลับ/ปลดล็อค/ฟอร์ม/ย่อย)</span>
+          <span><b>หน่วยบริการ</b> — บรรทัด 1: ชื่อ รพ. + ตัวย่อประเภท (รพศ./รพท./รพช./รพ.สต./สสอ.) | บรรทัด 2: 📍 อำเภอ</span>
+          <span><b>เป้าหมาย</b> — ตัวเลข/ข้อความ</span>
+          <span><b>ผลงานรวม</b> — ค่าล่าสุด</span>
+          <span><b>%</b> — เปอร์เซ็นต์</span>
+          <span><b>ต.ค.-ก.ย.</b> — ข้อมูล 12 เดือน</span>
+        </div>
+
+        <!-- ปรับขนาด + เรียงลำดับ -->
+        <div class="mt-3 grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div class="bg-amber-50 border border-amber-200 rounded-xl p-3">
+            <h4 class="font-bold text-amber-800 text-xs mb-1"><i class="fas fa-arrows-alt-h mr-1"></i>ปรับขนาดคอลัมน์</h4>
+            <p class="text-[11px] text-amber-700">วางเมาส์ที่ <b>ขอบขวา</b> ของหัวคอลัมน์ (หมวดหมู่หลัก / ชื่อตัวชี้วัด / หน่วยบริการ) จะเห็น cursor เปลี่ยนเป็น ↔ แล้วลากเพื่อขยาย-ย่อความกว้าง ระบบจำขนาดไว้อัตโนมัติ</p>
+          </div>
+          <div class="bg-green-50 border border-green-200 rounded-xl p-3">
+            <h4 class="font-bold text-green-800 text-xs mb-1"><i class="fas fa-sort mr-1"></i>เรียงลำดับข้อมูล</h4>
+            <p class="text-[11px] text-green-700"><b>คลิกหัวคอลัมน์</b> ที่มีไอคอน ⇅ เพื่อเรียง — คลิกครั้งแรก = น้อย→มาก (▲) คลิกซ้ำ = มาก→น้อย (▼) คลิกครั้งที่ 3 = กลับเรียงตามค่าปกติ<br>คอลัมน์ที่เรียงได้: หมวดหมู่หลัก / ชื่อตัวชี้วัด / หน่วยบริการ / เป้าหมาย / ผลงานรวม / %</p>
+          </div>
+        </div>
+
+        <!-- Edit mode steps -->
+        <div class="mt-4 bg-amber-50 border border-amber-200 rounded-xl p-4">
+          <h4 class="font-bold text-amber-800 text-sm mb-2"><i class="fas fa-edit mr-2"></i>วิธีแก้ไขข้อมูล</h4>
+          <ol class="list-decimal list-inside text-xs text-amber-700 space-y-1">
+            <li>กดปุ่ม <b>"แก้ไข"</b> — แสดงข้อความ 5 วินาที แล้วตารางเปลี่ยนเป็น input fields</li>
+            <li>แก้ไขค่าเป้าหมายหรือคะแนนรายเดือน (ตัวเลข/ข้อความ)</li>
+            <li>ช่องที่แก้ไขจะ <b class="text-orange-600">เปลี่ยนสีส้ม</b> แสดงว่ามีการเปลี่ยนแปลง</li>
+            <li>กด <b>"บันทึก"</b> → แสดง <b>ตารางสรุปการเปลี่ยนแปลง</b> (รายการ / เดือน / ค่าเดิม / ค่าใหม่ / สถานะ) → ยืนยัน</li>
+            <li>สถานะใน popup: <span class="text-green-700"><i class="fas fa-arrow-up"></i> เพิ่มขึ้น</span> / <span class="text-red-600"><i class="fas fa-arrow-down"></i> ลดลง</span> / <span class="text-gray-600"><i class="fas fa-minus"></i> ลบ</span> / <span class="text-green-700"><i class="fas fa-plus-circle"></i> เพิ่ม</span> / <span class="text-amber-700"><i class="fas fa-pen"></i> แก้ไข</span></li>
+            <li>กด <b>"คืนค่า"</b> → กลับค่าเดิม | กด <b>"ยกเลิก"</b> → ออกจากโหมดแก้ไข</li>
+            <li><b>super_admin</b> สามารถแก้ไขข้อมูลที่ถูกล็อคได้ + กดปุ่ม <b>"ปลดล็อคทั้งหมด"</b> เพื่อปลดล็อคทุกรายการในปี</li>
+            <li class="text-green-700"><i class="fas fa-expand-arrows-alt mr-1"></i><b>Focus Mode:</b> เมื่อเข้าโหมด "แก้ไขผลงาน" หรือ "โหมดลบตัวชี้วัด" ระบบจะ <b>ซ่อน sidebar อัตโนมัติ</b> เพื่อขยายพื้นที่คีย์ข้อมูล — ออกจากโหมดแล้ว sidebar จะกลับมาแสดง</li>
+            <li class="text-cyan-700"><i class="fas fa-layer-group mr-1"></i><b>ตัวชี้วัดที่มี sub-indicators:</b> ตอนดูปกติแสดง <b>ค่าเฉลี่ย AVG</b> จาก sub / ตอนเข้าโหมดแก้ไขจะกลับไปแสดง <b>ค่า raw</b> (ของ main indicator) → แก้ raw แล้ว save เก็บใน kpi_results ของ main (sub ไม่กระทบ)</li>
+          </ol>
+        </div>
+
+        <!-- ตัวกรองแบบ Multi-select -->
+        <div class="mt-4 bg-blue-50 border border-blue-200 rounded-xl p-4">
+          <h4 class="font-bold text-blue-800 text-sm mb-2"><i class="fas fa-filter mr-2"></i>ตัวกรองแบบ Multi-select (เลือกได้หลายค่า)</h4>
+          <p class="text-xs text-blue-700 mb-2">แต่ละตัวกรองเป็นปุ่ม dropdown → เปิดแล้วติ๊ก checkbox ได้มากกว่า 1 รายการ</p>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
+            <div class="bg-white rounded-lg p-2 border border-teal-200"><b class="text-teal-700">อำเภอ / ประเภท รพ. / หน่วยบริการ</b> — กรองตามสถานที่ (cascade กัน) | <b>ประเภท รพ.</b> กรองหน่วยบริการตาม chospital.hostype</div>
+            <div class="bg-white rounded-lg p-2 border border-amber-200"><b class="text-amber-700">หน่วยงาน / หมวดหมู่หลัก / ตัวชี้วัด</b> — กรองตามโครงสร้าง KPI</div>
+            <div class="bg-white rounded-lg p-2 border border-cyan-200"><b class="text-cyan-700">ตัวชี้วัดของ</b> — กรองตัวชี้วัดตาม <b>required_off_types</b> (ประเภทที่รับผิดชอบ) + all_required (ครอบคลุมทุกประเภท)</div>
+            <div class="bg-white rounded-lg p-2 border border-gray-200"><b class="text-gray-700">สถานะ</b> — ผ่านเป้า / ไม่ผ่านเป้า / รอตรวจสอบ / ตรวจสอบแล้ว / <b class="text-emerald-700">มีเป้า+มีผลงาน</b> / ยังไม่มีเป้า / มีเป้าแต่ไม่มีผลงาน</div>
+            <div class="bg-white rounded-lg p-2 border border-green-200"><b class="text-green-700">ปุ่ม "ค้นหา"</b> — โหลดข้อมูลตามตัวกรอง (admin_ssj/super_admin ต้องกดเสมอ)</div>
+          </div>
+          <p class="text-[11px] text-blue-600 mt-2"><i class="fas fa-lightbulb mr-1"></i>ปุ่ม "ล้างตัวกรอง" อยู่ต่อจากปุ่ม "ค้นหา" — ล้าง filter ทั้งหมดในคลิกเดียว</p>
+        </div>
+
+        <!-- Manage dropdown + Count badges -->
+        <div class="mt-4 bg-indigo-50 border border-indigo-200 rounded-xl p-4">
+          <h4 class="font-bold text-indigo-800 text-sm mb-2"><i class="fas fa-sliders-h mr-2"></i>ปุ่มจัดการ + Count Badges</h4>
+          <ul class="list-disc ml-5 text-xs text-indigo-700 space-y-1">
+            <li><b>จัดการข้อมูลตัวชี้วัด</b> (admin_ssj+) — dropdown รวม <b>+ เพิ่ม / แก้ไข / โหมดลบ</b> เข้ากลุ่มเดียว</li>
+            <li><b>ตรวจสอบ (N)</b> — จำนวนในวงเล็บ = รายการที่รอตรวจสอบ</li>
+            <li><b>ปลดล็อค (N)</b> — จำนวนในวงเล็บ = รายการที่ถูกล็อค</li>
+            <li><b>ตรวจสอบแล้ว</b> (ตัวกรองสถานะ สี teal) = รายการที่มีผลงาน + ไม่มีรายการค้างตรวจสอบ</li>
+          </ul>
+        </div>
+
+        <!-- Add KPI modal (multi-select) -->
+        <div class="mt-4 bg-green-50 border border-green-200 rounded-xl p-4">
+          <h4 class="font-bold text-green-800 text-sm mb-2"><i class="fas fa-plus-circle mr-2"></i>เพิ่มตัวชี้วัด (Add KPI) — ตัวกรอง Multi-select</h4>
+          <ul class="list-disc ml-5 text-xs text-green-700 space-y-1">
+            <li>ตัวกรองทุกช่อง (อำเภอ / ประเภทหน่วยบริการ / <b>หน่วยบริการ</b> / หน่วยงาน / หมวดหมู่หลัก) เป็น <b>dropdown multi-select checkbox</b> + ปุ่ม "เลือกทั้งหมด"</li>
+            <li><b>หน่วยบริการปลายทาง</b> เลือกได้หลายแห่ง → เพิ่มตัวชี้วัดชุดเดียวกันไปหลายหน่วยบริการพร้อมกันในครั้งเดียว</li>
+            <li>ตัวชี้วัดที่<b>มีอยู่แล้ว</b>ในแต่ละหน่วยบริการจะถูก<b>ข้ามอัตโนมัติ</b> (ไม่ซ้ำ)</li>
+            <li>ปุ่มบันทึกแสดง "(N ตัวชี้วัด × M หน่วย)" — บันทึกทีละหน่วย + สรุปผลรวม (เพิ่ม/ข้าม/ล้มเหลว)</li>
+          </ul>
+        </div>
+
+        <!-- นโยบายการโหลดข้อมูล -->
+        <div class="mt-4 bg-blue-50 border border-blue-200 rounded-xl p-3 text-xs text-blue-700">
+          <p class="font-bold mb-1"><i class="fas fa-circle-info mr-1"></i>นโยบายการโหลดข้อมูล (เพื่อประสิทธิภาพ)</p>
+          <p>เพื่อลดภาระระบบเมื่อมีผู้ใช้พร้อมกันจำนวนมาก — ระบบ<b>ไม่มีปุ่ม "โหลดข้อมูลทั้งหมด"</b>แล้ว ผู้ใช้ต้อง<b>เลือกตัวกรองให้แคบลง</b> (อำเภอ/หน่วยบริการ/หน่วยงาน/ตัวชี้วัด) แล้วกด <b>"ค้นหา"</b> เสมอ</p>
+        </div>
+
+        <!-- Delete mode -->
+        <div class="mt-4 bg-red-50 border border-red-200 rounded-xl p-4">
+          <h4 class="font-bold text-red-800 text-sm mb-2"><i class="fas fa-trash mr-2"></i>โหมดลบข้อมูล (Delete Mode — super_admin)</h4>
+          <ol class="list-decimal list-inside text-xs text-red-700 space-y-1">
+            <li>เข้า dropdown "จัดการข้อมูลตัวชี้วัด" → กด <b>"โหมดลบ"</b> → banner แดงปรากฏ + คอลัมน์ checkbox ด้านซ้าย</li>
+            <li>ติ๊กรายการที่ต้องการลบ → กด <b>"ลบที่เลือก"</b></li>
+            <li>ระบบลบ <b>kpi_results + kpi_sub_results</b> ตาม indicator+year+hospcode → ยืนยันและสรุปจำนวนที่ลบ</li>
+          </ol>
+        </div>
+
+        <!-- Review mode -->
+        <div class="mt-4 bg-teal-50 border border-teal-200 rounded-xl p-4">
+          <h4 class="font-bold text-teal-800 text-sm mb-2"><i class="fas fa-clipboard-check mr-2"></i>โหมดตรวจสอบ (Review Mode)</h4>
+          <ol class="list-decimal list-inside text-xs text-teal-700 space-y-1">
+            <li>กดปุ่ม <b>"ตรวจสอบ"</b> → เข้า Review Mode (สำหรับ admin_ssj / super_admin)</li>
+            <li>เลือกรายการด้วย <b>checkbox</b> ทีละตัว หรือกด <b>"เลือกทั้งหมดที่รอตรวจสอบ"</b></li>
+            <li>กดปุ่ม <b>"อนุมัติที่เลือก"</b> หรือ <b>"ตีกลับที่เลือก"</b> (ระบุเหตุผล)</li>
+            <li>หลังอนุมัติ/ตีกลับ → กลับหน้าเริ่มต้นอัตโนมัติ</li>
+          </ol>
+        </div>
+
+        <!-- Dashboard Auto Filter -->
+        <div class="mt-4 bg-green-50 border border-green-200 rounded-xl p-4">
+          <h4 class="font-bold text-green-800 text-sm mb-2"><i class="fas fa-filter mr-2"></i>กรองข้อมูลอัตโนมัติตาม Role</h4>
+          <div class="overflow-x-auto">
+            <table class="w-full text-xs border-collapse">
+              <thead><tr class="bg-green-100 text-green-800"><th class="px-3 py-1.5 text-left">Role</th><th class="px-3 py-1.5 text-left">Filter เริ่มต้น</th></tr></thead>
+              <tbody class="divide-y divide-green-100">
+                <tr><td class="px-3 py-1.5 font-bold">user_hos / user_sso / admin_hos / admin_sso</td><td class="px-3 py-1.5">กรองตาม <b>หน่วยบริการ</b> ของตัวเอง</td></tr>
+                <tr><td class="px-3 py-1.5 font-bold">user_cup / admin_cup</td><td class="px-3 py-1.5">กรองตาม <b>อำเภอ</b> ของตัวเอง</td></tr>
+                <tr><td class="px-3 py-1.5 font-bold">user_ssj / admin_ssj</td><td class="px-3 py-1.5"><b>ไม่โหลดอัตโนมัติ</b> — ล็อค dropdown หน่วยงานเฉพาะ dept ตัวเอง + ต้องเลือกตัวกรองแล้วกด "ค้นหา"</td></tr>
+                <tr><td class="px-3 py-1.5 font-bold">super_admin</td><td class="px-3 py-1.5"><b>ไม่โหลดอัตโนมัติ</b> — เห็นทุก dept + ต้องเลือกตัวกรองแล้วกด "ค้นหา"</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="text-[10px] text-green-600 mt-2"><i class="fas fa-info-circle mr-1"></i>กดปุ่ม "ล้างตัวกรอง" เพื่อดูข้อมูลทั้งหมดได้ทุกเมื่อ</p>
+          <div class="mt-3 bg-white border border-green-200 rounded-lg p-3 text-xs text-green-700 space-y-1">
+            <p class="font-bold"><i class="fas fa-link mr-1"></i>ตัวกรองสอดคล้องกัน (Cascading Filters)</p>
+            <ul class="list-disc ml-4 space-y-0.5">
+              <li>เลือก <b>อำเภอ</b> → หน่วยบริการแสดงเฉพาะในอำเภอนั้น</li>
+              <li>เลือก <b>หน่วยบริการ</b> → หมวดหมู่ + ตัวชี้วัด แสดงเฉพาะหน่วยงานของหน่วยบริการนั้น</li>
+              <li>เลือก <b>หน่วยงาน</b> → หมวดหมู่ + ตัวชี้วัด แสดงเฉพาะหน่วยงานนั้น</li>
+              <li>กดปุ่ม <b>"ซ่อนตัวกรอง / แสดงตัวกรอง"</b> เพื่อเพิ่มพื้นที่ดูข้อมูล</li>
+              <li>กดปุ่ม <b>"ค้นหา"</b> เพื่อโหลดข้อมูลจาก server (เลือก filter ก่อนแล้วกดค้นหา)</li>
+            </ul>
+          </div>
+          <div class="mt-3 bg-white border border-green-200 rounded-lg p-3 text-xs text-green-700">
+            <p class="font-bold mb-1"><i class="fas fa-tags mr-1"></i>สัญญลักษณ์ประเภทตัวชี้วัด</p>
+            <div class="flex flex-wrap gap-2">
+              <span class="px-2 py-0.5 bg-blue-100 text-blue-700 rounded font-bold">R9</span>
+              <span class="px-2 py-0.5 bg-red-100 text-red-700 rounded font-bold">MOPH</span>
+              <span class="px-2 py-0.5 bg-green-100 text-green-700 rounded font-bold">SSJ</span>
+              <span class="px-2 py-0.5 bg-yellow-100 text-yellow-700 rounded font-bold">RMW</span>
+              <span class="px-2 py-0.5 bg-gray-100 text-gray-600 rounded font-bold">อื่นๆ</span>
+            </div>
+            <p class="text-[10px] text-green-600 mt-1">สัญญลักษณ์ประเภทตัวชี้วัด — แสดงไว้ด้านหน้าชื่อตัวชี้วัดในตารางทั้ง Desktop และ Mobile ข้อมูลจาก kpi_indicators ฟิลด์ r9, moph, ssj, rmw, other</p>
+          </div>
+
+          <!-- ตัวชี้วัดของ (evaluation_mode + required_off_types) -->
+          <div class="mt-3 bg-white border border-cyan-200 rounded-lg p-3 text-xs">
+            <p class="font-bold mb-1 text-cyan-800"><i class="fas fa-hospital mr-1"></i>ป้าย "ตัวชี้วัดของ" (ขอบเขตหน่วยบริการ)</p>
+            <div class="flex flex-wrap gap-2 mb-2">
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-purple-100 text-purple-700 border border-purple-200 rounded font-bold"><i class="fas fa-hospital text-[9px]"></i> ทุกประเภท</span>
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-cyan-100 text-cyan-700 border border-cyan-200 rounded font-bold"><i class="fas fa-hospital text-[9px]"></i> รพ.ศ., รพ.ท.</span>
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-cyan-100 text-cyan-700 border border-cyan-200 rounded font-bold"><i class="fas fa-hospital text-[9px]"></i> 3 ประเภท</span>
+            </div>
+            <ul class="list-disc ml-4 text-gray-600 space-y-0.5">
+              <li><b class="text-purple-700">ทุกประเภท</b> — evaluation_mode='all_required' → ครอบคลุมหน่วยบริการทุกประเภทในขอบเขต</li>
+              <li><b class="text-cyan-700">ชื่อประเภท (≤2)</b> — any_one + required_off_types มี 1-2 ประเภท (เช่น "รพ.ศ., รพ.ท.")</li>
+              <li><b class="text-cyan-700">N ประเภท</b> — any_one + ≥3 ประเภท (tooltip โชว์ชื่อครบ)</li>
+              <li><i class="fas fa-info-circle text-cyan-500"></i> ตั้งค่าใน <b>จัดการตัวชี้วัด → แก้ไขตัวชี้วัด → เกณฑ์การประเมิน</b></li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Action buttons per KPI -->
+        <h4 class="font-bold text-gray-700 text-sm mt-4 mb-2"><i class="fas fa-mouse-pointer mr-2 text-purple-500"></i>ปุ่มจัดการรายตัวชี้วัด</h4>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
+          <div class="flex items-center gap-2 bg-green-50 rounded-lg p-2"><i class="fas fa-check-circle text-green-600"></i><span>อนุมัติ</span></div>
+          <div class="flex items-center gap-2 bg-red-50 rounded-lg p-2"><i class="fas fa-undo-alt text-red-500"></i><span>ตีกลับ</span></div>
+          <div class="flex items-center gap-2 bg-purple-50 rounded-lg p-2"><i class="fas fa-gavel text-purple-600"></i><span>ยื่นอุทธรณ์</span></div>
+          <div class="flex items-center gap-2 bg-blue-50 rounded-lg p-2"><i class="fas fa-chart-line text-blue-500"></i><span>ดูกราฟแนวโน้ม</span></div>
+          <div class="flex items-center gap-2 bg-purple-50 rounded-lg p-2"><i class="fas fa-clipboard-list text-purple-500"></i><span>กรอกแบบฟอร์ม</span></div>
+          <div class="flex items-center gap-2 bg-amber-50 rounded-lg p-2"><i class="fas fa-lock-open text-amber-500"></i><span>ปลดล็อค</span></div>
+          <div class="flex items-center gap-2 bg-green-50 rounded-lg p-2"><i class="fas fa-check text-green-600"></i><span>อนุมัติอุทธรณ์</span></div>
+          <div class="flex items-center gap-2 bg-red-50 rounded-lg p-2"><i class="fas fa-times text-red-500"></i><span>ปฏิเสธอุทธรณ์</span></div>
+        </div>
+
+        <!-- Dynamic form modal — 12 month grid -->
+        <div class="mt-4 bg-purple-50 border border-purple-200 rounded-xl p-4">
+          <h4 class="font-bold text-purple-800 text-sm mb-2"><i class="fas fa-th-large mr-2"></i>Modal กรอกแบบฟอร์ม — Grid 12 เดือน</h4>
+          <ul class="text-xs text-gray-600 space-y-1 ml-4 list-disc">
+            <li>กดปุ่ม <i class="fas fa-clipboard-list text-purple-500"></i> ในแถวตัวชี้วัด → modal เปิด <b>Grid 6 คอลัมน์ × 2 แถว</b> (lg) แสดงครบ 12 เดือนพร้อมกัน</li>
+            <li>โหมดเริ่มต้น = <b>ดูอย่างเดียว</b> → กด <b>"แก้ไขข้อมูลรายเดือน"</b> เพื่อกรอก</li>
+            <li>card สีเขียวอ่อน = เดือนที่มีข้อมูล / สีเหลือง+shadow = เดือนที่กำลังแก้ไข</li>
+            <li>กด <b>"บันทึกทั้งหมด"</b> → ระบบส่งเฉพาะเดือนที่เปลี่ยน (batch upsert) + progress N/12</li>
+            <li>ฟิลด์ <b>score_option</b> = dropdown แสดง "ป้าย (X%)" + badge สีม่วงด้านขวาแสดง %ที่เลือก</li>
+            <li>Tab <b>"ข้อมูลที่บันทึก"</b> = list view ของข้อมูลที่บันทึกแล้ว (history)</li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- ==================== 5. กราฟและสถิติ ==================== -->
+      <section id="section-charts" *ngIf="canSeeSection('charts')" class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+        <div class="flex items-center gap-3 mb-4">
+          <div class="w-10 h-10 rounded-xl bg-indigo-100 flex items-center justify-center"><i class="fas fa-chart-bar text-indigo-600"></i></div>
+          <div>
+            <h2 class="text-xl font-bold text-gray-800">5. รายงานสถิติ (กราฟ + รายงานสรุปผล)</h2>
+            <p class="text-xs text-gray-400">รวม 2 ส่วน — Tab "กราฟและสถิติ" + Tab "รายงานสรุปผล" ในหน้าเดียว</p>
+          </div>
+        </div>
+        <p class="text-xs text-gray-500 mb-3">ทุกกราฟแสดงความกว้าง 100% เต็มจอ</p>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div class="bg-gray-50 rounded-xl p-4 border"><i class="fas fa-chart-bar text-blue-500 text-lg mr-2"></i><b class="text-sm">กราฟแท่งนอน %ผลงาน</b><p class="text-xs text-gray-500 mt-1">แสดง %ผลงาน/เป้าหมาย แยกสี: <span class="text-green-600">เขียว ≥80%</span> / <span class="text-amber-600">เหลือง 50-79%</span> / <span class="text-red-600">แดง &lt;50%</span> + เส้นประเป้าหมาย 80%</p></div>
+          <div class="bg-gray-50 rounded-xl p-4 border"><i class="fas fa-chart-area text-green-500 text-lg mr-2"></i><b class="text-sm">กราฟ Area แนวโน้ม</b><p class="text-xs text-gray-500 mt-1">แนวโน้มผลงานรายเดือน (ต.ค.-ก.ย.) + เส้นเฉลี่ยเป้าหมาย พร้อม gradient fill</p></div>
+          <div class="bg-gray-50 rounded-xl p-4 border"><i class="fas fa-map-marked-alt text-teal-500 text-lg mr-2"></i><b class="text-sm">แผนที่อำเภอ</b><p class="text-xs text-gray-500 mt-1">ผลงานรายอำเภอ สี 3 ระดับ: เขียว ≥80% / เหลือง 50-79% / แดง &lt;50%</p></div>
+          <div class="bg-gray-50 rounded-xl p-4 border"><i class="fas fa-circle-notch text-purple-500 text-lg mr-2"></i><b class="text-sm">Donut Chart สัดส่วน</b><p class="text-xs text-gray-500 mt-1">สัดส่วนผลงานแยกตามหน่วยงาน แสดงผลงานรวมตรงกลาง</p></div>
+        </div>
+
+        <!-- District map detail -->
+        <div class="mt-4 bg-teal-50 border border-teal-200 rounded-xl p-4">
+          <h4 class="font-bold text-teal-800 text-sm mb-2"><i class="fas fa-map-marked-alt mr-2"></i>แผนที่ผลงาน KPI รายอำเภอ — จ.นครราชสีมา</h4>
+          <div class="grid grid-cols-3 gap-2 text-xs mb-2">
+            <div class="flex items-center gap-1.5"><span class="w-4 h-4 rounded bg-green-500 inline-block"></span><b>≥80%</b> บรรลุเป้าหมาย</div>
+            <div class="flex items-center gap-1.5"><span class="w-4 h-4 rounded bg-yellow-400 inline-block"></span><b>50-79%</b> ปานกลาง</div>
+            <div class="flex items-center gap-1.5"><span class="w-4 h-4 rounded bg-red-500 inline-block"></span><b>&lt;50%</b> ต้องปรับปรุง</div>
+          </div>
+          <p class="text-xs text-teal-700">แต่ละอำเภอแสดงเป็น card พร้อมวงกลมเปอร์เซ็นต์ เรียงจากมากไปน้อย hover ดูรายละเอียดเป้าหมาย/ผลงาน เปลี่ยนตามตัวกรองที่เลือก</p>
+        </div>
+
+        <!-- Rank calculation -->
+        <div class="mt-4 bg-purple-50 border border-purple-200 rounded-xl p-4">
+          <h4 class="font-bold text-purple-800 text-sm mb-2"><i class="fas fa-trophy mr-2"></i>อันดับผลงานระดับจังหวัด</h4>
+          <p class="text-xs text-purple-700">คำนวณจาก <b>% ตัวชี้วัดที่ผ่านเป้าหมาย</b> ของทุกหน่วยบริการในปีงบประมาณนั้น → เรียงจากมากไปน้อย → แสดง "อันดับ X / Y หน่วยบริการ"</p>
+          <p class="text-[10px] text-purple-500 mt-1"><i class="fas fa-info-circle mr-1"></i>super_admin / admin_ssj ไม่มี hospcode จะไม่แสดงอันดับ</p>
+        </div>
+
+        <!-- ===== Tab รายงานสรุปผล ===== -->
+        <div class="mt-6 border-t border-gray-200 pt-5">
+          <div class="flex items-center gap-2 mb-3">
+            <i class="fas fa-file-alt text-indigo-500 text-lg"></i>
+            <h3 class="text-lg font-bold text-gray-800">Tab "รายงานสรุปผล"</h3>
+          </div>
+          <p class="text-xs text-gray-500 mb-3">ดึงข้อมูลจากตาราง <b>kpi_summary</b> (ตารางเดียวกับกราฟ) — โหลดเร็ว ไม่ query จากตาราง kpi_results โดยตรง</p>
+
+          <!-- 4 แถบรายงาน -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+            <div class="bg-indigo-50 rounded-xl p-4 border border-indigo-200">
+              <p class="text-sm font-bold text-indigo-800 mb-1"><i class="fas fa-list-ol mr-2"></i>1. รายข้อตัวชี้วัด</p>
+              <p class="text-xs text-gray-600">สรุปแต่ละตัวชี้วัด: เป้าหมาย, ผลงานรายเดือน (ต.ค.–ก.ย.), ผลงานรวม, จำนวนหน่วยบริการ พร้อมกราฟ Bar เปรียบเทียบเป้าหมาย VS ผลงาน</p>
+            </div>
+            <div class="bg-green-50 rounded-xl p-4 border border-green-200">
+              <p class="text-sm font-bold text-green-800 mb-1"><i class="fas fa-hospital mr-2"></i>2. รายหน่วยบริการ</p>
+              <p class="text-xs text-gray-600">สรุปแต่ละ รพ./สสอ./รพ.สต.: จำนวนตัวชี้วัด, เป้าหมายรวม, ผลงานรวม, %สำเร็จ พร้อมกราฟ Bar แนวนอน</p>
+            </div>
+            <div class="bg-blue-50 rounded-xl p-4 border border-blue-200">
+              <p class="text-sm font-bold text-blue-800 mb-1"><i class="fas fa-map-marker-alt mr-2"></i>3. รายอำเภอ</p>
+              <p class="text-xs text-gray-600">สรุปแต่ละอำเภอ: จำนวนหน่วยบริการ, จำนวนตัวชี้วัด, เป้าหมายรวม, ผลงานรวม, %สำเร็จ พร้อมกราฟ Bar + Pie Chart</p>
+            </div>
+            <div class="bg-amber-50 rounded-xl p-4 border border-amber-200">
+              <p class="text-sm font-bold text-amber-800 mb-1"><i class="fas fa-calendar-alt mr-2"></i>4. รายปีงบประมาณ</p>
+              <p class="text-xs text-gray-600">เปรียบเทียบข้ามปี: จำนวนตัวชี้วัด, หน่วยบริการ, เป้าหมายรวม, ผลงานรวม, %สำเร็จ พร้อมกราฟ Bar เปรียบเทียบ</p>
+            </div>
+          </div>
+
+          <!-- ตัวกรอง + ปุ่ม -->
+          <div class="bg-gray-50 border border-gray-200 rounded-xl p-3 mb-3 text-xs text-gray-600">
+            <p class="font-bold text-gray-700 mb-1"><i class="fas fa-filter mr-1"></i>ตัวกรอง</p>
+            <p>ปีงบประมาณ | หน่วยงาน | อำเภอ — กรองอัตโนมัติตาม Role (เหมือนหน้ากราฟ) + ปุ่มล้างตัวกรอง</p>
+          </div>
+          <div class="flex flex-wrap gap-2 text-xs">
+            <span class="bg-green-100 text-green-700 px-3 py-1.5 rounded-full font-bold"><i class="fas fa-file-excel mr-1"></i>ส่งออก Excel</span>
+            <span class="bg-blue-100 text-blue-700 px-3 py-1.5 rounded-full font-bold"><i class="fas fa-print mr-1"></i>พิมพ์รายงาน</span>
+          </div>
+
+          <div class="mt-3 bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-700">
+            <p><i class="fas fa-exclamation-triangle mr-1"></i><b>สำคัญ:</b> ข้อมูลรายงานดึงจากตาราง kpi_summary — ต้องกดปุ่ม <b>"อัปเดต Summary"</b> ในหน้าตั้งค่าหลังจากมีการเปลี่ยนแปลงข้อมูลผลงาน เพื่อให้รายงานเป็นปัจจุบัน</p>
+          </div>
+
+          <!-- ===== Tab "สถานะการบันทึก" (Monitor) ===== -->
+          <div *ngIf="canSeeSection('users') || canSeeSection('kpi-manager')" class="mt-5 bg-fuchsia-50 border border-fuchsia-200 rounded-xl p-4">
+            <h4 class="font-bold text-fuchsia-800 text-sm mb-2"><i class="fas fa-clipboard-check mr-2"></i>Tab "สถานะการบันทึก" (Monitor — super_admin + admin_ssj)</h4>
+            <p class="text-xs text-gray-600 mb-3">ดูภาพรวมการบันทึกข้อมูลของระบบ — ใช้ติดตาม รพ. ที่ค้างบันทึก</p>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+              <div class="bg-white rounded-lg p-3 border border-fuchsia-200">
+                <p class="text-xs font-bold text-fuchsia-700 mb-1"><i class="fas fa-list-ol mr-1"></i>มุมมอง "รายตัวชี้วัด"</p>
+                <p class="text-[11px] text-gray-600">ดูแต่ละตัวชี้วัด: รพ. ใดบันทึกแล้ว/ยังไม่บันทึก เรียงจาก % บันทึกมาก→น้อย</p>
+              </div>
+              <div class="bg-white rounded-lg p-3 border border-rose-200">
+                <p class="text-xs font-bold text-rose-700 mb-1"><i class="fas fa-hospital mr-1"></i>มุมมอง "รายหน่วยบริการ"</p>
+                <p class="text-[11px] text-gray-600">ดูแต่ละ รพ.: ตัวชี้วัดใดยังค้างบันทึก เรียงจากค้างมากสุดก่อน — กดปุ่ม "ดูที่ค้าง" → modal แสดงรายตัวชี้วัดที่ค้าง</p>
+              </div>
+            </div>
+            <p class="text-[11px] text-gray-500"><i class="fas fa-lightbulb mr-1"></i>การ์ดสรุป: ตัวชี้วัด/รพ. ทั้งหมด, บันทึกครบ 100%, บันทึกบางส่วน, ยังไม่บันทึก, % บันทึกเฉลี่ย</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================== 6. แจ้งเตือน ==================== -->
+      <section id="section-notifications" *ngIf="canSeeSection('notifications')" class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+        <div class="flex items-center gap-3 mb-4">
+          <div class="w-10 h-10 rounded-xl bg-red-100 flex items-center justify-center"><i class="fas fa-bell text-red-500"></i></div>
+          <div>
+            <h2 class="text-xl font-bold text-gray-800">6. แจ้งเตือน</h2>
+            <p class="text-xs text-gray-400">ระบบแจ้งเตือนอัตโนมัติ</p>
+          </div>
+        </div>
+        <div class="flex flex-wrap gap-2 mb-4">
+          <span class="px-3 py-1.5 rounded-full text-xs font-bold bg-gray-100 text-gray-600">ทั้งหมด</span>
+          <span class="px-3 py-1.5 rounded-full text-xs font-bold bg-blue-100 text-blue-700">ยังไม่อ่าน</span>
+          <span class="px-3 py-1.5 rounded-full text-xs font-bold bg-green-100 text-green-700"><i class="fas fa-check-circle mr-1"></i>อนุมัติ</span>
+          <span class="px-3 py-1.5 rounded-full text-xs font-bold bg-red-100 text-red-700"><i class="fas fa-undo-alt mr-1"></i>ตีกลับ</span>
+          <span class="px-3 py-1.5 rounded-full text-xs font-bold bg-purple-100 text-purple-700"><i class="fas fa-gavel mr-1"></i>อุทธรณ์</span>
+          <span class="px-3 py-1.5 rounded-full text-xs font-bold bg-indigo-100 text-indigo-700"><i class="fas fa-reply mr-1"></i>ตอบกลับ</span>
+        </div>
+        <div class="bg-blue-50 border border-blue-200 rounded-xl p-3 text-xs text-blue-700 space-y-1">
+          <p><i class="fas fa-bell mr-1"></i><b>Dropdown ระฆัง</b> แสดงเฉพาะ <b>แจ้งเตือนที่ยังไม่อ่าน</b> เท่านั้น — กดที่ข้อความเพื่อมาร์คว่า "อ่านแล้ว" หรือกด "อ่านทั้งหมด"</p>
+          <p><i class="fas fa-arrows-alt-v mr-1"></i>มี <b>Scrollbar</b> เมื่อมีแจ้งเตือนมากกว่า 3 ข้อ | Mobile แสดงเต็มจอ</p>
+          <p><i class="fas fa-list mr-1"></i>กด <b>"ดูทั้งหมด →"</b> เพื่อไปหน้ารวมแจ้งเตือน (เห็นทั้งอ่านแล้ว+ยังไม่อ่าน)</p>
+        </div>
+      </section>
+
+      <!-- ==================== 7. จัดการผู้ใช้งาน ==================== -->
+      <section id="section-users" *ngIf="canSeeSection('users')" class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+        <div class="flex items-center gap-3 mb-4">
+          <div class="w-10 h-10 rounded-xl bg-orange-100 flex items-center justify-center"><i class="fas fa-users-cog text-orange-600"></i></div>
+          <div>
+            <h2 class="text-xl font-bold text-gray-800">7. จัดการผู้ใช้งาน</h2>
+            <p class="text-xs text-gray-400">Admin ทุกระดับเข้าถึงได้</p>
+          </div>
+        </div>
+
+        <!-- Approval flow -->
+        <div class="flex flex-wrap items-center gap-2 mb-4 text-xs font-bold">
+          <span class="bg-yellow-100 text-yellow-800 px-3 py-1.5 rounded-full">ผู้สมัครรอการอนุมัติ</span>
+          <i class="fas fa-arrow-right text-gray-300"></i>
+          <span class="bg-green-100 text-green-800 px-3 py-1.5 rounded-full"><i class="fas fa-check mr-1"></i>อนุมัติ → Email ✉️</span>
+          <span class="text-gray-400 mx-1">หรือ</span>
+          <span class="bg-red-100 text-red-800 px-3 py-1.5 rounded-full"><i class="fas fa-times mr-1"></i>ปฏิเสธ + เหตุผล → Email ✉️</span>
+        </div>
+
+        <!-- ปุ่มเครื่องมือ -->
+        <div class="grid grid-cols-2 md:grid-cols-5 gap-2 mb-4 text-xs">
+          <div class="bg-amber-50 rounded-lg p-2 border border-amber-200"><i class="fas fa-lock text-amber-600 mr-1"></i><b>โหมดปิดปรับปรุง</b><p class="text-[10px] text-gray-400 mt-0.5">เปิด/ปิดระบบ Maintenance</p></div>
+          <div class="bg-emerald-50 rounded-lg p-2 border border-emerald-200"><i class="fas fa-toggle-on text-emerald-600 mr-1"></i><b>เปิดใช้งานทั้งหมด</b><p class="text-[10px] text-gray-400 mt-0.5">เปิดทุก account (ยกเว้น super_admin)</p></div>
+          <div class="bg-red-50 rounded-lg p-2 border border-red-200"><i class="fas fa-toggle-off text-red-500 mr-1"></i><b>ปิดใช้งานทั้งหมด</b><p class="text-[10px] text-gray-400 mt-0.5">ปิดทุก account</p></div>
+          <div class="bg-blue-50 rounded-lg p-2 border border-blue-200"><i class="fas fa-cloud-upload-alt text-blue-600 mr-1"></i><b>Data Sync</b><p class="text-[10px] text-gray-400 mt-0.5">Sync users → HDC (super_admin)</p></div>
+          <div class="bg-green-50 rounded-lg p-2 border border-green-200"><i class="fas fa-user-plus text-green-600 mr-1"></i><b>เพิ่มผู้ใช้งาน</b><p class="text-[10px] text-gray-400 mt-0.5">Validation เหมือนหน้า Register</p></div>
+        </div>
+
+        <!-- Data Synchronization -->
+        <div class="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-4">
+          <h4 class="font-bold text-blue-800 text-sm mb-2"><i class="fas fa-cloud-upload-alt mr-2"></i>Data Synchronization — Users Local ↔ HDC</h4>
+          <ol class="list-decimal ml-5 text-xs text-gray-600 space-y-1">
+            <li>กดปุ่ม <b>"Data Synchronization"</b> (สีน้ำเงิน) ใน toolbar (เฉพาะ super_admin)</li>
+            <li>Modal เปิดและ <b>เปรียบเทียบ</b> users Local vs HDC ทันที → แสดง 4 cards:
+              <span class="text-green-600">ตรงกัน</span> |
+              <span class="text-amber-600">ต่างกัน</span> |
+              <span class="text-blue-600">เฉพาะ Local</span> |
+              <span class="text-gray-500">เฉพาะ HDC</span>
+            </li>
+            <li>Default เลือก users ที่ "ต่างกัน" + "เฉพาะ Local" → ปรับเลือกเองได้</li>
+            <li>กด <b>"Sync → HDC"</b> → UPSERT ข้อมูลเข้า HDC (ทุกคอลัมน์รวม password_hash)</li>
+          </ol>
+          <div class="mt-2 text-[11px] text-blue-700"><i class="fas fa-shield-alt mr-1"></i>ระบบสร้างตาราง users ใน HDC อัตโนมัติถ้ายังไม่มี + log ลง system_logs (USERS_SYNC_TO_HDC)</div>
+        </div>
+
+        <!-- ตัวกรอง -->
+        <div class="bg-gray-50 border border-gray-200 rounded-xl p-3 mb-4 text-xs text-gray-600">
+          <p class="font-bold text-gray-700 mb-1"><i class="fas fa-filter mr-1"></i>ตัวกรอง 6 ช่อง</p>
+          <p>ค้นหา (ทุกฟิลด์) | สิทธิ์ | หน่วยงาน | <b>หน่วยบริการ</b> | สถานะบัญชี | ปุ่มล้างตัวกรอง</p>
+        </div>
+
+        <!-- คอลัมน์ตาราง -->
+        <div class="bg-blue-50 border border-blue-200 rounded-xl p-3 mb-4 text-xs text-blue-700">
+          <p class="font-bold mb-1"><i class="fas fa-table mr-1"></i>คอลัมน์ในตาราง</p>
+          <p>Username | ชื่อ-นามสกุล | เลข ปชช. | สิทธิ์ (Role) | หน่วยงาน | หน่วยบริการ | เบอร์โทร | Email | สถานะ | <b>ผู้อนุมัติ</b> | ใช้งาน | จัดการ</p>
+        </div>
+
+        <!-- การอนุมัติ -->
+        <div class="bg-amber-50 border border-amber-200 rounded-xl p-3 mb-4 text-xs text-amber-700">
+          <p class="font-bold mb-1"><i class="fas fa-shield-alt mr-1"></i>การอนุมัติผู้ใช้</p>
+          <ul class="list-disc ml-4 space-y-0.5">
+            <li>ผู้ใช้ที่ register หรือ admin สร้างใหม่ → ต้องรอ <b>super_admin</b> อนุมัติเท่านั้น</li>
+            <li>super_admin สร้างเอง → อนุมัติทันที + บันทึกผู้อนุมัติอัตโนมัติ</li>
+            <li>คอลัมน์ <b>"ผู้อนุมัติ"</b> แสดงชื่อ admin ที่กดอนุมัติ</li>
+          </ul>
+        </div>
+
+        <!-- บังคับ logout user (super_admin) -->
+        <div class="bg-purple-50 border border-purple-200 rounded-xl p-3 mb-4 text-xs text-purple-700">
+          <p class="font-bold mb-1"><i class="fas fa-sign-out-alt mr-1"></i>บังคับ Logout User (เฉพาะ super_admin)</p>
+          <p class="text-[11px] mb-1">ปุ่ม <i class="fas fa-sign-out-alt text-purple-600"></i> สีม่วงในคอลัมน์ "จัดการ" — แสดงเฉพาะผู้ใช้ที่<b>กำลัง online อยู่</b></p>
+          <ul class="list-disc ml-4 space-y-0.5">
+            <li>กดปุ่ม → ยืนยันแล้วผู้ใช้จะถูก logout อัตโนมัติภายใน <b>~30 วินาที</b></li>
+            <li>ใช้กรณีฉุกเฉิน เช่น ลืม logout ในเครื่องอื่น / ต้องการตัดการใช้งาน</li>
+            <li>ระบบบันทึก log ไว้ใน system_logs (action: <code class="bg-purple-100 px-1 rounded">admin_force_logout</code>)</li>
+            <li>หลัง logout — ผู้ใช้ยังเข้ามาใหม่ได้ (ไม่กระทบบัญชี)</li>
+          </ul>
+        </div>
+
+        <!-- Badge user รออนุมัติ -->
+        <div class="bg-rose-50 border border-rose-200 rounded-xl p-3 mb-4 text-xs text-rose-700">
+          <p class="font-bold mb-1"><i class="fas fa-bell mr-1"></i>Badge แจ้งเตือน user รออนุมัติ</p>
+          <ul class="list-disc ml-4 space-y-0.5">
+            <li>เมนู <b>"จัดการผู้ใช้งาน"</b> ใน sidebar แสดงตัวเลขสีแดงจำนวน user ที่ลงทะเบียนใหม่และรออนุมัติ</li>
+            <li>นับตาม <b>ขอบเขตของ admin</b> (super_admin=ทั้งหมด, admin_ssj=หน่วยงาน, admin_cup=อำเภอ, admin_hos/sso=หน่วยบริการ)</li>
+            <li>ตัวเลขลดลงทันทีหลังกดอนุมัติ/ปฏิเสธ</li>
+          </ul>
+        </div>
+
+        <!-- LINE จัดการ userId + Inbox (super_admin) -->
+        <div class="bg-green-50 border border-green-200 rounded-xl p-3 mb-4 text-xs text-green-800">
+          <p class="font-bold mb-1"><i class="fab fa-line mr-1"></i>จัดการ LINE userId + LINE Inbox (เฉพาะ super_admin)</p>
+          <p class="text-[11px] mb-1">ปุ่ม <i class="fab fa-line text-green-600"></i> <b>"LINE"</b> ในคอลัมน์ "จัดการ" — มี dot indicator สีเขียวถ้า user ผูกแล้ว</p>
+          <ul class="list-disc ml-5 space-y-0.5">
+            <li>กดปุ่ม → modal เปิดแสดง <b>3 ส่วน</b>:
+              <ul class="list-disc ml-4 mt-0.5 space-y-0.5">
+                <li><b>userId ปัจจุบัน</b> — input แก้ + toggle เปิด-ปิดแจ้งเตือน + ปุ่มทดสอบ</li>
+                <li><b>LINE Inbox</b> — รายการล่าสุดที่ user ทักเข้า bot (รูป profile + ชื่อ + userId + ข้อความ + เวลา)</li>
+                <li>ปุ่ม "<b>วางใส่ช่อง</b>" / "<b>ผูกทันที</b>" / "<b>ซ่อน</b>" สำหรับแต่ละ inbox row</li>
+              </ul>
+            </li>
+            <li><b>Webhook flow:</b> user add bot/ส่งข้อความ → POST <code>/webhook/line</code> → bot ดึง LINE profile → INSERT <code>line_inbox</code> → auto-reply userId กลับให้ user</li>
+            <li>1 LINE userId ผูกได้ <b>1 บัญชี</b> (UNIQUE index) — กันสับสน</li>
+          </ul>
+        </div>
+
+        <!-- จัดการสิทธิ์การแก้ไขราย user -->
+        <div class="bg-indigo-50 border border-indigo-200 rounded-xl p-3 mb-4 text-xs text-indigo-700">
+          <p class="font-bold mb-1"><i class="fas fa-user-shield mr-1"></i>จัดการสิทธิ์การแก้ไข (เฉพาะ super_admin)</p>
+          <p class="text-[11px] mb-1">ปุ่ม <i class="fas fa-user-shield text-indigo-600"></i> <b>"สิทธิ์"</b> ในคอลัมน์ "จัดการ" — กำหนดได้ว่าผู้ใช้แต่ละคนแก้ไขอะไรได้ในหน้าบันทึกผลงาน</p>
+          <ul class="list-disc ml-4 space-y-0.5">
+            <li><b>แก้ไขผลงาน (actual)</b> — กรอก/แก้ค่าผลงานรายเดือน</li>
+            <li><b>แก้ไขเป้าหมาย (target)</b> — กรอก/แก้ค่าเป้าหมาย (ถ้าปิด ระบบคงค่าเดิมไว้ตอนบันทึก)</li>
+            <li>มี Preset: <b>แก้ผลงานอย่างเดียว</b> / <b>แก้เป้าหมาย+ผลงาน</b> / <b>ดูอย่างเดียว</b></li>
+            <li>super_admin มีสิทธิ์เต็มเสมอ (แก้ไม่ได้) — มีผลทันทีเมื่อผู้ใช้ refresh</li>
+          </ul>
+        </div>
+
+        <h4 class="font-bold text-gray-700 text-sm mb-2">ขอบเขตการจัดการ user ตาม Role</h4>
+        <div class="overflow-x-auto">
+          <table class="w-full text-xs border-collapse">
+            <thead><tr class="bg-gray-50 text-gray-600"><th class="px-3 py-2 text-left">Role</th><th class="px-3 py-2 text-left">เห็น user</th><th class="px-3 py-2 text-center">เปลี่ยน Role</th></tr></thead>
+            <tbody class="divide-y divide-gray-100">
+              <tr><td class="px-3 py-2 font-bold text-red-700">super_admin</td><td class="px-3 py-2">ทุกคน</td><td class="px-3 py-2 text-center text-green-600">✅</td></tr>
+              <tr class="bg-gray-50"><td class="px-3 py-2 font-bold text-purple-700">admin_ssj</td><td class="px-3 py-2">dept เดียวกัน (ยกเว้น super_admin)</td><td class="px-3 py-2 text-center text-green-600">✅</td></tr>
+              <tr><td class="px-3 py-2 font-bold text-orange-700">admin_cup</td><td class="px-3 py-2">อำเภอเดียวกัน (ยกเว้น super_admin)</td><td class="px-3 py-2 text-center text-red-500">❌</td></tr>
+              <tr class="bg-gray-50"><td class="px-3 py-2 font-bold text-amber-700">admin_hos / admin_sso</td><td class="px-3 py-2">hospcode เดียวกัน (ยกเว้น super_admin)</td><td class="px-3 py-2 text-center text-red-500">❌</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Note: สร้างแบบฟอร์ม + Export ย้ายไปอยู่ในหัวข้อ 10 "จัดการข้อมูล KPI" แล้ว -->
+
+      <!-- ==================== 8. ตั้งค่าระบบ ==================== -->
+      <section id="section-settings" *ngIf="canSeeSection('settings')" class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+        <div class="flex items-center gap-3 mb-4">
+          <div class="w-10 h-10 rounded-xl bg-gray-200 flex items-center justify-center"><i class="fas fa-sliders-h text-gray-600"></i></div>
+          <div>
+            <h2 class="text-xl font-bold text-gray-800">8. ตั้งค่าระบบ</h2>
+            <p class="text-xs text-gray-400">super_admin เท่านั้น</p>
+          </div>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+          <div class="bg-yellow-50 border border-yellow-200 rounded-xl p-3"><p class="text-sm font-bold text-yellow-800"><i class="fas fa-clock mr-2"></i>Auto Logout</p><p class="text-xs text-gray-500">ตั้งเวลาออกจากระบบอัตโนมัติ + นับถอยหลัง</p></div>
+          <div class="bg-red-50 border border-red-200 rounded-xl p-3"><p class="text-sm font-bold text-red-800"><i class="fas fa-user-lock mr-2"></i>จำนวน Login ผิดสูงสุด</p><p class="text-xs text-gray-500">ล็อค 15 นาทีเมื่อเกินกำหนด</p></div>
+          <div class="bg-red-50 border border-red-200 rounded-xl p-3"><p class="text-sm font-bold text-red-800"><i class="fas fa-lock mr-2"></i>ล็อคการคีย์ข้อมูล</p><p class="text-xs text-gray-500">ปิดปุ่มแก้ไข/เพิ่ม สำหรับ user (Admin ไม่ถูกล็อค)</p></div>
+          <div class="bg-orange-50 border border-orange-200 rounded-xl p-3"><p class="text-sm font-bold text-orange-800"><i class="fas fa-bullseye mr-2"></i>ล็อคแก้ไขเป้าหมาย</p><p class="text-xs text-gray-500">ควบคุมการแก้ไขค่าเป้าหมาย</p></div>
+          <div class="bg-purple-50 border border-purple-200 rounded-xl p-3"><p class="text-sm font-bold text-purple-800"><i class="fas fa-gavel mr-2"></i>ระบบอุทธรณ์</p><p class="text-xs text-gray-500">เปิด/ปิด + กำหนดช่วงวันที่</p></div>
+          <div class="bg-blue-50 border border-blue-200 rounded-xl p-3"><p class="text-sm font-bold text-blue-800"><i class="fas fa-history mr-2"></i>จัดการ Logs</p><p class="text-xs text-gray-500">ระยะเวลาเก็บ + สำรองอัตโนมัติ</p></div>
+        </div>
+
+        <!-- Summary + เร่งความเร็ว -->
+        <div class="bg-indigo-50 border border-indigo-200 rounded-xl p-4 mb-4">
+          <h4 class="font-bold text-indigo-800 text-sm mb-2"><i class="fas fa-sync-alt mr-2"></i>อัปเดต Summary (เร่งความเร็ว)</h4>
+          <p class="text-xs text-gray-600">กดปุ่ม <b>"อัปเดต Summary"</b> เพื่อสร้างตาราง kpi_summary สรุปข้อมูลไว้ล่วงหน้า → หน้า <b>กราฟ + รายงานสรุปผล (ทั้ง 4 แถบ)</b> โหลดเร็วขึ้นมาก</p>
+          <p class="text-xs text-indigo-600 mt-1"><i class="fas fa-info-circle mr-1"></i>แสดง progress bar + นาฬิกานับเวลาระหว่างประมวลผล — ควรกดอัปเดตหลังจากมีการเปลี่ยนแปลงข้อมูลผลงาน</p>
+          <p class="text-xs text-indigo-600 mt-1"><i class="fas fa-database mr-1"></i>Summary จะเก็บเฉพาะข้อมูลที่มีผลงานจริงเท่านั้น (ไม่รวมแถวที่มีเฉพาะเป้าหมาย) — ทำให้รายงานโหลดเร็วและแม่นยำ</p>
+          <p class="text-xs text-indigo-600 mt-1"><i class="fas fa-layer-group mr-1"></i><b>Batch processing:</b> ประมวลผลแบ่งทีละ 50 ตัวชี้วัด ป้องกัน timeout — แม้ข้อมูล 600K+ rows ก็ไม่ 504 Gateway Timeout</p>
+        </div>
+
+        <!-- สำรอง + ล้างข้อมูลผลงาน -->
+        <div class="bg-red-50 border border-red-200 rounded-xl p-4 mb-4">
+          <h4 class="font-bold text-red-800 text-sm mb-2"><i class="fas fa-eraser mr-2"></i>สำรองและล้างข้อมูลผลงาน</h4>
+          <div class="grid grid-cols-2 gap-3 text-xs">
+            <div class="bg-white rounded-lg p-2 border"><i class="fas fa-download text-green-500 mr-1"></i><b>สำรองข้อมูลผลงาน</b> — Download JSON เฉพาะ kpi_results + ตาราง form_*</div>
+            <div class="bg-white rounded-lg p-2 border"><i class="fas fa-trash-alt text-red-500 mr-1"></i><b>ล้างข้อมูลผลงาน</b> — ลบ kpi_results + ข้อมูลในตาราง form_* (ต้องพิมพ์ "ยืนยันลบ")</div>
+          </div>
+          <p class="text-xs text-red-600 mt-2"><i class="fas fa-exclamation-triangle mr-1"></i>การล้างข้อมูลไม่สามารถย้อนกลับได้ กรุณาสำรองข้อมูลก่อนทุกครั้ง</p>
+        </div>
+
+        <!-- SSO Config (ProviderID + ThaID) -->
+        <div class="bg-cyan-50 border border-cyan-200 rounded-xl p-4 mb-4">
+          <h4 class="font-bold text-cyan-800 text-sm mb-2"><i class="fas fa-id-card mr-2"></i>ตั้งค่าการเข้าสู่ระบบด้วย SSO (ThaID + ProviderID)</h4>
+          <p class="text-xs text-gray-600 mb-2">ทั้ง ThaID และ ProviderID ใช้ <b>Direct JWT Flow</b> — ตั้งค่าเพียง Login URL ที่ DGA/MOPH ให้มา:</p>
+          <div class="space-y-3">
+            <div class="bg-blue-100/60 border border-blue-200 rounded-lg p-3 text-xs">
+              <p class="font-bold text-blue-800 mb-1"><i class="fas fa-id-card mr-1"></i>ThaID (DGA)</p>
+              <ol class="list-decimal ml-4 text-gray-600 space-y-0.5">
+                <li>เปิด toggle ThaID</li>
+                <li>กรอก <b>ThaID Login URL</b> — URL ของหน้า QR scan DGA (ขอจาก DGA)</li>
+                <li>กรอก <b>Client Secret</b> — ใช้ verify JWT signature ที่ DGA ส่งมา</li>
+                <li>กดบันทึก → ปุ่ม ThaID ปรากฏในหน้า Login ภายใน ≤3 วินาที</li>
+              </ol>
+            </div>
+            <div class="bg-cyan-100/60 border border-cyan-200 rounded-lg p-3 text-xs">
+              <p class="font-bold text-cyan-800 mb-1"><i class="fas fa-user-md mr-1"></i>ProviderID (MOPH)</p>
+              <ol class="list-decimal ml-4 text-gray-600 space-y-0.5">
+                <li>เปิด toggle ProviderID</li>
+                <li>กรอก <b>ProviderID Login URL</b> — URL ที่ MOPH ให้มาสำหรับปุ่ม Login (Direct JWT)</li>
+                <li>กดบันทึก → ปุ่ม ProviderID ปรากฏในหน้า Login ภายใน ≤3 วินาที</li>
+              </ol>
+              <p class="text-[10px] text-cyan-700 mt-1.5"><i class="fas fa-info-circle mr-1"></i>ProviderID ใช้ Direct JWT Flow เหมือน ThaID — ไม่ต้องกรอก Client ID / Secret / Auth URL / Token URL / UserInfo URL แยก</p>
+            </div>
+          </div>
+          <p class="text-[11px] text-cyan-700 mt-2"><i class="fas fa-shield-alt mr-1"></i>ระบบ match user ด้วย <b>เลขบัตรประชาชน (SHA-256 hash)</b> — ปฏิเสธ user ใหม่ ต้องลงทะเบียนก่อน</p>
+        </div>
+
+        <!-- แจ้งเตือนผู้สมัครใหม่ -->
+        <div class="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-4">
+          <h4 class="font-bold text-blue-800 text-sm mb-2"><i class="fas fa-bell mr-2"></i>แจ้งเตือนผู้สมัครใหม่ — สวิทช์เปิด/ปิดแต่ละช่องทาง</h4>
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs mb-3">
+            <div class="bg-white rounded-lg p-2 border"><i class="fab fa-telegram-plane text-blue-500 mr-1"></i><b>Telegram</b> — ส่งข้อความเข้า Group</div>
+            <div class="bg-white rounded-lg p-2 border"><i class="fas fa-envelope text-amber-500 mr-1"></i><b>Email Admin</b> — ส่ง Email Admin</div>
+            <div class="bg-white rounded-lg p-2 border"><i class="fab fa-line text-green-500 mr-1"></i><b>LINE Group</b> — ส่ง LINE Group</div>
+            <div class="bg-white rounded-lg p-2 border"><i class="fas fa-bell text-emerald-500 mr-1"></i><b>ในระบบ</b> — super_admin ทุกคน</div>
+          </div>
+          <p class="text-xs text-blue-600"><i class="fas fa-info-circle mr-1"></i>ปิดสวิทช์ช่องทางใด → ระบบจะไม่ส่งแจ้งเตือนช่องทางนั้นเมื่อมีผู้สมัครใหม่</p>
+        </div>
+
+        <!-- LINE Group config + per-event toggles -->
+        <div class="bg-green-50 border border-green-200 rounded-xl p-4">
+          <h4 class="font-bold text-green-800 text-sm mb-2"><i class="fab fa-line mr-2"></i>ตั้งค่า LINE Group (LINE Messaging API)</h4>
+          <ol class="list-decimal ml-5 text-xs text-gray-600 space-y-1">
+            <li>เปิด toggle <b>"LINE Group แจ้งเตือน"</b></li>
+            <li>กรอก <b>Channel Access Token</b>, <b>Channel Secret</b>, <b>Group ID</b> (รองรับหลาย Group คั่นด้วย comma)</li>
+            <li>คัดลอก <b>Webhook URL</b> (ระบบแสดงให้พร้อมปุ่มคัดลอก) ไปวางที่ LINE Developers Console</li>
+            <li>กดปุ่ม <b>"ทดสอบ"</b> → ระบบส่งข้อความเข้า Group ทันที</li>
+          </ol>
+          <div class="mt-2 bg-lime-100 rounded-lg p-2 text-xs text-lime-800">
+            <p class="font-bold mb-1"><i class="fas fa-toggle-on mr-1"></i>เลือก Event ที่จะแจ้ง LINE Group (5 ประเภท)</p>
+            <ul class="list-disc ml-5 space-y-0.5">
+              <li><b>Admin login</b> — แจ้งเมื่อ super_admin / admin_ssj login</li>
+              <li><b>Backup</b> — ผลการ Backup (manual + scheduled)</li>
+              <li><b>Restore</b> — ผลการ Restore (สำเร็จ/ล้มเหลว + tables verified)</li>
+              <li><b>Settings change</b> — เฉพาะ key ที่ค่าเปลี่ยนจริง (mask sensitive values)</li>
+              <li><b>Indicator change</b> — CRUD ตัวชี้วัด + upload_excel toggle/bulk</li>
+            </ul>
+            <p class="text-[11px] mt-1">default เปิดทุก event — ปิดอันที่ไม่ต้องการได้ ไม่กระทบ Email/Telegram</p>
+          </div>
+          <p class="text-[11px] text-green-700 mt-2"><i class="fas fa-shield-alt mr-1"></i><b>Webhook signature:</b> ระบบ verify ด้วย HMAC SHA-256 จาก Channel Secret + ปฏิเสธ request ที่ signature ไม่ตรง</p>
+        </div>
+      </section>
+
+      <!-- ==================== 9. สิทธิ์การใช้งาน ==================== -->
+      <section id="section-roles" *ngIf="canSeeSection('roles')" class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+        <div class="flex items-center gap-3 mb-4">
+          <div class="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center"><i class="fas fa-shield-alt text-emerald-600"></i></div>
+          <div>
+            <h2 class="text-xl font-bold text-gray-800">9. สิทธิ์การใช้งาน (Roles)</h2>
+            <p class="text-xs text-gray-400">ตารางเปรียบเทียบทุก Role</p>
+          </div>
+        </div>
+
+        <!-- Role cards -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+          <!-- User roles -->
+          <div class="border border-blue-200 rounded-xl p-4 bg-blue-50/50">
+            <span class="px-2 py-0.5 bg-blue-100 text-blue-800 rounded-full text-xs font-bold">user_hos</span>
+            <p class="text-sm font-bold mt-2">ผู้ใช้ รพ.</p>
+            <ul class="text-xs text-gray-600 mt-2 space-y-1">
+              <li><i class="fas fa-check text-green-500 mr-1"></i>ดู/แก้ไข KPI เฉพาะ hospcode + dept ตัวเอง</li>
+              <li><i class="fas fa-check text-green-500 mr-1"></i>ยื่นอุทธรณ์ได้</li>
+              <li><i class="fas fa-times text-red-400 mr-1"></i>จัดการผู้ใช้ไม่ได้</li>
+            </ul>
+          </div>
+          <div class="border border-emerald-200 rounded-xl p-4 bg-emerald-50/50">
+            <span class="px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded-full text-xs font-bold">user_sso</span>
+            <p class="text-sm font-bold mt-2">ผู้ใช้ รพ.สต.</p>
+            <ul class="text-xs text-gray-600 mt-2 space-y-1">
+              <li><i class="fas fa-check text-green-500 mr-1"></i>ดู/แก้ไข KPI เฉพาะ hospcode + dept ตัวเอง</li>
+              <li><i class="fas fa-check text-green-500 mr-1"></i>ยื่นอุทธรณ์ได้</li>
+            </ul>
+          </div>
+          <div class="border border-cyan-200 rounded-xl p-4 bg-cyan-50/50">
+            <span class="px-2 py-0.5 bg-cyan-100 text-cyan-800 rounded-full text-xs font-bold">user_cup</span>
+            <p class="text-sm font-bold mt-2">ผู้ใช้ CUP (อำเภอ)</p>
+            <ul class="text-xs text-gray-600 mt-2 space-y-1">
+              <li><i class="fas fa-check text-green-500 mr-1"></i>ดู KPI ทุก hospcode ในอำเภอ (เฉพาะ dept ตัวเอง)</li>
+              <li><i class="fas fa-check text-green-500 mr-1"></i>ยื่นอุทธรณ์ได้</li>
+            </ul>
+          </div>
+
+          <!-- Admin roles -->
+          <div class="border border-amber-200 rounded-xl p-4 bg-amber-50/50">
+            <span class="px-2 py-0.5 bg-amber-100 text-amber-800 rounded-full text-xs font-bold">admin_hos</span>
+            <p class="text-sm font-bold mt-2">ผู้ดูแล รพ.</p>
+            <ul class="text-xs text-gray-600 mt-2 space-y-1">
+              <li><i class="fas fa-check text-green-500 mr-1"></i>ดู KPI <b>ทุก dept</b> เฉพาะ hospcode ตัวเอง</li>
+              <li><i class="fas fa-check text-green-500 mr-1"></i>จัดการผู้ใช้ใน hospcode เดียวกัน</li>
+              <li><i class="fas fa-check text-green-500 mr-1"></i>ไม่ถูกล็อคการคีย์ข้อมูล</li>
+              <li><i class="fas fa-times text-red-400 mr-1"></i>เปลี่ยน Role ผู้ใช้ไม่ได้</li>
+            </ul>
+          </div>
+          <div class="border border-orange-200 rounded-xl p-4 bg-orange-50/50">
+            <span class="px-2 py-0.5 bg-orange-100 text-orange-800 rounded-full text-xs font-bold">admin_cup</span>
+            <p class="text-sm font-bold mt-2">ผู้ดูแล CUP (อำเภอ)</p>
+            <ul class="text-xs text-gray-600 mt-2 space-y-1">
+              <li><i class="fas fa-check text-green-500 mr-1"></i>ดู KPI <b>ทุก dept + ทุก hospcode ในอำเภอ</b></li>
+              <li><i class="fas fa-check text-green-500 mr-1"></i>จัดการผู้ใช้ในอำเภอเดียวกัน</li>
+              <li><i class="fas fa-check text-green-500 mr-1"></i>เพิ่มตัวชี้วัดทุก dept ทุก hospcode ในอำเภอ</li>
+            </ul>
+          </div>
+          <div class="border border-purple-200 rounded-xl p-4 bg-purple-50/50">
+            <span class="px-2 py-0.5 bg-purple-100 text-purple-800 rounded-full text-xs font-bold">admin_ssj</span>
+            <p class="text-sm font-bold mt-2">ผู้ดูแล สสจ.</p>
+            <ul class="text-xs text-gray-600 mt-2 space-y-1">
+              <li><i class="fas fa-check text-green-500 mr-1"></i>ดู KPI ทุก hospcode เฉพาะ dept</li>
+              <li><i class="fas fa-check text-green-500 mr-1"></i><b>อนุมัติ/ปฏิเสธ KPI</b></li>
+              <li><i class="fas fa-check text-green-500 mr-1"></i>เปลี่ยน Role ผู้ใช้ได้</li>
+              <li><i class="fas fa-check text-green-500 mr-1"></i>+KPI ปีงบประมาณใหม่</li>
+            </ul>
+          </div>
+          <div class="border border-red-200 rounded-xl p-4 bg-red-50/50 md:col-span-2 lg:col-span-3">
+            <span class="px-2 py-0.5 bg-red-100 text-red-800 rounded-full text-xs font-bold">super_admin</span>
+            <p class="text-sm font-bold mt-2">ผู้ดูแลระบบสูงสุด</p>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-2 mt-2 text-xs text-gray-600">
+              <span><i class="fas fa-check text-green-500 mr-1"></i>เห็น/แก้ไขข้อมูลทั้งหมด</span>
+              <span><i class="fas fa-check text-green-500 mr-1"></i>จัดการตัวชี้วัด Master</span>
+              <span><i class="fas fa-check text-green-500 mr-1"></i>ตั้งค่าระบบทั้งหมด</span>
+              <span><i class="fas fa-check text-green-500 mr-1"></i>สร้างแบบฟอร์ม KPI</span>
+              <span><i class="fas fa-check text-green-500 mr-1"></i>Export ข้อมูล</span>
+              <span><i class="fas fa-check text-green-500 mr-1"></i>ดู Audit Log</span>
+              <span><i class="fas fa-check text-green-500 mr-1"></i>จัดการผู้ใช้ทุกคน</span>
+              <span><i class="fas fa-check text-green-500 mr-1"></i>เปลี่ยน Role ได้</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================== Dark Mode + Language + Backup ==================== -->
+      <section class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+        <div class="flex items-center gap-3 mb-4">
+          <div class="w-10 h-10 rounded-xl bg-gray-800 flex items-center justify-center"><i class="fas fa-moon text-yellow-300"></i></div>
+          <div>
+            <h2 class="text-xl font-bold text-gray-800">Dark Mode + โปรไฟล์ + สำรองข้อมูล</h2>
+            <p class="text-xs text-gray-400">ฟีเจอร์เสริมสำหรับทุก Role — เข้าถึงผ่าน Header bar + Profile dropdown</p>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <!-- Dark Mode -->
+          <div class="border border-gray-200 rounded-xl p-4">
+            <h4 class="font-bold text-gray-800 text-sm mb-2"><i class="fas fa-moon text-indigo-500 mr-2"></i>Dark Mode</h4>
+            <div class="space-y-2 text-xs text-gray-600">
+              <p>กดปุ่ม <b>🌙</b> ที่ Header → เปลี่ยนเป็นโหมดมืด</p>
+              <p>กดปุ่ม <b>☀️</b> → กลับเป็นโหมดสว่าง</p>
+              <p class="text-gray-400"><i class="fas fa-info-circle mr-1"></i>ระบบจำค่าไว้ ครอบคลุมทุกหน้า</p>
+            </div>
+          </div>
+
+          <!-- Profile Dropdown -->
+          <div class="border border-gray-200 rounded-xl p-4">
+            <h4 class="font-bold text-gray-800 text-sm mb-2"><i class="fas fa-user-circle text-green-500 mr-2"></i>Profile Dropdown</h4>
+            <div class="space-y-2 text-xs text-gray-600">
+              <p>กดที่ <b>Avatar</b> มุมขวาบน → แสดงข้อมูลโปรไฟล์</p>
+              <p>เมนูใน dropdown: <b>ข้อเสนอแนะ</b> / <b>คู่มือ</b> / <b>ประวัติอัปเดต</b> / <b class="text-green-700"><i class="fab fa-line"></i> ตั้งค่า LINE แจ้งเตือนส่วนตัว</b> / เปลี่ยนรหัสผ่าน / ออกจากระบบ</p>
+              <p class="text-gray-400"><i class="fas fa-info-circle mr-1"></i>คลิกนอก dropdown → ปิดแบบ animation ยุบหายเข้า avatar</p>
+            </div>
+          </div>
+
+          <!-- Backup -->
+          <div class="border border-gray-200 rounded-xl p-4">
+            <h4 class="font-bold text-gray-800 text-sm mb-2"><i class="fas fa-database text-indigo-500 mr-2"></i>สำรองฐานข้อมูล</h4>
+            <div class="space-y-2 text-xs text-gray-600">
+              <p>เข้า <b>ตั้งค่าระบบ</b> → กด <b>"สำรองฐานข้อมูล"</b></p>
+              <p>Download ไฟล์ JSON ครบ 16 ตาราง</p>
+              <p class="text-red-400"><i class="fas fa-lock mr-1"></i>super_admin เท่านั้น</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Admin Reset Password -->
+        <div class="mt-4 bg-orange-50 border border-orange-200 rounded-xl p-4">
+          <h4 class="font-bold text-orange-800 text-sm mb-2"><i class="fas fa-key mr-2"></i>Admin รีเซ็ตรหัสผ่าน</h4>
+          <div class="flex flex-wrap items-center gap-2 text-xs font-bold">
+            <span class="bg-orange-100 text-orange-800 px-2.5 py-1 rounded-full">1. กดปุ่ม 🔑 ที่ user</span>
+            <i class="fas fa-arrow-right text-gray-300"></i>
+            <span class="bg-blue-100 text-blue-800 px-2.5 py-1 rounded-full">2. สร้างรหัส 6 หลัก + ส่ง Email</span>
+            <i class="fas fa-arrow-right text-gray-300"></i>
+            <span class="bg-green-100 text-green-800 px-2.5 py-1 rounded-full">3. User login ด้วยรหัสชั่วคราว → เปลี่ยนรหัสใหม่</span>
+          </div>
+          <p class="text-xs text-orange-600 mt-2"><i class="fas fa-clock mr-1"></i>รหัสชั่วคราวหมดอายุ 15 นาที | ถ้าไม่มี Email → แสดงรหัสให้ admin แจ้ง user เอง</p>
+        </div>
+      </section>
+
+      <!-- ==================== ช่องทางการแจ้งเตือน (Telegram + Email + LINE Group + ในระบบ) ==================== -->
+      <section class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+        <div class="flex items-center gap-3 mb-4">
+          <div class="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center"><i class="fas fa-bullhorn text-blue-600"></i></div>
+          <div>
+            <h2 class="text-xl font-bold text-gray-800">ช่องทางการแจ้งเตือน (Telegram + Email + LINE Group + ในระบบ)</h2>
+            <p class="text-xs text-gray-400">ตั้งค่าที่หน้าตั้งค่าระบบ — super_admin เท่านั้น</p>
+          </div>
+        </div>
+
+        <p class="text-sm text-gray-600 mb-4">ระบบรองรับ <b>4 ช่องทาง</b> ทำงานพร้อมกัน + ปิดเปิดแยกได้ — ครอบคลุมทุก event สำคัญ (ผู้สมัครใหม่, login admin, backup, restore, settings, KPI CRUD, audit digest, feedback, error monitoring, schedule export)</p>
+
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-3 mb-4">
+          <div class="bg-blue-50 border border-blue-200 rounded-xl p-3 text-center">
+            <i class="fab fa-telegram-plane text-blue-500 text-2xl mb-2"></i>
+            <p class="text-sm font-bold text-blue-800">Telegram Group</p>
+            <p class="text-xs text-gray-500 mt-1">ข้อความ real-time เข้า Group</p>
+          </div>
+          <div class="bg-amber-50 border border-amber-200 rounded-xl p-3 text-center">
+            <i class="fas fa-envelope text-amber-500 text-2xl mb-2"></i>
+            <p class="text-sm font-bold text-amber-800">Email Admin</p>
+            <p class="text-xs text-gray-500 mt-1">ส่ง Email Admin ทุกคน</p>
+          </div>
+          <div class="bg-green-50 border border-green-200 rounded-xl p-3 text-center">
+            <i class="fab fa-line text-green-500 text-2xl mb-2"></i>
+            <p class="text-sm font-bold text-green-800">LINE Group</p>
+            <p class="text-xs text-gray-500 mt-1">LINE Messaging API — multi-group</p>
+          </div>
+          <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-3 text-center">
+            <i class="fas fa-bell text-emerald-500 text-2xl mb-2"></i>
+            <p class="text-sm font-bold text-emerald-800">ในระบบ (Bell)</p>
+            <p class="text-xs text-gray-500 mt-1">แจ้ง super_admin ทุกคน</p>
+          </div>
+        </div>
+
+        <!-- วิธีตั้งค่า Telegram -->
+        <div class="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-3">
+          <h4 class="font-bold text-blue-800 text-sm mb-2"><i class="fab fa-telegram-plane mr-2"></i>วิธีตั้งค่า Telegram Bot</h4>
+          <div class="flex flex-wrap items-center gap-2 text-xs font-bold">
+            <span class="bg-blue-100 text-blue-800 px-2.5 py-1 rounded-full">1. ค้นหา @BotFather</span>
+            <i class="fas fa-arrow-right text-gray-300"></i>
+            <span class="bg-blue-100 text-blue-800 px-2.5 py-1 rounded-full">2. /newbot → ได้ Token</span>
+            <i class="fas fa-arrow-right text-gray-300"></i>
+            <span class="bg-blue-100 text-blue-800 px-2.5 py-1 rounded-full">3. สร้าง Group + เพิ่ม Bot</span>
+            <i class="fas fa-arrow-right text-gray-300"></i>
+            <span class="bg-blue-100 text-blue-800 px-2.5 py-1 rounded-full">4. หา Chat ID</span>
+            <i class="fas fa-arrow-right text-gray-300"></i>
+            <span class="bg-green-100 text-green-800 px-2.5 py-1 rounded-full">5. กรอกในตั้งค่า + ทดสอบ</span>
+          </div>
+        </div>
+
+        <!-- วิธีตั้งค่า Email -->
+        <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-3">
+          <h4 class="font-bold text-amber-800 text-sm mb-2"><i class="fas fa-envelope mr-2"></i>วิธีตั้งค่า Email Admin</h4>
+          <p class="text-xs text-gray-600">กรอก Email Admin (คั่นด้วย comma) ในหน้าตั้งค่าระบบ → กดทดสอบ → บันทึก</p>
+          <p class="text-xs text-amber-600 mt-1"><i class="fas fa-info-circle mr-1"></i>ต้องตั้งค่า SMTP ก่อน (Gmail App Password)</p>
+        </div>
+
+        <!-- วิธีตั้งค่า LINE Group -->
+        <div class="bg-green-50 border border-green-200 rounded-xl p-4 mb-3">
+          <h4 class="font-bold text-green-800 text-sm mb-2"><i class="fab fa-line mr-2"></i>วิธีตั้งค่า LINE Group (LINE Messaging API)</h4>
+          <div class="flex flex-wrap items-center gap-2 text-xs font-bold mb-3">
+            <span class="bg-green-100 text-green-800 px-2.5 py-1 rounded-full">1. สมัคร LINE Developers</span>
+            <i class="fas fa-arrow-right text-gray-300"></i>
+            <span class="bg-green-100 text-green-800 px-2.5 py-1 rounded-full">2. สร้าง Messaging API Channel</span>
+            <i class="fas fa-arrow-right text-gray-300"></i>
+            <span class="bg-green-100 text-green-800 px-2.5 py-1 rounded-full">3. คัดลอก Channel Access Token + Channel Secret</span>
+            <i class="fas fa-arrow-right text-gray-300"></i>
+            <span class="bg-green-100 text-green-800 px-2.5 py-1 rounded-full">4. ตั้ง Webhook URL ใน Console</span>
+            <i class="fas fa-arrow-right text-gray-300"></i>
+            <span class="bg-green-100 text-green-800 px-2.5 py-1 rounded-full">5. เพิ่ม Bot เข้า Group + ดึง Group ID</span>
+          </div>
+          <ul class="list-disc ml-5 text-xs text-gray-700 space-y-1">
+            <li>กรอก <b>Channel Access Token</b> + <b>Channel Secret</b> + <b>Group ID</b> (รองรับหลาย Group คั่น comma) ที่หน้าตั้งค่าระบบ → กดทดสอบ</li>
+            <li><b>Webhook URL</b> ใช้ค่าที่ระบบแสดง: <code>https://yourdomain/khupskpi/api/webhook/line</code> — ไปวางที่ LINE Developers Console</li>
+            <li>เลือก <b>per-event toggle</b> (5 หัวข้อ): admin login / backup / restore / settings change / indicator change — ปิดอันที่ไม่ต้องการได้ ไม่กระทบ Email/Telegram</li>
+          </ul>
+        </div>
+
+        <!-- LINE Group: Events ที่ครอบคลุม -->
+        <div class="bg-lime-50 border border-lime-200 rounded-xl p-4 mb-3">
+          <h4 class="font-bold text-lime-800 text-sm mb-2"><i class="fas fa-list-check mr-2"></i>Events ที่ LINE Group ครอบคลุม</h4>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs text-gray-700">
+            <ul class="list-disc ml-5 space-y-1">
+              <li>ผู้สมัครใหม่ + อนุมัติ/ปฏิเสธ บัญชี</li>
+              <li>Admin login (super_admin / admin_ssj) — username + IP + UA + เวลา</li>
+              <li>ผลการ Backup (manual + scheduled — สำเร็จ/ล้มเหลว)</li>
+              <li>ผลการ Restore (สำเร็จ/ล้มเหลว + target_db + tables verified)</li>
+              <li>การแก้ Settings — เฉพาะ key ที่<b>เปลี่ยนค่าจริง</b> (mask sensitive)</li>
+            </ul>
+            <ul class="list-disc ml-5 space-y-1">
+              <li>การ CRUD ตัวชี้วัด + upload_excel toggle/bulk</li>
+              <li>KPI Audit Digest (สรุปการบันทึก KPI ประจำวัน)</li>
+              <li>Feedback กระทู้ใหม่ + reply</li>
+              <li>Error monitoring (new/fatal) — 1 ครั้ง/error/ชม</li>
+              <li>Schedule Export + Backup — ผลสรุปต่อ run</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="bg-gray-50 rounded-xl p-3 text-xs text-gray-500">
+          <i class="fas fa-shield-alt mr-1 text-green-500"></i><b>ถ้าไม่ตั้งค่า:</b> ระบบจะข้ามช่องทางนั้นไป ไม่ crash | ค่าที่ตั้งในหน้า Settings จะถูกใช้ก่อน .env
+        </div>
+        <div class="bg-green-50 border border-green-200 rounded-xl p-3 mt-3 text-xs text-green-700">
+          <i class="fas fa-link mr-1"></i><b>Link อนุมัติ:</b> ทุกข้อความแจ้งเตือนมีปุ่ม/link เข้าสู่หน้า Login → login ด้วย super_admin หรือ admin → ไปจัดการผู้ใช้ → อนุมัติ
+          <br><i class="fas fa-cog mr-1 mt-1"></i>ตั้งค่า <b>APP_URL</b> ใน .env (เช่น https://yourdomain.com) เพื่อให้ link ถูกต้อง
+        </div>
+      </section>
+
+      <!-- ==================== LINE แจ้งเตือนส่วนตัว (per-user) ==================== -->
+      <section class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+        <div class="flex items-center gap-3 mb-4">
+          <div class="w-10 h-10 rounded-xl bg-green-100 flex items-center justify-center"><i class="fab fa-line text-green-600"></i></div>
+          <div>
+            <h2 class="text-xl font-bold text-gray-800">LINE แจ้งเตือนส่วนตัว (per-user)</h2>
+            <p class="text-xs text-gray-400">ทุกผู้ใช้ตั้งค่าเองได้ — รับแจ้งเตือนเข้า LINE ส่วนตัว</p>
+          </div>
+        </div>
+
+        <div class="bg-green-50 border border-green-200 rounded-xl p-4 mb-3">
+          <h4 class="font-bold text-green-800 text-sm mb-2"><i class="fas fa-user-check mr-1"></i>ขั้นตอนเปิดใช้งาน (3 นาที)</h4>
+          <ol class="list-decimal ml-5 text-xs text-gray-700 space-y-1.5">
+            <li><b>Add LINE bot</b> เป็นเพื่อน (ใช้ QR code หรือ LINE ID ที่ super_admin แจ้ง)</li>
+            <li>Bot จะตอบกลับ <b>userId (U + 32 hex chars)</b> เป็นข้อความแยกบรรทัด — <b>แตะค้างที่ข้อความ → คัดลอก</b></li>
+            <li>Login เข้าระบบ → กดรูป <b>Avatar</b> มุมขวาบน → เลือก <b>"ตั้งค่า LINE แจ้งเตือนส่วนตัว"</b></li>
+            <li>วาง userId → เปิด toggle "เปิดแจ้งเตือน" → กด <b>"บันทึก"</b></li>
+            <li>กด <b>"ทดสอบ"</b> → ระบบส่งข้อความเข้า LINE ของคุณ ตรวจสอบว่าได้รับ</li>
+          </ol>
+          <p class="text-[11px] text-green-700 mt-2"><i class="fas fa-keyboard mr-1"></i>ลืม userId? พิมพ์ "<b>id</b>" หรือ "<b>เริ่ม</b>" / "<b>start</b>" / "<b>help</b>" / "<b>?</b>" ที่ bot → จะตอบ userId ให้ใหม่</p>
+        </div>
+
+        <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-3 mb-3 text-xs text-emerald-800">
+          <p class="font-bold mb-1"><i class="fas fa-bell mr-1"></i>Events ที่ส่งเข้า LINE ส่วนตัว</p>
+          <ul class="list-disc ml-5 space-y-0.5">
+            <li><b>Login alert</b> — แจ้งทุกครั้งที่บัญชีถูก login</li>
+            <li><b>อนุมัติบัญชี</b> / <b>ปฏิเสธบัญชี</b> (พร้อมเหตุผล)</li>
+            <li><b>Reset password</b> โดย Admin — รหัสชั่วคราว 6 หลัก</li>
+            <li><b>มีคนตอบกระทู้</b> Feedback ของตัวเอง</li>
+          </ul>
+        </div>
+
+        <div class="bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-700">
+          <i class="fas fa-shield-alt mr-1"></i><b>Validation:</b> userId ต้องเป็น <code>U + 32 hex chars</code> (regex: <code>^U[a-f0-9]&#123;32&#125;$</code>) — frontend + backend ตรวจสอบทั้งคู่ | 1 userId ผูกได้ <b>1 บัญชี</b> (UNIQUE index)
+        </div>
+      </section>
+
+      <!-- ==================== Mobile + Profile ==================== -->
+      <section class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+        <div class="flex items-center gap-3 mb-4">
+          <div class="w-10 h-10 rounded-xl bg-cyan-100 flex items-center justify-center"><i class="fas fa-mobile-alt text-cyan-600"></i></div>
+          <div>
+            <h2 class="text-xl font-bold text-gray-800">การใช้งานบน Mobile + Profile</h2>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <!-- Mobile Menu -->
+          <div class="border border-gray-200 rounded-xl p-4">
+            <h4 class="font-bold text-gray-800 text-sm mb-2"><i class="fas fa-bars text-green-500 mr-2"></i>เมนู Mobile</h4>
+            <ul class="text-xs text-gray-600 space-y-1.5">
+              <li><i class="fas fa-check text-green-500 mr-1"></i>กดปุ่ม ☰ → เมนูเลื่อนลงจากด้านบน</li>
+              <li><i class="fas fa-check text-green-500 mr-1"></i>เลือกเมนู → ซ่อนอัตโนมัติ</li>
+              <li><i class="fas fa-check text-green-500 mr-1"></i>Login เข้ามา → เมนูซ่อนไว้</li>
+              <li><i class="fas fa-check text-green-500 mr-1"></i>กดพื้นที่ว่าง → ปิดเมนู</li>
+            </ul>
+          </div>
+
+          <!-- Card View -->
+          <div class="border border-gray-200 rounded-xl p-4">
+            <h4 class="font-bold text-gray-800 text-sm mb-2"><i class="fas fa-th-large text-blue-500 mr-2"></i>ตาราง → Card View</h4>
+            <ul class="text-xs text-gray-600 space-y-1.5">
+              <li><i class="fas fa-check text-green-500 mr-1"></i>ทุกตาราง แสดงเป็น Card บน mobile</li>
+              <li><i class="fas fa-check text-green-500 mr-1"></i>จัดการผู้ใช้: ชื่อ+role+สถานะ+ปุ่ม</li>
+              <li><i class="fas fa-check text-green-500 mr-1"></i>รายงาน: เป้าหมาย/ผลงาน/% เป็น grid</li>
+              <li><i class="fas fa-check text-green-500 mr-1"></i>ข้อความยาวขึ้นบรรทัดใหม่ (ไม่ตัด...)</li>
+            </ul>
+          </div>
+
+          <!-- Profile Dropdown -->
+          <div class="border border-gray-200 rounded-xl p-4 md:col-span-2">
+            <h4 class="font-bold text-gray-800 text-sm mb-2"><i class="fas fa-user-circle text-purple-500 mr-2"></i>Profile Dropdown</h4>
+            <p class="text-xs text-gray-600 mb-2">กดที่ <b>รูป Avatar</b> มุมขวาบน → แสดงข้อมูลส่วนตัว:</p>
+            <div class="flex flex-wrap gap-2 text-[10px]">
+              <span class="bg-green-50 text-green-700 px-2 py-1 rounded-full"><i class="fas fa-shield-alt mr-1"></i>สิทธิ์</span>
+              <span class="bg-blue-50 text-blue-700 px-2 py-1 rounded-full"><i class="fas fa-building mr-1"></i>หน่วยงาน</span>
+              <span class="bg-teal-50 text-teal-700 px-2 py-1 rounded-full"><i class="fas fa-hospital mr-1"></i>หน่วยบริการ</span>
+              <span class="bg-amber-50 text-amber-700 px-2 py-1 rounded-full"><i class="fas fa-envelope mr-1"></i>Email</span>
+              <span class="bg-purple-50 text-purple-700 px-2 py-1 rounded-full"><i class="fas fa-phone mr-1"></i>เบอร์โทร</span>
+              <span class="bg-orange-50 text-orange-700 px-2 py-1 rounded-full"><i class="fas fa-key mr-1"></i>เปลี่ยนรหัสผ่าน</span>
+              <span class="bg-red-50 text-red-700 px-2 py-1 rounded-full"><i class="fas fa-sign-out-alt mr-1"></i>ออกจากระบบ</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================== 9.4 จัดการตัวชี้วัด — HDC Compare + upload_excel ==================== -->
+      <section *ngIf="canSeeSection('users') || canSeeSection('kpi-manager')" class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+        <div class="flex items-center gap-3 mb-4">
+          <div class="w-10 h-10 rounded-xl bg-teal-100 flex items-center justify-center"><i class="fas fa-exchange-alt text-teal-600"></i></div>
+          <div>
+            <h2 class="text-xl font-bold text-gray-800">9.4 จัดการตัวชี้วัด — เทียบกับ HDC + upload_excel</h2>
+            <p class="text-xs text-gray-400">หน้า "จัดการตัวชี้วัด" — ทุก tab มีปุ่ม "เทียบกับ HDC" พร้อม filter และเพิ่มข้อมูลจาก HDC</p>
+          </div>
+        </div>
+
+        <!-- หลักการ filter chips -->
+        <div class="bg-teal-50 border border-teal-200 rounded-xl p-4 mb-4">
+          <h4 class="font-bold text-teal-800 text-sm mb-2"><i class="fas fa-filter mr-2"></i>การทำงานของ Chips กรองผลเทียบ HDC (ทุก Tab)</h4>
+          <ul class="list-disc ml-5 text-xs text-gray-600 space-y-1">
+            <li>กดปุ่ม <b>"เทียบกับ HDC"</b> ในแต่ละ tab → ระบบดึงข้อมูลจาก HDC แล้วแสดง <b>chips สรุปผล</b> ด้านบนตาราง</li>
+            <li>chips เหล่านั้น <b>คลิกได้</b> — กดเพื่อ <b>กรองแถวในตาราง</b> ให้แสดงเฉพาะสถานะนั้น | กดซ้ำ = ยกเลิกกรอง</li>
+            <li>ปุ่ม <b>"ทั้งหมด"</b> (สีเขียว) = แสดงทุกแถว (ยกเลิก filter)</li>
+            <li>chip ที่ active จะเปลี่ยนเป็นสีเข้ม + มี ring เพื่อบ่งบอกสถานะ</li>
+            <li>chip <span class="text-cyan-700 font-bold">"HDC มีแต่ยังไม่มีใน Local (N)"</span> — เป็น badge ไม่ใช่ปุ่ม เพราะรายการเหล่านั้น<b>ไม่อยู่ในตาราง Local</b> → ดูได้ที่ส่วน "Missing" ด้านล่างตาราง</li>
+          </ul>
+        </div>
+
+        <!-- Tab: ตัวชี้วัด -->
+        <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-4 mb-4">
+          <h4 class="font-bold text-emerald-800 text-sm mb-2"><i class="fas fa-list-check mr-2"></i>Tab "ตัวชี้วัด" — เปรียบเทียบ HDC ↔ Local</h4>
+          <ol class="list-decimal ml-5 text-xs text-gray-600 space-y-1">
+            <li>ใช้ <b>table_process</b> เป็น key เทียบ <code>kpi_indicators</code> Local กับ <code>hdc.reports</code></li>
+            <li>Chips กรองได้ 4 สถานะ:
+              <ul class="list-disc ml-4 mt-1 space-y-0.5">
+                <li><span class="text-emerald-700 font-bold">ตรงกัน</span> — table_process + ชื่อตรงกัน</li>
+                <li><span class="text-amber-700 font-bold">ชื่อต่างกัน</span> — table_process ตรง แต่ชื่อไม่ตรง — ดู inline diff + กดปุ่ม <i class="fas fa-sync text-teal-600 mx-0.5"></i> Sync ชื่อ</li>
+                <li><span class="text-purple-700 font-bold">ไม่มีใน HDC</span> — Local มีแต่ HDC ไม่มี</li>
+                <li><span class="text-rose-700 font-bold">HDC inactive</span> — HDC ปิด is_active=0 → ควรตั้ง upload_excel=1</li>
+              </ul>
+            </li>
+            <li>ถ้ามี HDC inactive — banner <b>"ปิด upload_excel ทั้ง N ตัว"</b> แสดงขึ้นมา → กด bulk ครั้งเดียว</li>
+            <li>ส่วน <b class="text-cyan-700">"HDC มีแต่ยังไม่มีใน Local"</b> ด้านล่าง → กด <b>"เพิ่มเข้าระบบ"</b> → modal เลือก <b>หน่วยงาน</b> + <b>หมวดหมู่หลัก</b></li>
+          </ol>
+        </div>
+
+        <!-- Tab: ยุทธศาสตร์ + หน่วยงาน -->
+        <div class="bg-purple-50 border border-purple-200 rounded-xl p-4 mb-4">
+          <h4 class="font-bold text-purple-800 text-sm mb-2"><i class="fas fa-sitemap mr-2"></i>Tab "ยุทธศาสตร์" และ "หน่วยงาน" — เปรียบเทียบ HDC ↔ Local</h4>
+          <p class="text-xs text-gray-600 mb-2">ดึงข้อมูลจาก field <code>main_yut</code> / <code>dept</code> ใน <code>hdc.reports</code> เทียบกับตาราง <code>main_yut</code> / <code>departments</code> ของ Local โดยใช้ <b>ชื่อ (text match)</b></p>
+          <ul class="list-disc ml-5 text-xs text-gray-600 space-y-1">
+            <li>Chips กรองได้ 2 สถานะ: <span class="text-emerald-700 font-bold">ตรงกัน</span> / <span class="text-purple-700 font-bold">ไม่มีใน HDC</span></li>
+            <li>ส่วน <b class="text-cyan-700">"HDC มีแต่ยังไม่มีใน Local"</b> ด้านล่าง → กด <b>"เพิ่มเข้าระบบ"</b> → modal ยืนยันชื่อ (หน่วยงานมีช่อง "รหัสหน่วยงาน" เพิ่มเติม)</li>
+          </ul>
+        </div>
+
+        <!-- Tab: หมวดหมู่หลัก -->
+        <div class="bg-teal-50 border border-teal-200 rounded-xl p-4 mb-4">
+          <h4 class="font-bold text-teal-800 text-sm mb-2"><i class="fas fa-layer-group mr-2"></i>Tab "หมวดหมู่หลัก" — เปรียบเทียบ HDC ↔ Local</h4>
+          <p class="text-xs text-gray-600 mb-1">มี 2 โหมดขึ้นอยู่กับว่า HDC มีตาราง <code>kpi_main_indicators</code> หรือไม่:</p>
+          <div class="space-y-2 text-xs text-gray-600">
+            <div class="bg-white rounded-lg p-2 border border-teal-200">
+              <b class="text-teal-700">โหมด "HDC Table"</b> — HDC มีตาราง kpi_main_indicators:
+              <ul class="list-disc ml-4 mt-1 space-y-0.5">
+                <li>เทียบชื่อตรงๆ — chips <span class="text-emerald-700 font-bold">ตรงกัน</span> / <span class="text-purple-700 font-bold">ไม่มีใน HDC</span> (กรองตารางได้)</li>
+                <li>ส่วน <b class="text-cyan-700">"HDC มีแต่ยังไม่มีใน Local"</b> → กด <b>"เพิ่มเข้าระบบ"</b> → modal เลือก <b>ยุทธศาสตร์</b> ที่จะเชื่อม</li>
+              </ul>
+            </div>
+            <div class="bg-white rounded-lg p-2 border border-gray-200">
+              <b class="text-gray-600">โหมด "Coverage Fallback"</b> — HDC ไม่มีตาราง kpi_main_indicators:
+              <ul class="list-disc ml-4 mt-1 space-y-0.5">
+                <li>วิเคราะห์จาก table_process ใน HDC reports → นับว่าหมวดหมู่ไหนมีตัวชี้วัดเชื่อมกับ HDC</li>
+                <li>Chips: <span class="text-emerald-700 font-bold">มีตัวชี้วัดใน HDC</span> / <span class="text-gray-600 font-bold">ไม่มีใน HDC</span> (กรองตารางได้)</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tab: หน่วยบริการ -->
+        <div class="bg-indigo-50 border border-indigo-200 rounded-xl p-4 mb-4">
+          <h4 class="font-bold text-indigo-800 text-sm mb-2"><i class="fas fa-hospital mr-2"></i>Tab "หน่วยบริการ" — เปรียบเทียบ HDC ↔ Local + CRUD</h4>
+          <p class="text-xs text-gray-600 mb-2">ดึงจาก HDC <code>chospital</code> (ถ้ามี) เทียบกับ Local <code>chospital</code> โดยใช้ <b>hoscode</b> เป็น key</p>
+          <ul class="list-disc ml-5 text-xs text-gray-600 space-y-1">
+            <li>Chips กรองได้ 3 สถานะ: <span class="text-emerald-700 font-bold">ตรงกัน</span> / <span class="text-amber-700 font-bold">ชื่อต่างกัน</span> / <span class="text-purple-700 font-bold">ไม่มีใน HDC</span></li>
+            <li>ส่วน <b class="text-cyan-700">"HDC มีแต่ยังไม่มีใน Local"</b> + <b class="text-amber-700">"ชื่อต่างกัน"</b> → กด <b>"เพิ่มเข้าระบบ"</b> สำหรับ hoscode ที่หายไป</li>
+            <li>ถ้า HDC ไม่มีตาราง chospital — แสดง error สีแดงแทน chips</li>
+            <li>CRUD ปกติ: เพิ่ม/แก้/ลบ hospcode + filter อำเภอ + ประเภท | DELETE ตรวจ users + kpi_results ก่อน</li>
+          </ul>
+        </div>
+
+        <!-- table_process side-by-side -->
+        <div class="bg-cyan-50 border border-cyan-200 rounded-xl p-4 mb-4">
+          <h4 class="font-bold text-cyan-800 text-sm mb-2"><i class="fas fa-eye mr-2"></i>แสดง table_process Local + HDC ใต้ชื่อตัวชี้วัด</h4>
+          <p class="text-xs text-gray-600 mb-2">สำหรับ <b>super_admin</b> — ใต้ชื่อตัวชี้วัดในตารางจะมี 2 badge:</p>
+          <div class="flex flex-wrap gap-2 text-[11px] mb-2">
+            <span class="bg-blue-100 text-blue-800 px-2 py-0.5 rounded-md"><b>Local:</b> kpi_tab_001</span>
+            <span class="bg-purple-100 text-purple-800 px-2 py-0.5 rounded-md"><b>HDC:</b> kpi_tab_001</span>
+          </div>
+          <p class="text-[11px] text-gray-500"><i class="fas fa-info-circle mr-1"></i>ใช้ยืนยันด้วยตาว่าทั้ง 2 ฐานข้อมูลใช้ตารางเดียวกัน — ถ้า code ไม่ตรงให้แก้ก่อน Export</p>
+        </div>
+
+        <!-- upload_excel toggle -->
+        <div class="bg-orange-50 border border-orange-200 rounded-xl p-4">
+          <h4 class="font-bold text-orange-800 text-sm mb-2"><i class="fas fa-file-excel mr-2"></i>upload_excel — ตัวชี้วัดที่ "อัปโหลด Excel มือเอง"</h4>
+          <p class="text-xs text-gray-600 mb-2">ใช้กรณีที่ HDC report ปิดไปแล้ว หรือต้องการ override ไม่ให้ระบบ export อัตโนมัติ</p>
+          <ul class="list-disc ml-5 text-xs text-gray-600 space-y-1">
+            <li>คอลัมน์ <b>"upload_excel"</b> ในตารางตัวชี้วัด — toggle เปิด/ปิด (สีฟ้า)</li>
+            <li><b>0 (default)</b> — ส่งออกอัตโนมัติได้ผ่าน Export pipeline</li>
+            <li><b>1</b> — ข้าม Export pipeline ทั้งหมด (manual + scheduler) — ต้องอัปโหลด Excel เข้า HDC เอง</li>
+            <li>Endpoints: <code>PUT /indicators/:id/upload-excel</code> (toggle 1 ตัว) + <code>POST /indicators/bulk-upload-excel</code> (batch)</li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- ==================== 9.5 ตัวชี้วัดย่อย (Sub-Indicators) ==================== -->
+      <section class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+        <div class="flex items-center gap-3 mb-4">
+          <div class="w-10 h-10 rounded-xl bg-indigo-100 flex items-center justify-center"><i class="fas fa-list-ul text-indigo-600"></i></div>
+          <div>
+            <h2 class="text-xl font-bold text-gray-800">9.5 ตัวชี้วัดย่อย (Sub-Indicators)</h2>
+            <p class="text-xs text-gray-400">ตัวชี้วัด 1 ตัว สามารถมีย่อยได้หลายตัว + บันทึกผลงานรายเดือนต่อ hospcode</p>
+          </div>
+        </div>
+
+        <!-- เกณฑ์การประเมินตัวชี้วัด (evaluation_mode + required_off_types) -->
+        <div class="bg-cyan-50 border border-cyan-200 rounded-xl p-4 mb-4">
+          <h4 class="font-bold text-cyan-800 text-sm mb-2"><i class="fas fa-hospital mr-2"></i>เกณฑ์การประเมิน — ประเภทหน่วยบริการที่รับผิดชอบ</h4>
+          <p class="text-xs text-gray-600 mb-2">กำหนดว่าตัวชี้วัดใช้กับหน่วยบริการประเภทไหน (รพ. / รพ.สต. / สสอ. / สสจ.) ส่งผลต่อการกรอง "ตัวชี้วัดของ" ในหน้า dashboard</p>
+          <ol class="list-decimal ml-5 text-xs text-gray-600 space-y-1">
+            <li>เข้าหน้า <b>"จัดการตัวชี้วัด"</b> → Tab "ตัวชี้วัด" → กดแก้ไข/เพิ่ม</li>
+            <li>ในกรอบ <b class="text-cyan-700">"เกณฑ์การประเมิน"</b> (teal) เลือกโหมด:
+              <ul class="list-disc ml-4 mt-1 space-y-0.5">
+                <li><b>any_one (เฉพาะบางประเภท)</b> — ตัวชี้วัดใช้เฉพาะประเภทที่ติ๊กใน checkbox → เก็บใน <code>required_off_types</code> เป็น JSON array</li>
+                <li><b>all_required (ทุกประเภทบังคับ)</b> — ตัวชี้วัดครอบคลุมทุกหน่วยบริการในขอบเขต → <code>required_off_types = NULL</code></li>
+              </ul>
+            </li>
+            <li>กรณี any_one → ติ๊กประเภท (05=รพ.ศ., 06=รพ.ท., 07=รพ.ชุมชน, 10=ศูนย์ฯ, 18=รพ.สต., 02=สสอ., 01=สสจ., ...)</li>
+            <li>กด <b>"บันทึก"</b> → ระบบเก็บเป็น JSON เช่น <code>["05","06","07"]</code></li>
+          </ol>
+          <div class="mt-2 bg-white border border-cyan-200 rounded-lg p-2 text-[11px] text-gray-700">
+            <b><i class="fas fa-lightbulb text-amber-500"></i> ตัวอย่าง:</b>
+            <ul class="list-disc ml-4 mt-1 space-y-0.5">
+              <li>ตัวชี้วัดโรงพยาบาล: any_one + ["05","06","07"]</li>
+              <li>ตัวชี้วัด รพ.สต.: any_one + ["18"]</li>
+              <li>ตัวชี้วัดระดับอำเภอ (สสอ.): any_one + ["02"]</li>
+              <li>ตัวชี้วัดที่ทุกหน่วยต้องรายงาน: all_required</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- ส่วน: จัดการหน่วยบริการ (chospital) -->
+        <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-4 mb-4">
+          <h4 class="font-bold text-emerald-800 text-sm mb-2"><i class="fas fa-hospital mr-2"></i>จัดการหน่วยบริการ (Tab ที่ 5 ใน kpi-manage)</h4>
+          <p class="text-xs text-gray-600 mb-2">จัดการตาราง <code>chospital</code> — เพิ่ม/แก้ไข/ลบ หน่วยบริการในจังหวัด</p>
+          <ol class="list-decimal ml-5 text-xs text-gray-600 space-y-1">
+            <li>เข้าหน้า <b>"จัดการตัวชี้วัด"</b> → Tab <b>"หน่วยบริการ"</b></li>
+            <li>มี filter 3 ตัว: ค้นหา (ชื่อ/hoscode), Dropdown <b>อำเภอ</b>, Dropdown <b>ประเภท</b> (รพ.ศ./รพ.ท./รพช./รพ.สต./สสอ./...) + count badge</li>
+            <li>กด <b>"+ เพิ่มข้อมูล"</b> → modal: hoscode (PK ต้อง unique), ชื่อหน่วยบริการ, ประเภท (จาก chostype), อำเภอ (จาก co_district) → provcode + distcode จะ auto-fill จาก distid</li>
+            <li>แก้ไข: ปุ่ม <i class="fas fa-edit text-yellow-500"></i> — hoscode จะ disabled (เป็น PK ห้ามแก้)</li>
+            <li>ลบ: ปุ่ม <i class="fas fa-trash text-red-500"></i> — Backend block ถ้ามี users หรือ kpi_results อ้างอิงอยู่ (แสดง error count)</li>
+          </ol>
+          <p class="text-[11px] text-emerald-700 mt-2"><i class="fas fa-shield-alt mr-1"></i>CRUD เฉพาะ super_admin | log เข้า system_logs: HOSPITAL_CREATE/UPDATE/DELETE</p>
+        </div>
+
+        <!-- ส่วนที่ 1: สร้าง/แก้ไข sub-indicators -->
+        <div class="bg-indigo-50 border border-indigo-200 rounded-xl p-4 mb-4">
+          <h4 class="font-bold text-indigo-800 text-sm mb-2"><i class="fas fa-cog mr-2"></i>จัดการตัวชี้วัดย่อย (kpi-manage)</h4>
+          <ol class="list-decimal ml-5 text-xs text-gray-600 space-y-1">
+            <li>เข้าหน้า <b>"จัดการตัวชี้วัด"</b> → Tab "ตัวชี้วัด"</li>
+            <li>แต่ละแถว indicator มีปุ่ม <span class="text-indigo-600"><i class="fas fa-list-ul"></i> N</span> (จำนวน sub) → กดเปิด modal</li>
+            <li>กด <b>"เพิ่มตัวชี้วัดย่อย"</b> → กรอก: ชื่อ, รหัส, เป้าหมาย %, น้ำหนัก, รายละเอียด</li>
+            <li>แก้ไข / ลบ / toggle active ในตาราง modal</li>
+          </ol>
+          <p class="text-[11px] text-indigo-700 mt-2"><i class="fas fa-shield-alt mr-1"></i>CRUD เฉพาะ super_admin — user ทั่วไปดูได้</p>
+        </div>
+
+        <!-- ส่วนที่ 2: บันทึกผลงานย่อย (dashboard) -->
+        <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-4 mb-4">
+          <h4 class="font-bold text-emerald-800 text-sm mb-2"><i class="fas fa-keyboard mr-2"></i>บันทึกผลงานตัวชี้วัดย่อย (Dashboard)</h4>
+          <ol class="list-decimal ml-5 text-xs text-gray-600 space-y-1">
+            <li>หน้า Dashboard → แถวตัวชี้วัดที่มีย่อย จะแสดงปุ่ม <span class="text-indigo-600"><i class="fas fa-list-ul"></i> N <span class="bg-indigo-50 text-indigo-600 rounded px-1">X%</span></span></li>
+            <li>กดปุ่ม → modal เปิดแสดง <b>ตารางตัวชี้วัดย่อย × 12 เดือน (ต.ค.-ก.ย.)</b></li>
+            <li>คอลัมน์: ชื่อย่อย | เป้าหมาย | ต.ค. | พ.ย. | ... | ก.ย. | <b>ผลงาน</b> | <b>%</b></li>
+            <li>กรอกค่าเป้าหมาย + ผลงานรายเดือน → กด <b>"บันทึกทั้งหมด"</b></li>
+            <li>ระบบ upsert เฉพาะเซลล์ที่เปลี่ยน (diff detection) → ไม่ยิง API ซ้ำ</li>
+          </ol>
+          <div class="mt-2 text-[11px] text-emerald-700">
+            <i class="fas fa-calculator mr-1"></i><b>ผลงาน</b> = ค่าเดือนล่าสุดที่คีย์ (ก.ย.→ต.ค.) |
+            <b>%</b> = ผลงาน/เป้าหมาย × 100 (สีตามเกณฑ์ ≥80 เขียว / 50-79 เหลือง / &lt;50 แดง)
+          </div>
+        </div>
+
+        <!-- ส่วนที่ 3: การแสดงผลในแถว main indicator -->
+        <div class="bg-amber-50 border border-amber-200 rounded-xl p-4">
+          <h4 class="font-bold text-amber-800 text-sm mb-2"><i class="fas fa-percentage mr-2"></i>คำนวณจากตัวชี้วัดย่อย (แถวหลัก)</h4>
+          <p class="text-xs text-gray-600 mb-2">เมื่อตัวชี้วัดมี sub-indicators → แถว main จะแสดงค่า <b>เฉลี่ย</b> จาก subs ทั้งหมด (AVG หารด้วยจำนวน sub)</p>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-[11px] text-amber-700">
+            <div>• <b>เป้าหมาย</b> = AVG(target_value) ของ subs</div>
+            <div>• <b>ต.ค.-ก.ย.</b> = AVG(actual_value) รายเดือน</div>
+            <div>• <b>ผลงานรวม</b> = เดือนล่าสุดที่มีค่า</div>
+            <div>• <b>%</b> = ผลงาน/เป้าหมาย × 100</div>
+          </div>
+          <p class="text-[11px] text-amber-600 mt-2">
+            <i class="fas fa-info-circle mr-1"></i><b>Format:</b> จำนวนเต็มแสดงไม่มีทศนิยม (เช่น 70) | มีเศษแสดง 2 ตำแหน่ง (เช่น 70.50, 35.33)
+          </p>
+        </div>
+      </section>
+
+      <!-- ==================== 10. จัดการข้อมูล KPI ==================== -->
+      <section id="section-kpi-manager" *ngIf="canSeeSection('kpi-manager')" class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        <div (click)="toggleCollapse('kpi-manager')" class="flex items-center justify-between gap-3 p-6 cursor-pointer hover:bg-gray-50 transition-colors">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-indigo-100 flex items-center justify-center"><i class="fas fa-layer-group text-indigo-600"></i></div>
+            <div>
+              <h2 class="text-xl font-bold text-gray-800">10. จัดการข้อมูล KPI</h2>
+              <p class="text-xs text-gray-400">DB Compare / สร้างแบบฟอร์ม / Export</p>
+            </div>
+          </div>
+          <i class="fas text-gray-400 transition-transform" [ngClass]="isCollapsed('kpi-manager') ? 'fa-chevron-down' : 'fa-chevron-up'"></i>
+        </div>
+        <div [hidden]="isCollapsed('kpi-manager')" class="px-6 pb-6 space-y-4">
+          <p class="text-sm text-gray-600">เมนูสำหรับ <b>super_admin</b> — Wizard <b>2 ขั้นเรียงลำดับ</b> (1 → 2) โฟกัสที่ <b>schema + data</b> เท่านั้น</p>
+
+          <!-- Wizard Overview -->
+          <div class="bg-gradient-to-r from-indigo-50 to-emerald-50 border border-indigo-200 rounded-xl p-4">
+            <h4 class="font-bold text-indigo-800 text-sm mb-2"><i class="fas fa-route mr-2"></i>Workflow 2 ขั้นตอน (เรียงลำดับ)</h4>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
+              <div class="bg-white/70 rounded-lg p-2 border border-indigo-200">
+                <p class="font-bold text-indigo-700"><span class="inline-flex items-center justify-center w-5 h-5 bg-indigo-600 text-white rounded-full text-[10px] mr-1">1</span> ส่งออกข้อมูล KPI ↔ HDC</p>
+                <p class="text-gray-600 mt-0.5">เทียบโครงสร้างตาราง 2 ทาง + ลิงก์ไป Form Builder — DB Compare</p>
+              </div>
+              <div class="bg-white/70 rounded-lg p-2 border border-emerald-200">
+                <p class="font-bold text-emerald-700"><span class="inline-flex items-center justify-center w-5 h-5 bg-emerald-600 text-white rounded-full text-[10px] mr-1">2</span> Export ลงตารางรายตัวชี้วัด</p>
+                <p class="text-gray-600 mt-0.5">Export data + ส่งเข้า HDC + Scheduler อัตโนมัติ</p>
+              </div>
+            </div>
+            <p class="text-[10px] text-gray-500 mt-2"><i class="fas fa-info-circle mr-1"></i>แนะนำลำดับ 1 → 2 ในครั้งแรก หลังจากนั้นข้ามไปขั้น 2 ได้เลย — กด Stepper ด้านบน</p>
+          </div>
+
+          <!-- Note: Report Compare ย้ายไป kpi-manage -->
+          <div class="bg-teal-50 border-l-4 border-teal-400 rounded-xl p-3 text-xs text-teal-800">
+            <p class="font-bold mb-1"><i class="fas fa-info-circle mr-1"></i>ระบบ "เทียบชื่อตัวชี้วัด (Report Compare)" ย้ายแล้ว</p>
+            <p class="text-gray-700">เคยอยู่ใน wizard ขั้น 1 — ตอนนี้ย้ายไปอยู่ที่หน้า <b>"จัดการตัวชี้วัด" (kpi-manage)</b> tab "ตัวชี้วัด" เพื่อให้ใช้งานร่วมกับ CRUD ปกติได้เลย → ดูรายละเอียดที่ section "จัดการตัวชี้วัด" ด้านล่าง</p>
+          </div>
+
+          <!-- ขั้น 1 -->
+          <div class="bg-indigo-50 border border-indigo-200 rounded-xl p-4">
+            <h4 class="font-bold text-indigo-800 mb-2"><i class="fas fa-database mr-2"></i>ขั้น 1: ส่งออกข้อมูล KPI ↔ HDC (DB Compare — Schema)</h4>
+            <ol class="list-decimal ml-5 text-sm text-gray-600 space-y-1">
+              <li>กดปุ่ม <b>"เปรียบเทียบ Structure"</b> → ระบบเชื่อมต่อ HDC แล้วเปรียบเทียบโครงสร้างตาราง</li>
+              <li>ดูสรุป: ตรงกัน / ต่างกัน / ไม่มีใน Local / ไม่มีใน HDC</li>
+              <li>เลือกตาราง (หรือใช้ <b>"เลือก Missing Local"</b> / <b>"เลือก Missing HDC"</b> / <b>"เลือก Different"</b>)</li>
+              <li><b class="text-blue-600"><i class="fas fa-cloud-download-alt mr-1"></i>HDC → Local:</b> กด <b>"สร้าง Local"</b> / <b>"Sync จาก HDC"</b></li>
+              <li><b class="text-purple-600"><i class="fas fa-cloud-upload-alt mr-1"></i>Local → HDC:</b> กด <b>"สร้าง HDC"</b> / <b>"Sync → HDC"</b> <span class="text-[10px] text-red-500">(ต้องมีสิทธิ์ write ใน HDC)</span></li>
+              <li>กดปุ่ม <b>"สร้างฟอร์มจาก HDC"</b> → ส่ง columns ไป Tab 2 เพื่อสร้างแบบฟอร์ม</li>
+            </ol>
+          </div>
+          <!-- Form Builder (sub-tool of ขั้น 1) -->
+          <div class="bg-purple-50 border border-purple-200 rounded-xl p-4">
+            <h4 class="font-bold text-purple-800 mb-2"><i class="fas fa-wpforms mr-2"></i>ขั้น 1 (ต่อ): สร้างแบบฟอร์ม KPI จาก HDC</h4>
+            <ol class="list-decimal ml-5 text-sm text-gray-600 space-y-1">
+              <li>เลือกตัวชี้วัดที่มี <b>table_process</b> → กดปุ่ม <b>"สร้าง"</b></li>
+              <li>ถ้ามาจาก DB Compare → เลือก HDC fields ใน panel → กด <b>"เพิ่ม N ฟิลด์"</b></li>
+              <li>สลับ toggle <b>"ฟิลด์เริ่มต้น"</b> ตามต้องการ (id, hospcode, year_bh, ...)</li>
+              <li>กำหนดชื่อ, ประเภท, บังคับกรอก → เลือกฟิลด์แสดงใน Dashboard → กด <b>"บันทึกและสร้างตาราง"</b></li>
+            </ol>
+            <div class="mt-3 bg-purple-100 rounded-lg p-2 text-xs text-purple-700">
+              <p class="font-bold mb-1"><i class="fas fa-list-check mr-1"></i>ประเภทฟิลด์ที่รองรับ (7 ประเภท)</p>
+              <ul class="ml-4 space-y-0.5 list-disc">
+                <li><b>text</b> / <b>number</b> / <b>textarea</b> / <b>date</b> / <b>checkbox</b> — ฟิลด์มาตรฐาน</li>
+                <li><b>select</b> (Dropdown) — รายการเลือก string array</li>
+                <li><b>score_option</b> ⭐ (ตัวเลือกพร้อม %) — กำหนดป้าย + ค่า%, รูปแบบ <code>ป้าย = % ต่อบรรทัด</code> เช่น <code>ดีมาก = 100</code> | ระบบสร้างคอลัมน์ <code>&lt;field&gt;_pct</code> DECIMAL เพิ่มและ auto-compute % เมื่อบันทึก</li>
+                <li class="ml-4 text-[11px]">💡 ถ้าตั้ง <b>"ฟิลด์แสดงผลใน Dashboard"</b> เป็นฟิลด์ score_option → ระบบจะ sync <b>ค่า %</b> เข้า kpi_results.actual_value (ไม่ใช่ label) → dashboard / chart / report คำนวณได้ตรง</li>
+              </ul>
+            </div>
+          </div>
+          <!-- ขั้น 2 -->
+          <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-4">
+            <h4 class="font-bold text-emerald-800 mb-2"><i class="fas fa-file-export mr-2"></i>ขั้น 2: Export ข้อมูล KPI ลงตารางรายตัวชี้วัด</h4>
+            <ol class="list-decimal ml-5 text-sm text-gray-600 space-y-1">
+              <li>เลือกปีงบประมาณ → กดปุ่ม <b>"ตรวจสอบข้อมูล"</b> เพื่อเปรียบเทียบ (แสดง progress bar)</li>
+              <li>ดู 6 Card สรุป: ทั้งหมด | <b class="text-orange-600">ตัวชี้วัดที่เพิ่ม/แก้ไข</b> | <b class="text-rose-600">จำนวนข้อมูลที่เปลี่ยนแปลง</b> | ล่าสุดแล้ว | ไม่มีข้อมูล | ยังไม่ตรวจ</li>
+              <li>กรองตามหมวดหมู่ / หน่วยงาน / สถานะ → เลือก checkbox ตัวชี้วัดที่ต้องการ</li>
+              <li>กดปุ่ม <b>"ส่งออกข้อมูล"</b> → สร้าง/อัปเดตตาราง MySQL ใน Local DB (target + actual_value รายเดือน + form fields)</li>
+              <li>กดปุ่ม <b>"ส่งข้อมูลเข้า HDC"</b> (สีเขียวเข้ม) → Modal ตรวจสอบตาราง → เลือก → UPSERT เข้า HDC</li>
+              <li>กดปุ่ม <b>"ตารางเวลา Export อัตโนมัติ"</b> (ไล่สีม่วง-คราม) → Modal ตั้งค่า schedule อัตโนมัติ</li>
+            </ol>
+            <div class="mt-2 bg-green-100 rounded-lg p-2 text-xs text-green-700">
+              <i class="fas fa-shield-alt mr-1"></i>ใช้ <b>INSERT ... ON DUPLICATE KEY UPDATE</b> — อัปเดตเฉพาะ key ที่ตรงกัน ข้อมูลเดิมใน HDC ที่ไม่ซ้ำยังคงอยู่
+            </div>
+            <div class="mt-2 bg-blue-100 rounded-lg p-2 text-xs text-blue-700">
+              <i class="fas fa-bolt mr-1"></i><b>Content-based diff:</b> ระบบเปรียบเทียบค่า target, result, m10-m09, form fields ทีละคอลัมน์ — ถ้าค่าเหมือนเดิมจะข้าม (ไม่เปลี่ยนแปลง)
+            </div>
+            <div class="mt-2 bg-amber-100 rounded-lg p-2 text-xs text-amber-700">
+              <i class="fas fa-filter mr-1"></i><b>กรองผลงานจริง:</b> Export เฉพาะ hospcode ที่มี <b>actual_value</b> (ผลงาน) — hospcode ที่มีแต่ target ยังไม่มีผลงาน จะข้ามอัตโนมัติ | <b>result</b> = ค่าเดือนล่าสุดที่คีย์ (ไม่ใช่ SUM) | <b>ค่า "0" ถือว่าเป็นผลงาน</b> (เช่น KPI ผลข้างเคียง)
+            </div>
+            <div class="mt-2 bg-teal-100 rounded-lg p-2 text-xs text-teal-700">
+              <i class="fas fa-database mr-1"></i><b>Source ข้อมูล (3 ที่):</b>
+              ระบบจะรวมข้อมูลจาก 3 แหล่งเข้าตาราง export ตามลำดับ priority:
+              <ol class="list-decimal ml-5 mt-1 space-y-0.5">
+                <li><b>kpi_results</b> — ผลงานที่คีย์ตรงๆ ในหน้า dashboard</li>
+                <li><b>kpi_sub_results</b> (AVG) — สำหรับตัวชี้วัดที่มี <b>ตัวชี้วัดย่อย</b> ระบบหารด้วยจำนวน sub แล้วเก็บค่าเฉลี่ยต่อเดือน</li>
+                <li><b>form_&lt;table_process&gt;</b> — ผลงานจาก dynamic form (กรณี schema ไม่มี actual_value_field) → เก็บใน column <code>_dyn_*</code></li>
+              </ol>
+              ลำดับ: kpi_results > sub_results AVG (เติมเฉพาะ slot ที่ kpi_results ยังว่าง) > form data
+            </div>
+            <div class="mt-2 bg-orange-100 rounded-lg p-2 text-xs text-orange-700">
+              <i class="fas fa-stethoscope mr-1"></i><b>Diagnose Tool (super_admin):</b> ถ้าข้อมูลส่งออกไม่ครบ ใช้ endpoint
+              <code class="bg-orange-200 px-1 rounded">/khupskpi/api/admin/export-debug?year_bh=&amp;table_process=&amp;hospcode=</code>
+              เพื่อตรวจว่าข้อมูลอยู่ source ไหน — ดูทุกตาราง (kpi_results, sub_results, form_*, schemas, export_table) พร้อม sub_indicators relationship
+            </div>
+            <div class="mt-2 bg-rose-100 rounded-lg p-2 text-xs text-rose-700">
+              <i class="fas fa-shield-alt mr-1"></i><b>Check-logic = Export-logic:</b> "ตรวจสอบข้อมูล" ใช้ sameValue (numeric-aware, null/'' = equal) + result=last actual เหมือนกับ export → ตรวจซ้ำโดยไม่แก้อะไร จะได้ "up_to_date" ทุกครั้ง
+            </div>
+            <div class="mt-2 bg-purple-100 rounded-lg p-2 text-xs text-purple-700">
+              <i class="fas fa-layer-group mr-1"></i><b>Dedupe:</b> Card นับตาม unique <b>table_process</b> — หลายตัวชี้วัดที่ใช้ตารางเดียวกันนับเป็น 1
+            </div>
+          </div>
+          <!-- ขั้น 2.1: Schedule -->
+          <div class="bg-gradient-to-r from-purple-50 to-indigo-50 border border-indigo-200 rounded-xl p-4">
+            <h4 class="font-bold text-indigo-800 mb-2"><i class="fas fa-clock mr-2"></i>ขั้น 2 (ต่อ): ตารางเวลา Export อัตโนมัติ (Scheduler)</h4>
+            <p class="text-xs text-gray-600 mb-2">ตั้งค่าให้ระบบ export + sync HDC อัตโนมัติตามวัน-เวลาที่กำหนด พร้อมส่งรายงานสรุป</p>
+            <ol class="list-decimal ml-5 text-sm text-gray-600 space-y-1">
+              <li>กดปุ่ม <b>"ตารางเวลา Export อัตโนมัติ"</b> → Modal แสดงรายการ schedule + ปุ่ม "+ เพิ่ม Schedule"</li>
+              <li>กรอก: ชื่อ, เปิดใช้งาน, เวลา (HH:MM), ปีงบฯ, เลือกวัน จ.-อา.</li>
+              <li>เลือก <b>ขอบเขตตัวชี้วัด</b> (3 แบบ):
+                <ul class="list-disc ml-5 mt-1 space-y-0.5">
+                  <li><b class="text-indigo-700">ตรวจสอบก่อน</b> (แนะนำ) — export เฉพาะตัวชี้วัดที่มีการเพิ่ม/แก้ไข</li>
+                  <li><b>ทุกตัวชี้วัด</b> — export ทุกตัวเสมอ</li>
+                  <li><b>เฉพาะที่เลือก</b> — ใช้รายการ checkbox จากตารางด้านบน</li>
+                </ul>
+              </li>
+              <li>(ตัวเลือก) เปิด <b class="text-teal-700">"ส่งข้อมูลเข้า HDC อัตโนมัติ"</b> → หลัง export เสร็จจะ UPSERT เข้า HDC ทันที (ไม่ต้องรออนุมัติ)</li>
+              <li>เลือกช่องแจ้งเตือน: <b>ส่ง Email</b> / <b>ส่ง Telegram</b> / <b>ส่ง LINE Group</b> (recipients/token ดึงจากหน้าตั้งค่าระบบ)</li>
+              <li>กด <b>บันทึก</b> → schedule รันที่ backend ทุกๆ 1 นาที — ถ้าตรงวัน+เวลาจะเริ่ม export</li>
+              <li>ปุ่มในแต่ละแถว: <b class="text-teal-700">▶ รันตอนนี้</b> | <b class="text-gray-700">⏱ ประวัติ</b> | <b class="text-amber-700">✎ แก้ไข</b> | <b class="text-red-700">🗑 ลบ</b></li>
+            </ol>
+            <div class="mt-2 bg-amber-100 rounded-lg p-2 text-xs text-amber-700">
+              <i class="fas fa-exclamation-triangle mr-1"></i><b>คำเตือน:</b> เปิด "Auto Sync HDC" = ข้อมูลถูกส่งโดยไม่ผ่านการตรวจสอบ — ใช้เมื่อมั่นใจในคุณภาพข้อมูลเท่านั้น
+            </div>
+            <div class="mt-2 bg-blue-100 rounded-lg p-2 text-xs text-blue-700">
+              <i class="fas fa-envelope mr-1"></i><b>Email/Telegram/LINE:</b> ดึง recipients/token จาก <b>หน้าตั้งค่าระบบ</b> (keys: <code>admin_emails</code>, <code>telegram_chat_id</code>, <code>telegram_bot_token</code>, <code>line_channel_token</code>, <code>line_group_id</code>) — schedule เลือกแค่เปิด/ปิดส่ง
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================== 10.5 Online Users (Realtime) ==================== -->
+      <section id="section-online-users" *ngIf="canSeeSection('online-users')" class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+        <div class="flex items-center gap-3 mb-4">
+          <div class="w-10 h-10 rounded-xl bg-green-100 flex items-center justify-center">
+            <i class="fas fa-satellite-dish text-green-600"></i>
+          </div>
+          <div>
+            <h2 class="text-xl font-bold text-gray-800">10.5 ผู้ใช้งานออนไลน์ (Realtime)</h2>
+            <p class="text-xs text-gray-400">ตรวจสอบผู้ใช้ที่กำลังใช้งานระบบ — super_admin เท่านั้น</p>
+          </div>
+        </div>
+        <div class="bg-green-50 border border-green-200 rounded-xl p-4 space-y-3">
+          <div class="text-xs text-gray-700">
+            <i class="fas fa-info-circle text-green-600 mr-1"></i>
+            ระบบติดตาม <b>last_seen_at</b> ในตาราง <code>users</code> ทุกครั้งที่ user เรียก API (throttle 1 ครั้ง/นาที/user กัน DB overload)
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+            <div class="bg-white rounded-lg p-3 border border-green-200">
+              <b class="text-green-700"><i class="fas fa-users mr-1"></i>Stats Cards</b>
+              <ul class="list-disc ml-4 mt-1 space-y-0.5 text-gray-600">
+                <li>ออนไลน์ตอนนี้ / รวม Admin / รวม User</li>
+                <li>Auto-refresh toggle + interval (5-60s)</li>
+              </ul>
+            </div>
+            <div class="bg-white rounded-lg p-3 border border-green-200">
+              <b class="text-green-700"><i class="fas fa-filter mr-1"></i>ตัวกรอง</b>
+              <ul class="list-disc ml-4 mt-1 space-y-0.5 text-gray-600">
+                <li>ค้นหา username / ชื่อ / หน่วยงาน / รพ. / อำเภอ</li>
+                <li>เลือก role — เฉพาะระดับที่สนใจ</li>
+                <li>ช่วงเวลา: 2 / 5 / 15 / 30 / 60 / 240 นาทีล่าสุด</li>
+              </ul>
+            </div>
+            <div class="bg-white rounded-lg p-3 border border-green-200">
+              <b class="text-green-700"><i class="fas fa-table mr-1"></i>คอลัมน์ตาราง</b>
+              <ul class="list-disc ml-4 mt-1 space-y-0.5 text-gray-600">
+                <li>🟢 จุดสถานะ (เขียว&lt;1m / น้ำเงิน&lt;5m / อำพัน&lt;15m / เทา)</li>
+                <li>Username / ชื่อ / Role badge / หน่วยงาน / หน่วยบริการ+อำเภอ</li>
+                <li>IP + OS + Browser (parse จาก user-agent)</li>
+                <li>Active ล่าสุด (X วินาที/นาทีที่แล้ว)</li>
+              </ul>
+            </div>
+            <div class="bg-white rounded-lg p-3 border border-green-200">
+              <b class="text-green-700"><i class="fas fa-sync-alt mr-1"></i>Auto-Refresh</b>
+              <ul class="list-disc ml-4 mt-1 space-y-0.5 text-gray-600">
+                <li>รีเฟรชอัตโนมัติทุก 15 วินาที (default)</li>
+                <li>เปลี่ยนได้ 5/10/15/30/60 วินาที</li>
+                <li>ปิด-เปิดได้ (เช็คบ็อกซ์ใน card ที่ 4)</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================== 9. สำรอง & กู้คืนข้อมูล (Backup Manager) ==================== -->
+      <section id="section-backup" *ngIf="canSeeSection('backup')" class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        <div (click)="toggleCollapse('backup')" class="flex items-center justify-between gap-3 p-6 cursor-pointer hover:bg-gray-50 transition-colors">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center"><i class="fas fa-database text-emerald-600"></i></div>
+            <div>
+              <h2 class="text-xl font-bold text-gray-800">9. สำรอง &amp; กู้คืนฐานข้อมูล (Backup Manager)</h2>
+              <p class="text-xs text-gray-400">เฉพาะ super_admin — Backup/Restore + Schedule + Cloud + Monitor</p>
+            </div>
+          </div>
+          <i class="fas text-gray-400 transition-transform" [ngClass]="isCollapsed('backup') ? 'fa-chevron-down' : 'fa-chevron-up'"></i>
+        </div>
+        <div [hidden]="isCollapsed('backup')" class="px-6 pb-6 space-y-4">
+
+          <p class="text-sm text-gray-600">เครื่องมือสำหรับ super_admin สำรอง/กู้คืน MySQL/MariaDB ทั้ง local + cloud + monitor สถานะระบบ — เมนู <b>"สำรอง &amp; กู้คืนข้อมูล"</b> ใน sidebar</p>
+
+          <!-- 7 Tabs Overview -->
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-3"><p class="font-bold text-emerald-800 text-sm"><i class="fas fa-server mr-1"></i>Connections</p><p class="text-xs text-gray-600 mt-1">จัดการการเชื่อมต่อ DB หลายตัว — host/port/user/pass (encrypted AES-256-GCM)</p></div>
+            <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-3"><p class="font-bold text-emerald-800 text-sm"><i class="fas fa-download mr-1"></i>Manual Backup</p><p class="text-xs text-gray-600 mt-1">สร้าง backup ด้วยมือ + gzip + progress realtime + checksum SHA-256</p></div>
+            <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-3"><p class="font-bold text-emerald-800 text-sm"><i class="fas fa-folder-open mr-1"></i>Files</p><p class="text-xs text-gray-600 mt-1">รายการไฟล์ backup + ดาวน์โหลด + ดู log + restore + cloud actions</p></div>
+            <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-3"><p class="font-bold text-emerald-800 text-sm"><i class="fas fa-undo mr-1"></i>Restore</p><p class="text-xs text-gray-600 mt-1">กู้คืน 2 mode: DB ใหม่ (ปลอดภัย) / ทับ DB เดิม (auto-backup ก่อน)</p></div>
+            <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-3"><p class="font-bold text-emerald-800 text-sm"><i class="fas fa-clock mr-1"></i>Schedules</p><p class="text-xs text-gray-600 mt-1">ตั้งเวลา backup อัตโนมัติ + retention + Email/Telegram notification</p></div>
+            <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-3"><p class="font-bold text-emerald-800 text-sm"><i class="fab fa-google-drive mr-1"></i>Cloud</p><p class="text-xs text-gray-600 mt-1">Google Drive OAuth 2.0 — ใช้พื้นที่ Gmail 15GB ฟรี (user account)</p></div>
+            <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-3"><p class="font-bold text-emerald-800 text-sm"><i class="fas fa-chart-line mr-1"></i>Monitor</p><p class="text-xs text-gray-600 mt-1">Dashboard ติดตามสถานะ DB + ตาราง + disk + slow queries (refresh 10s)</p></div>
+            <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-3"><p class="font-bold text-emerald-800 text-sm"><i class="fas fa-shield-halved mr-1"></i>Privilege Check</p><p class="text-xs text-gray-600 mt-1">ตรวจสิทธิ์ user ก่อน backup — กัน schema-only dump</p></div>
+          </div>
+
+          <!-- Manual Backup -->
+          <div class="bg-blue-50 border border-blue-200 rounded-xl p-4">
+            <h4 class="font-bold text-blue-800 mb-2"><i class="fas fa-play mr-2"></i>ขั้นตอน Manual Backup</h4>
+            <ol class="list-decimal ml-5 text-sm text-gray-700 space-y-1">
+              <li>เข้าแท็บ <b>Connections</b> → กดทดสอบ <i class="fas fa-plug text-blue-600"></i> + ตรวจสิทธิ์ <i class="fas fa-shield-halved text-purple-600"></i></li>
+              <li>เข้าแท็บ <b>Manual Backup</b> → เลือก Connection → กดเริ่ม Backup</li>
+              <li>ดู progress card (bytes ที่ dump + เวลา + สถานะ) — refresh ทุก 1 วินาที</li>
+              <li>เสร็จแล้วเด้ง popup สำเร็จ + ปุ่ม "ดู Log" (checklist ตาราง + INSERTs)</li>
+              <li>ไปแท็บ Files → ดูไฟล์ใหม่ + ดาวน์โหลด/restore/upload cloud/ลบ</li>
+            </ol>
+          </div>
+
+          <!-- Restore -->
+          <div class="bg-amber-50 border border-amber-200 rounded-xl p-4">
+            <h4 class="font-bold text-amber-800 mb-2"><i class="fas fa-undo mr-2"></i>การ Restore (กู้คืน)</h4>
+            <div class="space-y-2 text-sm text-gray-700">
+              <div class="p-2 bg-white rounded">
+                <p class="font-bold text-emerald-700">โหมด "Restore เข้า DB ใหม่" (แนะนำ — ปลอดภัย)</p>
+                <p class="text-xs">สร้าง DB ใหม่ <code>khups_kpi_db_restore_YYYYMMDDHHmmss</code> → ไม่แตะ DB เดิม → admin verify แล้ว swap manual</p>
+              </div>
+              <div class="p-2 bg-white rounded">
+                <p class="font-bold text-red-700">โหมด "Restore ทับ DB เดิม" (เสี่ยง)</p>
+                <p class="text-xs">DROP DATABASE + restore ใหม่ → บังคับ auto-backup ก่อน + confirm 2 ชั้น (พิมพ์ "RESTORE")</p>
+              </div>
+              <p class="text-xs text-gray-500">หลัง restore เสร็จ ระบบจะ verify จำนวนตาราง + COUNT(*) แต่ละตาราง + เขียน restore log file</p>
+            </div>
+          </div>
+
+          <!-- Schedules -->
+          <div class="bg-purple-50 border border-purple-200 rounded-xl p-4">
+            <h4 class="font-bold text-purple-800 mb-2"><i class="fas fa-clock mr-2"></i>Backup อัตโนมัติ (Schedule)</h4>
+            <ul class="list-disc ml-5 text-sm text-gray-700 space-y-1">
+              <li>ตั้งวัน (เลือกหลายวัน) + เวลา HH:MM (timezone Bangkok UTC+7)</li>
+              <li>เลือก <b>Connection</b> + <b>retention</b> (ลบไฟล์เก่ากว่า N วันอัตโนมัติ)</li>
+              <li>Notification: Email + Telegram (แจ้งเฉพาะสำเร็จ/ล้มเหลว/ทั้งคู่)</li>
+              <li><b>Auto-upload Google Drive</b>: เปิดได้ถ้าตั้ง OAuth แล้ว</li>
+              <li>ปุ่ม "รันทันที" ทดสอบ schedule ได้โดยไม่ต้องรอเวลา</li>
+            </ul>
+          </div>
+
+          <!-- Cloud -->
+          <div class="bg-sky-50 border border-sky-200 rounded-xl p-4">
+            <h4 class="font-bold text-sky-800 mb-2"><i class="fab fa-google-drive mr-2"></i>Cloud — Google Drive (พื้นที่ Gmail 15GB ฟรี)</h4>
+            <ol class="list-decimal ml-5 text-sm text-gray-700 space-y-1">
+              <li>Google Cloud Console → สร้าง OAuth Client ID (Web application)</li>
+              <li>กรอก <b>Authorized redirect URI</b> (copy จากระบบ)</li>
+              <li>วาง Client ID + Client Secret + Folder ID → บันทึก</li>
+              <li>กด <b>"Connect Google Drive"</b> → login Gmail → allow → เสร็จ</li>
+              <li>ไฟล์อยู่ใน Drive ของคุณจริงๆ — ใช้ quota 15GB ฟรี เห็นไฟล์ใน Drive UI ปกติ</li>
+            </ol>
+          </div>
+
+          <!-- Monitor -->
+          <div class="bg-indigo-50 border border-indigo-200 rounded-xl p-4">
+            <h4 class="font-bold text-indigo-800 mb-2"><i class="fas fa-chart-line mr-2"></i>Monitor Dashboard</h4>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs text-gray-700">
+              <div class="bg-white rounded p-2">• ขนาดฐานข้อมูล (data + index) + จำนวนตาราง + แถวรวม</div>
+              <div class="bg-white rounded p-2">• Connection pool (ใช้/ว่าง/รอคิว) + max_connections + uptime</div>
+              <div class="bg-white rounded p-2">• Top 20 ตารางใหญ่ + slow queries</div>
+              <div class="bg-white rounded p-2">• Disk usage backup folder + filesystem progress bar</div>
+              <div class="bg-white rounded p-2">• สรุป schedules + ข้อผิดพลาดล่าสุด</div>
+              <div class="bg-white rounded p-2">• Auto-refresh ทุก 10 วินาที (ปิดได้)</div>
+            </div>
+          </div>
+
+          <!-- Security -->
+          <div class="bg-rose-50 border border-rose-200 rounded-xl p-4">
+            <h4 class="font-bold text-rose-800 mb-2"><i class="fas fa-lock mr-2"></i>ความปลอดภัย</h4>
+            <ul class="list-disc ml-5 text-sm text-gray-700 space-y-1">
+              <li>DB password + OAuth refresh token: <b>AES-256-GCM encrypted</b> ใน DB</li>
+              <li>Restore "ทับ DB" ต้องพิมพ์ "RESTORE" ยืนยัน + บังคับ auto-backup ก่อน</li>
+              <li>Validate target DB name regex (ป้องกัน SQL injection)</li>
+              <li>Log ทุก operation ลง system_logs (BACKUP_RUN / BACKUP_RESTORE / BACKUP_DELETE / GDRIVE_OAUTH_CONNECT)</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================== 10. แจ้งเตือนการบันทึก KPI ==================== -->
+      <section id="section-audit-digest" *ngIf="canSeeSection('audit-digest')" class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        <div (click)="toggleCollapse('audit-digest')" class="flex items-center justify-between gap-3 p-6 cursor-pointer hover:bg-gray-50 transition-colors">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center"><i class="fas fa-bullhorn text-amber-600"></i></div>
+            <div>
+              <h2 class="text-xl font-bold text-gray-800">10. แจ้งเตือนการบันทึก KPI (Daily Digest)</h2>
+              <p class="text-xs text-gray-400">เฉพาะ super_admin — รวมสรุปการบันทึกข้อมูลของ user ทั้งหมดส่งวันละครั้ง</p>
+            </div>
+          </div>
+          <i class="fas text-gray-400 transition-transform" [ngClass]="isCollapsed('audit-digest') ? 'fa-chevron-down' : 'fa-chevron-up'"></i>
+        </div>
+        <div [hidden]="isCollapsed('audit-digest')" class="px-6 pb-6 space-y-4">
+
+          <p class="text-sm text-gray-600">ระบบบันทึก audit log ทุกครั้งที่ user save ข้อมูล + ส่งสรุปประจำวันให้ super_admin ทาง Email + Telegram เพื่อแจ้งให้อัพเดทตาราง Export — เมนู <b>"แจ้งเตือนการบันทึก KPI"</b> ใน sidebar</p>
+
+          <!-- การทำงาน -->
+          <div class="bg-amber-50 border border-amber-200 rounded-xl p-4">
+            <h4 class="font-bold text-amber-800 mb-2"><i class="fas fa-cog mr-2"></i>หลักการทำงาน</h4>
+            <ol class="list-decimal ml-5 text-sm text-gray-700 space-y-1">
+              <li>ทุกครั้งที่ user บันทึกข้อมูล <b>3 ช่องทาง</b> → ระบบ log ลงตาราง <code>kpi_save_audit</code>
+                <ul class="list-disc ml-6 mt-1 text-xs">
+                  <li>Dashboard (POST /update-kpi) — บันทึกผลงาน KPI ปกติ</li>
+                  <li>Dynamic Form (POST /dynamic-data) — บันทึกผ่าน Form Builder</li>
+                  <li>Sub-indicators (POST /sub-results/upsert) — บันทึกผลงานย่อย</li>
+                </ul>
+              </li>
+              <li>ตามเวลาที่ตั้ง (default 17:00) ระบบรวบสรุปทั้งหมด → ส่ง Email + Telegram</li>
+              <li>หลังส่ง records จะถูก mark <code>notified_at</code> → ไม่ส่งซ้ำ</li>
+              <li>super_admin กด "ส่ง Digest ทันที (test)" เพื่อทดสอบหรือเรียกดูสรุปก่อนเวลา</li>
+            </ol>
+          </div>
+
+          <!-- ข้อมูลในสรุป -->
+          <div class="bg-blue-50 border border-blue-200 rounded-xl p-4">
+            <h4 class="font-bold text-blue-800 mb-2"><i class="fas fa-file-alt mr-2"></i>ข้อมูลที่อยู่ในสรุป</h4>
+            <ul class="list-disc ml-5 text-sm text-gray-700 space-y-1">
+              <li>วันที่ + จำนวนผู้ใช้ที่บันทึก + จำนวน records ทั้งหมด</li>
+              <li><b>ตาราง Top ผู้บันทึก</b>: ชื่อ-สกุล / หน่วยงาน / หน่วยบริการ / KPI หลัก / Sub / Form / รวม</li>
+              <li><b>Top 10 ตัวชี้วัดที่ถูกบันทึกมากสุด</b></li>
+              <li><b>คำแนะนำ</b>: ให้ super_admin ไปกด "อัพเดทตาราง Export" ใน kpi-manager</li>
+            </ul>
+          </div>
+
+          <!-- Settings -->
+          <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-4">
+            <h4 class="font-bold text-emerald-800 mb-2"><i class="fas fa-sliders-h mr-2"></i>การตั้งค่า</h4>
+            <ul class="list-disc ml-5 text-sm text-gray-700 space-y-1">
+              <li><b>เปิดบันทึก Audit</b>: เปิด/ปิด log การบันทึก (ปิด = ไม่เก็บข้อมูลเลย)</li>
+              <li><b>เปิดส่ง Digest</b>: เปิด/ปิด การส่งอัตโนมัติ</li>
+              <li><b>เวลาส่ง</b>: HH:MM (timezone Bangkok)</li>
+              <li><b>ขั้นต่ำ</b>: ส่งเฉพาะเมื่อมี ≥ N รายการ (default 1)</li>
+              <li><b>ช่องทาง</b>: Email + Telegram — เลือกได้ทั้งคู่ หรืออย่างเดียว</li>
+            </ul>
+          </div>
+
+          <!-- ปุ่มและ Stats -->
+          <div class="bg-purple-50 border border-purple-200 rounded-xl p-4">
+            <h4 class="font-bold text-purple-800 mb-2"><i class="fas fa-chart-bar mr-2"></i>Stats &amp; ปุ่ม</h4>
+            <ul class="list-disc ml-5 text-sm text-gray-700 space-y-1">
+              <li><b>Stats cards</b> 4 ใบ: บันทึกวันนี้ / ยังไม่แจ้ง / ทั้งหมด / ผู้ใช้ที่บันทึก</li>
+              <li><b>Last Digest panel</b>: วันที่/เวลาส่งล่าสุด + email/telegram status</li>
+              <li><b>Tab "รายการบันทึก"</b>: ดู audit log ย้อนหลัง 300 records ล่าสุด + filter เฉพาะที่ยังไม่ได้แจ้ง</li>
+              <li><b>ปุ่ม "ส่ง Digest ทันที"</b>: สำหรับ test (ไม่ต้องรอเวลา)</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================== 11. Maintenance Mode ==================== -->
+      <section id="section-maintenance" *ngIf="canSeeSection('maintenance')" class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        <div (click)="toggleCollapse('maintenance')" class="flex items-center justify-between gap-3 p-6 cursor-pointer hover:bg-gray-50 transition-colors">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-red-100 flex items-center justify-center"><i class="fas fa-tools text-red-600"></i></div>
+            <div>
+              <h2 class="text-xl font-bold text-gray-800">11. โหมดปิดปรับปรุงระบบ (Maintenance)</h2>
+              <p class="text-xs text-gray-400">ปิดการใช้งานชั่วคราวเพื่อประมวลผลงาน</p>
+            </div>
+          </div>
+          <i class="fas text-gray-400 transition-transform" [ngClass]="isCollapsed('maintenance') ? 'fa-chevron-down' : 'fa-chevron-up'"></i>
+        </div>
+        <div [hidden]="isCollapsed('maintenance')" class="px-6 pb-6 space-y-4">
+          <div class="bg-red-50 border border-red-200 rounded-xl p-4">
+            <h4 class="font-bold text-red-800 mb-2"><i class="fas fa-lock mr-2"></i>วิธีเปิดโหมดปิดปรับปรุง</h4>
+            <ol class="list-decimal ml-5 text-sm text-gray-600 space-y-1">
+              <li>เข้าหน้า <b>"จัดการผู้ใช้งาน"</b> → กดปุ่ม <b>"โหมดปิดปรับปรุง"</b></li>
+              <li>กำหนดข้อความแจ้งเตือน (เช่น "ระบบปิดชั่วคราวเพื่อประมวลผลงาน")</li>
+              <li>กดยืนยัน → ผู้ใช้ทั้งหมด (ยกเว้น super_admin) จะเห็นหน้าแจ้งเตือนเต็มจอ</li>
+              <li>หน้า Login จะแสดงแถบแดงแจ้งเตือนด้านบน</li>
+            </ol>
+          </div>
+          <div class="bg-green-50 border border-green-200 rounded-xl p-4">
+            <h4 class="font-bold text-green-800 mb-2"><i class="fas fa-unlock mr-2"></i>วิธีเปิดระบบกลับ</h4>
+            <ol class="list-decimal ml-5 text-sm text-gray-600 space-y-1">
+              <li>กดปุ่ม <b>"ปิดปรับปรุงอยู่"</b> (สีเหลือง) อีกครั้ง</li>
+              <li>กดยืนยัน → ระบบเปิดใช้งานปกติทันที</li>
+            </ol>
+          </div>
+          <div class="bg-amber-50 border border-amber-200 rounded-xl p-4">
+            <h4 class="font-bold text-amber-800 mb-2"><i class="fas fa-toggle-off mr-2"></i>เปิด/ปิดใช้งานทั้งหมด</h4>
+            <ul class="list-disc ml-5 text-sm text-gray-600 space-y-1">
+              <li><b>"เปิดใช้งานทั้งหมด"</b> → เปิดทุก account (ยกเว้น super_admin)</li>
+              <li><b>"ปิดใช้งานทั้งหมด"</b> → ปิดทุก account → ผู้ใช้ Login ไม่ได้</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================== 12. กระดานข้อเสนอแนะ ==================== -->
+      <section id="section-feedback" *ngIf="canSeeSection('feedback')" class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        <div (click)="toggleCollapse('feedback')" class="flex items-center justify-between gap-3 p-6 cursor-pointer hover:bg-gray-50 transition-colors">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-teal-100 flex items-center justify-center"><i class="fas fa-comments text-teal-600"></i></div>
+            <div>
+              <h2 class="text-xl font-bold text-gray-800">12. กระดานข้อเสนอแนะ (Feedback Board)</h2>
+              <p class="text-xs text-gray-400">แลกเปลี่ยนความคิดเห็น แจ้งปัญหา เสนอแนะระบบ</p>
+            </div>
+          </div>
+          <i class="fas text-gray-400 transition-transform" [ngClass]="isCollapsed('feedback') ? 'fa-chevron-down' : 'fa-chevron-up'"></i>
+        </div>
+        <div [hidden]="isCollapsed('feedback')" class="px-6 pb-6 space-y-4">
+          <p class="text-sm text-gray-600">ทุก Role ใช้งานได้ — สร้างกระทู้ ตอบกลับ แลกเปลี่ยนกับผู้ดูแลระบบ</p>
+
+          <!-- วิธีใช้งาน -->
+          <div class="bg-teal-50 border border-teal-200 rounded-xl p-4">
+            <h4 class="font-bold text-teal-800 text-sm mb-3"><i class="fas fa-list-ol mr-2"></i>ขั้นตอนการใช้งาน</h4>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+              <div class="flex items-start gap-3">
+                <span class="flex items-center justify-center w-7 h-7 rounded-full bg-teal-600 text-white text-xs font-bold shrink-0">1</span>
+                <div><p class="font-bold text-gray-800">สร้างกระทู้</p><p class="text-xs text-gray-500">เลือกหมวดหมู่ (ข้อเสนอแนะ/คำถาม/แจ้งปัญหา/อื่นๆ) + กรอกหัวข้อและรายละเอียด</p></div>
+              </div>
+              <div class="flex items-start gap-3">
+                <span class="flex items-center justify-center w-7 h-7 rounded-full bg-teal-600 text-white text-xs font-bold shrink-0">2</span>
+                <div><p class="font-bold text-gray-800">ตอบกลับ</p><p class="text-xs text-gray-500">กดที่กระทู้ → พิมพ์ข้อความตอบกลับ ทั้ง user และ admin ตอบได้</p></div>
+              </div>
+              <div class="flex items-start gap-3">
+                <span class="flex items-center justify-center w-7 h-7 rounded-full bg-teal-600 text-white text-xs font-bold shrink-0">3</span>
+                <div><p class="font-bold text-gray-800">ติดตามสถานะ</p><p class="text-xs text-gray-500">super_admin เปลี่ยนสถานะ: เปิด → กำลังดำเนินการ → แก้ไขแล้ว → ปิด</p></div>
+              </div>
+              <div class="flex items-start gap-3">
+                <span class="flex items-center justify-center w-7 h-7 rounded-full bg-teal-600 text-white text-xs font-bold shrink-0">4</span>
+                <div><p class="font-bold text-gray-800">รับแจ้งเตือน</p><p class="text-xs text-gray-500">ทุกข้อความตอบกลับ → แจ้ง Telegram + Email + Notification อัตโนมัติ</p></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ฟีเจอร์ -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div class="bg-gray-50 rounded-xl p-3 border">
+              <p class="text-sm font-bold text-gray-700"><i class="fas fa-palette text-teal-500 mr-2"></i>สีเฉพาะตัวต่อ username</p>
+              <p class="text-xs text-gray-500 mt-1">แต่ละ username มีสีเฉพาะตัว ไม่ซ้ำกัน — super_admin = สีเขียวเข้ม (สงวนไว้)</p>
+            </div>
+            <div class="bg-gray-50 rounded-xl p-3 border">
+              <p class="text-sm font-bold text-gray-700"><i class="fas fa-bell text-amber-500 mr-2"></i>Badge แจ้งเตือน</p>
+              <p class="text-xs text-gray-500 mt-1">Icon ข้อเสนอแนะ บน Header แสดงจำนวนข้อความใหม่ เคลียร์เมื่อเข้าอ่าน</p>
+            </div>
+            <div class="bg-gray-50 rounded-xl p-3 border">
+              <p class="text-sm font-bold text-gray-700"><i class="fas fa-filter text-blue-500 mr-2"></i>ค้นหา + กรอง</p>
+              <p class="text-xs text-gray-500 mt-1">ค้นหาตามชื่อ/เนื้อหา + กรองหมวดหมู่ + กรองสถานะ (ซ่อนตัวกรองได้)</p>
+            </div>
+            <div class="bg-gray-50 rounded-xl p-3 border">
+              <p class="text-sm font-bold text-gray-700"><i class="fas fa-trash-alt text-red-500 mr-2"></i>ลบกระทู้</p>
+              <p class="text-xs text-gray-500 mt-1">เฉพาะ super_admin เท่านั้น</p>
+            </div>
+          </div>
+
+          <!-- แจ้งเตือน -->
+          <div class="bg-blue-50 border border-blue-200 rounded-xl p-3 text-xs text-blue-700 space-y-1">
+            <p class="font-bold"><i class="fas fa-paper-plane mr-1"></i>การแจ้งเตือน</p>
+            <ul class="list-disc ml-4 space-y-0.5">
+              <li><b>สร้างกระทู้ใหม่</b> → Telegram + Email + Notification ถึง super_admin</li>
+              <li><b>ตอบกลับทุกข้อความ</b> → Telegram + Email + Notification ถึงเจ้าของกระทู้ + super_admin</li>
+              <li><b>Badge ข้อเสนอแนะ</b> บน sidebar — เคลียร์อัตโนมัติเมื่อเข้าหน้า feedback</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================== 13. FAQ ==================== -->
+      <section id="section-faq" *ngIf="canSeeSection('faq')" class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+        <div class="flex items-center gap-3 mb-4">
+          <div class="w-10 h-10 rounded-xl bg-pink-100 flex items-center justify-center"><i class="fas fa-question-circle text-pink-600"></i></div>
+          <div>
+            <h2 class="text-xl font-bold text-gray-800">13. คำถามที่พบบ่อย (FAQ)</h2>
+          </div>
+        </div>
+        <div class="space-y-3">
+          <div class="bg-gray-50 rounded-xl p-4">
+            <p class="text-sm font-bold text-gray-800">ถาม: ลงทะเบียนแล้วเข้าใช้งานไม่ได้?</p>
+            <p class="text-xs text-gray-600 mt-1">ตอบ: ต้องรอผู้ดูแลระบบอนุมัติก่อน จะได้รับแจ้งทาง Email เมื่ออนุมัติแล้ว</p>
+          </div>
+          <div class="bg-gray-50 rounded-xl p-4">
+            <p class="text-sm font-bold text-gray-800">ถาม: ถูกปฏิเสธแล้วทำอย่างไร?</p>
+            <p class="text-xs text-gray-600 mt-1">ตอบ: สมัครใหม่ด้วยเลขบัตรประชาชนเดิมได้เลย ระบบจะลบ account เก่าให้อัตโนมัติ</p>
+          </div>
+          <div class="bg-gray-50 rounded-xl p-4">
+            <p class="text-sm font-bold text-gray-800">ถาม: ลืมรหัสผ่าน?</p>
+            <p class="text-xs text-gray-600 mt-1">ตอบ: กดปุ่ม <b>"ลืมรหัสผ่าน?"</b> ในหน้า Login → กรอก Username → รับรหัสชั่วคราว 6 หลักทาง Email → ใช้ Login แล้วเปลี่ยนรหัสใหม่ | ถ้าไม่มี Email ลงทะเบียนไว้ ให้ติดต่อผู้ดูแลระบบ</p>
+          </div>
+          <div class="bg-gray-50 rounded-xl p-4">
+            <p class="text-sm font-bold text-gray-800">ถาม: กดแก้ไขข้อมูลไม่ได้ ขึ้น "ระบบปิดการคีย์"?</p>
+            <p class="text-xs text-gray-600 mt-1">ตอบ: ผู้ดูแลระบบ (super_admin) ล็อคการคีย์ไว้ ให้ติดต่อผู้ดูแลเพื่อปลดล็อค</p>
+          </div>
+          <div class="bg-gray-50 rounded-xl p-4">
+            <p class="text-sm font-bold text-gray-800">ถาม: ข้อมูลที่กรอกเป็นข้อความ (ไม่ใช่ตัวเลข) คำนวณ % อย่างไร?</p>
+            <p class="text-xs text-gray-600 mt-1">ตอบ: ถ้าเป้าหมายเป็นข้อความ เช่น "ผ่าน" และผลงานตรงกัน → 100% | ไม่ตรง → 0% | ถ้าเป็นตัวเลข → คำนวณปกติ</p>
+          </div>
+          <div class="bg-gray-50 rounded-xl p-4">
+            <p class="text-sm font-bold text-gray-800">ถาม: ระบบออกจากระบบเอง?</p>
+            <p class="text-xs text-gray-600 mt-1">ตอบ: ระบบมี Auto Logout เมื่อไม่ใช้งานเกินเวลาที่กำหนด เปิด browser/tab ใหม่จะ login ใหม่เมื่อ token หมดอายุ</p>
+          </div>
+          <div class="bg-gray-50 rounded-xl p-4">
+            <p class="text-sm font-bold text-gray-800">ถาม: เปิด Dark Mode ได้อย่างไร?</p>
+            <p class="text-xs text-gray-600 mt-1">ตอบ: กดปุ่ม 🌙 ที่ Header bar (หรือมุมขวาบนในหน้า Login) ระบบจำค่าไว้ กลับมาก็ยัง Dark อยู่</p>
+          </div>
+          <div class="bg-gray-50 rounded-xl p-4">
+            <p class="text-sm font-bold text-gray-800">ถาม: สำรองข้อมูลได้อย่างไร?</p>
+            <p class="text-xs text-gray-600 mt-1">ตอบ: super_admin เข้า "ตั้งค่าระบบ" → กดปุ่ม "สำรองฐานข้อมูลทั้งหมด" → download ไฟล์ JSON ครบทุกตาราง</p>
+          </div>
+          <div class="bg-gray-50 rounded-xl p-4">
+            <p class="text-sm font-bold text-gray-800">ถาม: Admin รีเซ็ตรหัสผ่านให้ user ได้ไหม?</p>
+            <p class="text-xs text-gray-600 mt-1">ตอบ: ได้ กดปุ่ม 🔑 ในหน้าจัดการผู้ใช้ → ระบบสร้างรหัสชั่วคราว 6 หลัก + ส่ง Email แจ้ง user → user login แล้วเปลี่ยนรหัสใหม่</p>
+          </div>
+          <div class="bg-gray-50 rounded-xl p-4">
+            <p class="text-sm font-bold text-gray-800">ถาม: ตั้งค่า Telegram แจ้งเตือนอย่างไร?</p>
+            <p class="text-xs text-gray-600 mt-1">ตอบ: สร้าง Bot ผ่าน @BotFather → เพิ่มเข้า Group → หา Chat ID → กรอกใน "ตั้งค่าระบบ" → กดทดสอบ → บันทึก</p>
+          </div>
+          <div class="bg-gray-50 rounded-xl p-4">
+            <p class="text-sm font-bold text-gray-800">ถาม: แจ้งเตือนผู้สมัครใหม่ไปที่ไหนบ้าง?</p>
+            <p class="text-xs text-gray-600 mt-1">ตอบ: 3 ช่องทางพร้อมกัน — Telegram Group, Email Admin, แจ้งเตือนในระบบ (super_admin) ตั้งค่าแต่ละช่องทางได้ในหน้า "ตั้งค่าระบบ"</p>
+          </div>
+          <div class="bg-gray-50 rounded-xl p-4">
+            <p class="text-sm font-bold text-gray-800">ถาม: Admin สร้างผู้ใช้ใหม่ต้องรอ super_admin อนุมัติหรือไม่?</p>
+            <p class="text-xs text-gray-600 mt-1">ตอบ: ใช่ ผู้ใช้ที่ถูกสร้างโดย admin อื่นๆ (ไม่ใช่ super_admin) จะอยู่สถานะ "รอการอนุมัติ" เฉพาะ super_admin สร้างจึงอนุมัติทันที</p>
+          </div>
+          <div class="bg-gray-50 rounded-xl p-4">
+            <p class="text-sm font-bold text-gray-800">ถาม: ระบบขึ้นแจ้งว่า "ปิดการใช้งานชั่วคราว" ทำอย่างไร?</p>
+            <p class="text-xs text-gray-600 mt-1">ตอบ: ผู้ดูแลระบบ (super_admin) เปิดโหมดปิดปรับปรุง กรุณารอจนกว่าจะเปิดให้ใช้งานอีกครั้ง</p>
+          </div>
+          <div class="bg-gray-50 rounded-xl p-4">
+            <p class="text-sm font-bold text-gray-800">ถาม: แถบแดง "ทดสอบระบบ" คืออะไร?</p>
+            <p class="text-xs text-gray-600 mt-1">ตอบ: แสดงเมื่อระบบอยู่ในช่วงทดสอบ เมื่อ Deploy จริงจะถูกนำออก</p>
+          </div>
+          <div class="bg-gray-50 rounded-xl p-4">
+            <p class="text-sm font-bold text-gray-800">ถาม: "จัดการข้อมูล KPI" มี Tab อะไรบ้าง?</p>
+            <p class="text-xs text-gray-600 mt-1">ตอบ: 4 Tab — 1) DB Compare (เปรียบเทียบ structure + Sync 2 ทิศทาง HDC↔Local) 2) สร้างแบบฟอร์ม (Form Builder) 3) Export ข้อมูล 4) Report Compare (เทียบ reports HDC กับ kpi_indicators)</p>
+          </div>
+          <div class="bg-gray-50 rounded-xl p-4">
+            <p class="text-sm font-bold text-gray-800">ถาม: ทำไม Login แล้วได้รับ Email แจ้งเตือน?</p>
+            <p class="text-xs text-gray-600 mt-1">ตอบ: ระบบส่ง Email แจ้งเตือนทุกครั้งที่ Login สำเร็จ (เวลา + IP) เพื่อความปลอดภัย หากไม่ใช่คุณ กรุณาเปลี่ยนรหัสผ่านทันที</p>
+          </div>
+          <div class="bg-gray-50 rounded-xl p-4">
+            <p class="text-sm font-bold text-gray-800">ถาม: super_admin เปิด Dashboard แล้วไม่เห็นข้อมูล?</p>
+            <p class="text-xs text-gray-600 mt-1">ตอบ: super_admin ไม่โหลดข้อมูลอัตโนมัติเพื่อลดภาระ กรุณาเลือกตัวกรอง (อำเภอ/หน่วยบริการ/หน่วยงาน) แล้วกดปุ่ม "ค้นหา"</p>
+          </div>
+          <div class="bg-gray-50 rounded-xl p-4">
+            <p class="text-sm font-bold text-gray-800">ถาม: admin_ssj ไม่เห็นปุ่มลบ?</p>
+            <p class="text-xs text-gray-600 mt-1">ตอบ: ปุ่มลบแสดงเฉพาะ super_admin เท่านั้น admin_ssj สามารถเพิ่ม/แก้ไข/เปิด-ปิดได้ แต่ไม่สามารถลบข้อมูลได้</p>
+          </div>
+          <div class="bg-gray-50 rounded-xl p-4">
+            <p class="text-sm font-bold text-gray-800">ถาม: dropdown หน่วยบริการเรียงลำดับอย่างไร?</p>
+            <p class="text-xs text-gray-600 mt-1">ตอบ: เรียงตามประเภทหน่วยบริการ (รพ. → สสอ. → รพ.สต. → ศูนย์สุขภาพ) แล้วตามชื่อ</p>
+          </div>
+          <div class="bg-gray-50 rounded-xl p-4">
+            <p class="text-sm font-bold text-gray-800">ถาม: "ส่งข้อมูลเข้า HDC" ทำงานอย่างไร?</p>
+            <p class="text-xs text-gray-600 mt-1">ตอบ: ระบบใช้ UPSERT (INSERT ... ON DUPLICATE KEY UPDATE) อัปเดตเฉพาะข้อมูลที่ key ตรงกัน ข้อมูลเดิมใน HDC ที่ไม่ซ้ำจะยังคงอยู่ ไม่ถูกลบ</p>
+          </div>
+          <div class="bg-gray-50 rounded-xl p-4">
+            <p class="text-sm font-bold text-gray-800">ถาม: "ล้างข้อมูลผลงาน" ลบอะไรบ้าง?</p>
+            <p class="text-xs text-gray-600 mt-1">ตอบ: ลบข้อมูลใน kpi_results + ข้อมูลในตาราง form_* ทั้งหมด (โครงสร้างตาราง/แบบฟอร์มยังอยู่) ต้องพิมพ์ "ยืนยันลบ" และควรสำรองข้อมูลก่อนทุกครั้ง</p>
+          </div>
+          <div class="bg-gray-50 rounded-xl p-4">
+            <p class="text-sm font-bold text-gray-800">ถาม: สีข้อความใน "ข้อเสนอแนะ" คืออะไร?</p>
+            <p class="text-xs text-gray-600 mt-1">ตอบ: แต่ละ username มีสีเฉพาะตัว เพื่อแยกว่าข้อความของใคร — super_admin = สีเขียวเข้มเสมอ (สงวนไว้) username อื่นจะได้สีจาก palette 10 สีอัตโนมัติ</p>
+          </div>
+          <div class="bg-gray-50 rounded-xl p-4">
+            <p class="text-sm font-bold text-gray-800">ถาม: ตัวเลขที่เมนูข้อเสนอแนะหมายถึงอะไร?</p>
+            <p class="text-xs text-gray-600 mt-1">ตอบ: จำนวนกระทู้ + ข้อความตอบกลับใหม่ที่ยังไม่ได้อ่าน เมื่อเข้าหน้าข้อเสนอแนะ ตัวเลขจะเคลียร์อัตโนมัติ</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Footer -->
+      <div class="text-center py-6 text-xs text-gray-400">
+        <p>ระบบบันทึกผลงาน KPI ด้านสุขภาพ — สำนักงานสาธารณสุขจังหวัดนครราชสีมา</p>
+        <p class="mt-1">คู่มือนี้สร้างจากซอร์สโค้ดของระบบ ปรับปรุงล่าสุด เมษายน 2569</p>
+      </div>
+
+    </div>
+  </div>
+</div>

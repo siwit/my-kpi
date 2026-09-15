@@ -1,0 +1,100 @@
+services:
+  # Backend API Service (Node.js)
+  backend:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    container_name: khups_kpi_backend
+    restart: always
+    ports:
+      - "8830:8830"
+    environment:
+      PORT: 8830
+      NODE_ENV: production
+      DB_HOST: host.docker.internal
+      DB_PORT: ${DB_PORT}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME}
+      SECRET_KEY: ${SECRET_KEY}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      SMTP_FROM: ${SMTP_FROM:-}
+      APP_URL: ${APP_URL:-}
+      HDC_DB_HOST: ${HDC_DB_HOST:-}
+      HDC_DB_PORT: ${HDC_DB_PORT:-3306}
+      HDC_DB_NAME: ${HDC_DB_NAME:-hdc}
+      HDC_DB_USER: ${HDC_DB_USER:-}
+      HDC_DB_PASSWORD: ${HDC_DB_PASSWORD:-}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+      TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID:-}
+      ADMIN_EMAILS: ${ADMIN_EMAILS:-}
+      BACKUP_DIR: /backups
+      TZ: Asia/Bangkok
+      # === Tuning สำหรับ 100+ concurrent users ===
+      DB_POOL_LIMIT: ${DB_POOL_LIMIT:-150}
+      DB_POOL_MAX_IDLE: ${DB_POOL_MAX_IDLE:-30}
+      DB_POOL_QUEUE_LIMIT: ${DB_POOL_QUEUE_LIMIT:-500}
+      # Node.js heap size — เผื่อ peak load
+      NODE_OPTIONS: --max-old-space-size=2048
+    volumes:
+      - ./backups:/backups
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - kpi_network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8830/khupskpi/api/"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          cpus: '4.0'        # เพิ่มจาก 2.0 — เผื่อ peak 100+ users
+          memory: 2560M      # เพิ่มจาก 1024M — Node heap 2048 + buffer
+        reservations:
+          cpus: '1.0'
+          memory: 512M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
+
+  # Frontend Service (Nginx)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: khups_kpi_frontend
+    restart: always
+    ports:
+      - "8881:8881"
+    environment:
+      TZ: Asia/Bangkok
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - kpi_network
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "3"
+
+networks:
+  kpi_network:
+    driver: bridge

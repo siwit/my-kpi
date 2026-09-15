@@ -1,0 +1,185 @@
+import { Component, OnInit, inject, ChangeDetectorRef } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { AuthService } from '../services/auth';
+import Swal from 'sweetalert2';
+
+@Component({
+  selector: 'app-report-compare',
+  standalone: true,
+  imports: [CommonModule, FormsModule],
+  templateUrl: './report-compare.html'
+})
+export class ReportCompareComponent implements OnInit {
+  private authService = inject(AuthService);
+  private cdr = inject(ChangeDetectorRef);
+
+  showGuide = true;
+  isLoading = false;
+  isSyncing = false;
+  compareResult: any = null;
+  selectedItems = new Set<number>();
+  filterStatus = '';
+  searchTerm = '';
+
+  // === ตัวกรองรายการ (เหมือน Phase B) ===
+  filterMainIndicator: string = '';
+  filterDept: string = '';
+  filterActive: string = '';     // '' | 'active' | 'inactive'
+  mainIndicators: any[] = [];
+  departments: any[] = [];
+
+  ngOnInit() {
+    this.loadFilterOptions();
+  }
+
+  loadFilterOptions() {
+    this.authService.getMainIndicators().subscribe({
+      next: (res: any) => { if (res.success) this.mainIndicators = res.data; this.cdr.detectChanges(); }
+    });
+    this.authService.getDepartments().subscribe({
+      next: (res: any) => { if (res.success) this.departments = res.data; this.cdr.detectChanges(); }
+    });
+  }
+
+  clearFilters() {
+    this.filterStatus = '';
+    this.searchTerm = '';
+    this.filterMainIndicator = '';
+    this.filterDept = '';
+    this.filterActive = '';
+  }
+
+  runCompare() {
+    this.isLoading = true;
+    this.compareResult = null;
+    this.selectedItems.clear();
+    this.authService.reportCompare().subscribe({
+      next: (res: any) => {
+        this.isLoading = false;
+        if (res.success) this.compareResult = res;
+        this.cdr.detectChanges();
+      },
+      error: (err: any) => {
+        this.isLoading = false;
+        Swal.fire('ผิดพลาด', err.error?.message || 'ไม่สามารถเชื่อมต่อ HDC ได้', 'error');
+      }
+    });
+  }
+
+  get filteredItems(): any[] {
+    if (!this.compareResult?.items) return [];
+    return this.compareResult.items.filter((item: any) => {
+      const matchStatus = !this.filterStatus || item.status === this.filterStatus;
+      const matchSearch = !this.searchTerm ||
+        (item.hdc_name || '').toLowerCase().includes(this.searchTerm.toLowerCase()) ||
+        (item.local_name || '').toLowerCase().includes(this.searchTerm.toLowerCase()) ||
+        (item.table_process || '').toLowerCase().includes(this.searchTerm.toLowerCase()) ||
+        (item.report_code || '').toLowerCase().includes(this.searchTerm.toLowerCase());
+      const matchMain = !this.filterMainIndicator || String(item.local_main_indicator_id) === this.filterMainIndicator;
+      const matchDept = !this.filterDept || String(item.local_dept_id) === this.filterDept;
+      const matchActive = !this.filterActive
+        || (this.filterActive === 'active' && (item.local_is_active === 1 || item.local_is_active === true))
+        || (this.filterActive === 'inactive' && (item.local_is_active === 0 || item.local_is_active === false));
+      return matchStatus && matchSearch && matchMain && matchDept && matchActive;
+    });
+  }
+
+  toggleSelect(id: number) {
+    this.selectedItems.has(id) ? this.selectedItems.delete(id) : this.selectedItems.add(id);
+  }
+
+  selectAll() { this.filteredItems.forEach(t => this.selectedItems.add(t.hdc_report_id || t.local_id)); }
+  selectNone() { this.selectedItems.clear(); }
+  selectByStatus(status: string) {
+    this.filteredItems.filter(t => t.status === status).forEach(t => this.selectedItems.add(t.hdc_report_id || t.local_id));
+  }
+
+  getStatusBadge(status: string) {
+    switch (status) {
+      case 'match': return { text: 'ตรงกัน', bg: 'bg-green-100 text-green-800', icon: 'fa-check-circle text-green-500' };
+      case 'different': return { text: 'ข้อมูลต่างกัน', bg: 'bg-amber-100 text-amber-800', icon: 'fa-exclamation-triangle text-amber-500' };
+      case 'missing_local': return { text: 'ไม่มีใน Local', bg: 'bg-blue-100 text-blue-800', icon: 'fa-arrow-down text-blue-500' };
+      case 'missing_remote': return { text: 'ไม่มีใน HDC', bg: 'bg-purple-100 text-purple-800', icon: 'fa-arrow-up text-purple-500' };
+      default: return { text: status, bg: 'bg-gray-100 text-gray-600', icon: 'fa-question text-gray-400' };
+    }
+  }
+
+  // === HDC inactive — ปุ่ม "ปิด upload_excel ทั้งหมดที่ HDC inactive" ===
+  get suggestDisableItems(): any[] {
+    return (this.compareResult?.items || []).filter((i: any) => i.suggest_disable_upload);
+  }
+
+  bulkDisableSuggested() {
+    const items = this.suggestDisableItems;
+    if (items.length === 0) { Swal.fire('แจ้งเตือน', 'ไม่มีรายการที่ต้องปิด (HDC inactive แต่ Local ยังเปิดส่งออก)', 'info'); return; }
+    const ids = items.map(i => i.local_id).filter(Boolean);
+    Swal.fire({
+      title: 'ปิดส่งออกอัตโนมัติ',
+      html: `<p class="text-sm">ตั้งค่า <code>upload_excel = 1</code> ให้ <b>${ids.length}</b> ตัวชี้วัด</p>
+             <p class="text-xs text-gray-500 mt-2">ตัวเหล่านี้ HDC report อยู่สถานะ <b>inactive</b> — ระบบจะไม่ส่งออกจาก export-kpi-tables ตามแนะนำ</p>
+             <p class="text-xs text-amber-600 mt-2"><i class="fas fa-info-circle mr-1"></i>กลับมาเปิดได้ที่ kpi-manage ทีหลัง</p>`,
+      icon: 'warning', showCancelButton: true, confirmButtonColor: '#dc2626',
+      confirmButtonText: '<i class="fas fa-toggle-off mr-1"></i> ปิดทั้งหมด',
+      cancelButtonText: 'ยกเลิก'
+    }).then(r => {
+      if (!r.isConfirmed) return;
+      this.authService.bulkSetUploadExcel(ids, 1).subscribe({
+        next: (res: any) => {
+          if (res.success) {
+            Swal.fire({ icon: 'success', title: 'สำเร็จ', text: `ปิด upload_excel แล้ว ${res.affected} ตัวชี้วัด`, timer: 2500 });
+            this.runCompare();
+          }
+        },
+        error: (err: any) => Swal.fire('ผิดพลาด', err.error?.message || 'ไม่สามารถปิดได้', 'error')
+      });
+    });
+  }
+
+  toggleSingleUploadExcel(item: any) {
+    const newVal = item.local_upload_excel ? 0 : 1;
+    this.authService.setUploadExcel(item.local_id, newVal).subscribe({
+      next: (res: any) => {
+        if (res.success) {
+          item.local_upload_excel = res.upload_excel;
+          item.suggest_disable_upload = (item.hdc_is_active === 0 || item.hdc_is_active === '0') && !res.upload_excel;
+          this.cdr.detectChanges();
+        }
+      },
+      error: (err: any) => Swal.fire('ผิดพลาด', err.error?.message || 'ไม่สามารถสลับสถานะได้', 'error')
+    });
+  }
+
+  syncSelected() {
+    const ids = [...this.selectedItems];
+    if (ids.length === 0) { Swal.fire('แจ้งเตือน', 'กรุณาเลือกรายการอย่างน้อย 1 รายการ', 'warning'); return; }
+    const items = this.compareResult.items.filter((i: any) => ids.includes(i.hdc_report_id || i.local_id));
+    const syncableItems = items.filter((i: any) => i.status === 'missing_local' || i.status === 'different');
+    if (syncableItems.length === 0) { Swal.fire('แจ้งเตือน', 'ไม่มีรายการที่ต้อง Sync (เฉพาะ "ไม่มีใน Local" หรือ "ข้อมูลต่างกัน")', 'info'); return; }
+    Swal.fire({
+      title: 'ยืนยัน Sync ข้อมูล',
+      html: `<p>Sync <b>${syncableItems.length}</b> รายการจาก HDC มาใส่ Local</p>
+             <p class="text-xs text-amber-600 mt-2"><i class="fas fa-exclamation-triangle mr-1"></i>รายการที่มีอยู่แล้วจะถูกอัปเดต</p>`,
+      icon: 'question', showCancelButton: true, confirmButtonColor: '#16a34a',
+      confirmButtonText: '<i class="fas fa-sync mr-1"></i> Sync ข้อมูล', cancelButtonText: 'ยกเลิก'
+    }).then((r) => {
+      if (!r.isConfirmed) return;
+      this.isSyncing = true;
+      Swal.fire({ title: 'กำลัง Sync...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+      const hdcIds = syncableItems.map((i: any) => i.hdc_report_id).filter(Boolean);
+      this.authService.reportCompareSync(hdcIds).subscribe({
+        next: (res: any) => {
+          this.isSyncing = false;
+          if (res.success) {
+            Swal.fire({ icon: 'success', title: 'Sync สำเร็จ', html: res.message, timer: 3000 });
+            this.runCompare();
+          }
+        },
+        error: (err: any) => {
+          this.isSyncing = false;
+          Swal.fire('ผิดพลาด', err.error?.message || 'ไม่สามารถ Sync ได้', 'error');
+        }
+      });
+    });
+  }
+}

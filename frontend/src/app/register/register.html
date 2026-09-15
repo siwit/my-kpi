@@ -1,0 +1,392 @@
+<!-- Outer: soft mint-teal-pink gradient background + flowing wave decoration -->
+<div class="min-h-screen relative font-sans overflow-hidden dark:bg-[#1e1e2e]"
+     style="background: linear-gradient(135deg, #eaf6ee 0%, #c8ecd9 22%, #a8e6c8 45%, #b8e8d2 68%, #f0e0ea 100%);">
+
+  <!-- Decorative wave layers (SVG) -->
+  <svg class="absolute inset-0 w-full h-full pointer-events-none opacity-70 dark:opacity-20" preserveAspectRatio="none" viewBox="0 0 1600 900" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M0,520 C240,460 380,640 720,540 C1060,440 1280,620 1600,500 L1600,900 L0,900 Z" fill="#a8e6c8" fill-opacity="0.45"/>
+    <path d="M0,640 C260,560 460,760 800,660 C1140,560 1340,720 1600,620 L1600,900 L0,900 Z" fill="#7dd3a8" fill-opacity="0.30"/>
+    <path d="M0,760 C300,680 540,840 880,760 C1200,680 1380,820 1600,740 L1600,900 L0,900 Z" fill="#5cc28d" fill-opacity="0.22"/>
+  </svg>
+  <!-- subtle sparkle dots -->
+  <div class="absolute inset-0 pointer-events-none opacity-40">
+    <span class="absolute w-1 h-1 bg-white rounded-full" style="top:18%; left:8%"></span>
+    <span class="absolute w-1.5 h-1.5 bg-white rounded-full" style="top:32%; left:22%"></span>
+    <span class="absolute w-1 h-1 bg-white rounded-full" style="top:55%; left:14%"></span>
+    <span class="absolute w-1 h-1 bg-white rounded-full" style="top:72%; left:30%"></span>
+    <span class="absolute w-1 h-1 bg-white rounded-full" style="top:25%; right:18%"></span>
+    <span class="absolute w-1.5 h-1.5 bg-white rounded-full" style="top:65%; right:8%"></span>
+    <span class="absolute w-1 h-1 bg-white rounded-full" style="top:80%; right:25%"></span>
+  </div>
+
+  <!-- Maintenance Mode Banner -->
+  <div *ngIf="maintenanceMode"
+       class="fixed inset-x-0 top-0 z-[100] bg-red-600 text-white py-3 px-6 shadow-lg">
+    <div class="max-w-3xl mx-auto flex items-center justify-center gap-3 text-center">
+      <i class="fas fa-exclamation-triangle text-xl animate-pulse"></i>
+      <div>
+        <p class="font-bold text-sm">{{ maintenanceMessage }}</p>
+        <p class="text-red-200 text-xs mt-0.5">กรุณาเข้าใช้งานอีกครั้งในภายหลัง</p>
+      </div>
+      <i class="fas fa-exclamation-triangle text-xl animate-pulse"></i>
+    </div>
+  </div>
+
+  <!-- Dark Mode toggle (ลอยมุมขวาบน) -->
+  <div class="fixed top-4 right-4 z-50 flex items-center gap-2">
+    <button (click)="themeService.toggle()" class="w-9 h-9 rounded-full bg-white/90 dark:bg-gray-700 shadow-md flex items-center justify-center hover:scale-110 transition-all" [title]="themeService.isDark ? 'Light Mode' : 'Dark Mode'">
+      <i class="fas text-base" [ngClass]="themeService.isDark ? 'fa-sun text-yellow-400' : 'fa-moon text-gray-600'"></i>
+    </button>
+  </div>
+
+  <!-- Back to home (top-left) -->
+  <a href="https://apikorat.moph.go.th/kpikorat/" class="fixed top-4 left-4 z-50 hidden lg:inline-flex items-center gap-1.5 px-3 py-1.5 bg-white/70 hover:bg-white text-green-800 hover:text-green-900 backdrop-blur-sm border border-white/60 rounded-full text-xs font-bold transition-all shadow-sm">
+    <i class="fas fa-arrow-left"></i>กลับหน้าหลัก
+  </a>
+
+  <!-- Centered Content -->
+  <div class="relative z-10 w-full h-screen flex flex-col lg:items-center lg:justify-center px-4 sm:px-6 py-8 lg:px-12 overflow-y-auto lg:overflow-hidden">
+    <div class="w-full max-w-2xl">
+
+      <!-- Glassmorphism Card -->
+      <div class="bg-white/65 backdrop-blur-xl rounded-3xl shadow-2xl p-7 sm:p-9 border border-white/60 dark:bg-[#24243a]/80 dark:border-gray-700 max-h-[90vh] overflow-y-scroll card-scroll" style="scrollbar-width: thin; scrollbar-color: rgba(16, 185, 129, 0.5) rgba(229, 231, 235, 0.3);">
+
+      <!-- Mobile header -->
+      <div class="lg:hidden">
+        <div class="bg-white/70 backdrop-blur-xl rounded-2xl p-5 text-center shadow-lg border border-white/60 mb-6">
+          <div class="bg-white rounded-full w-20 h-20 mx-auto mb-3 flex items-center justify-center shadow-md p-2">
+            <img alt="ตรากระทรวงสาธารณสุข" src="logo_ssj_nma.png" decoding="async" class="w-full h-full object-contain">
+          </div>
+          <h1 class="text-lg font-bold leading-tight text-green-900">ระบบบันทึกผลงาน KPI ด้านสุขภาพ</h1>
+          <p class="text-green-700 text-sm mt-1">สำนักงานสาธารณสุขจังหวัดนครราชสีมา</p>
+          <div class="w-12 h-0.5 bg-green-500 rounded-full mx-auto mt-3 mb-2"></div>
+          <p class="text-green-800/80 text-xs">เชื่อมโยงข้อมูล ยกระดับบริการ เพื่อสุขภาพที่ดีของชาวโคราช</p>
+        </div>
+      </div>
+
+      <!-- Desktop header -->
+      <div class="text-center mb-6 hidden lg:block">
+        <h2 class="text-3xl font-bold text-gray-800">
+          <i class="fas fa-user-plus text-green-500 mr-2"></i>
+          <span *ngIf="registerMode === 'choose'">เลือกวิธีลงทะเบียน</span>
+          <span *ngIf="registerMode === 'manual'">ลงทะเบียนผู้ใช้งาน</span>
+        </h2>
+        <p class="text-gray-500 mt-2 text-sm">
+          <span *ngIf="registerMode === 'choose'">เลือกวิธีที่ต้องการใช้ในการสร้างบัญชี</span>
+          <span *ngIf="registerMode === 'manual'">กรอกข้อมูลด้านล่างเพื่อสร้างบัญชีผู้ใช้งานใหม่</span>
+        </p>
+      </div>
+
+      <!-- ===== Mode: เลือกวิธีลงทะเบียน (legacy — ไม่ใช้แล้ว แต่ยังคงไว้เพื่อ back nav) ===== -->
+      <div *ngIf="registerMode === 'choose'" class="space-y-3">
+        <!-- Card: Manual -->
+        <button type="button" (click)="selectManualRegister()"
+                class="group relative w-full p-4 bg-white hover:bg-green-50 border-2 border-green-600 hover:border-green-700 rounded-xl text-left transition-all shadow-sm hover:shadow-md">
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-green-500 to-green-700 text-white flex items-center justify-center shadow-md shrink-0">
+              <i class="fas fa-keyboard text-2xl"></i>
+            </div>
+            <div class="flex-1 min-w-0">
+              <p class="font-bold text-green-700 text-sm">ลงทะเบียน</p>
+              <p class="text-xs text-gray-500 mt-0.5">กรอกแบบฟอร์มข้อมูล (รอ Admin SSJ อนุมัติก่อนใช้งานจริง)</p>
+            </div>
+            <i class="fas fa-chevron-right text-green-400 group-hover:text-green-600 group-hover:translate-x-1 transition-all"></i>
+          </div>
+        </button>
+
+        <!-- Already have account link -->
+        <div class="text-center mt-4">
+          <p class="text-sm text-gray-500">
+            มีบัญชีอยู่แล้ว?
+            <a routerLink="/login" class="font-semibold text-green-600 hover:text-green-800 transition-colors">เข้าสู่ระบบ</a>
+          </p>
+        </div>
+      </div>
+
+      <!-- ===== Mode: ลงทะเบียนด้วยตัวเอง (form) ===== -->
+      <button *ngIf="registerMode === 'manual'" type="button" (click)="registerMode = 'choose'"
+              class="mb-3 text-xs text-gray-500 hover:text-green-700 transition-colors flex items-center gap-1">
+        <i class="fas fa-arrow-left"></i> เลือกวิธีลงทะเบียนใหม่
+      </button>
+
+      <!-- SSO verified banner (manual form) -->
+      <div *ngIf="registerMode === 'manual' && thaidRegVerified"
+           class="mb-4 flex items-center gap-3 px-4 py-3 bg-blue-50 border border-blue-200 rounded-xl">
+        <i class="fas fa-shield-check text-blue-600 text-xl shrink-0"></i>
+        <div>
+          <p class="text-sm font-bold text-blue-800">
+            ยืนยันตัวตนด้วย {{ ssoProvider === 'providerid' ? 'ProviderID (MOPH)' : 'ThaID (DGA)' }} สำเร็จ
+          </p>
+          <p class="text-xs text-blue-600 mt-0.5">ข้อมูลบางส่วนถูกกรอกอัตโนมัติจากระบบ — กรุณาตรวจสอบและกรอกส่วนที่เหลือ</p>
+        </div>
+      </div>
+
+      <!-- SSO pre-fill section (manual form — แสดงเฉพาะเมื่อยังไม่ได้ยืนยัน + Register SSO เปิดอยู่) -->
+      <div *ngIf="registerMode === 'manual' && !thaidRegVerified && (isThaIdRegisterEnabled || isProviderIdRegisterEnabled)"
+           class="mb-4 p-3 bg-gray-50 border border-gray-200 rounded-xl">
+        <p class="text-xs text-gray-500 mb-2 font-medium"><i class="fas fa-magic me-1 text-purple-400"></i>กรอกข้อมูลอัตโนมัติจากบัญชีของคุณ</p>
+        <div class="flex gap-2 flex-wrap">
+          <button *ngIf="isThaIdRegisterEnabled" type="button" (click)="registerWithThaID()"
+                  class="flex items-center gap-2 px-3 py-2 bg-white hover:bg-blue-50 border border-gray-200 hover:border-blue-300 rounded-lg shadow-sm transition-all text-xs font-medium text-gray-700">
+            <img src="thaid.png" alt="ThaID" class="h-5 w-auto object-contain">
+            ดึงข้อมูลจาก ThaID (DGA)
+          </button>
+          <button *ngIf="isProviderIdRegisterEnabled" type="button" (click)="registerWithProviderID()"
+                  class="flex items-center gap-2 px-3 py-2 bg-white hover:bg-cyan-50 border border-gray-200 hover:border-cyan-300 rounded-lg shadow-sm transition-all text-xs font-medium text-gray-700">
+            <img src="provider-id.png" alt="ProviderID" class="h-5 w-auto object-contain">
+            ดึงข้อมูลจาก ProviderID (MOPH)
+          </button>
+        </div>
+      </div>
+
+      <div *ngIf="registerMode === 'manual'" class="space-y-4">
+        <!-- Username -->
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-1">ชื่อผู้ใช้งาน (Username) <span class="text-red-500">*</span></label>
+          <div class="relative">
+            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <i class="fas fa-user text-gray-400"></i>
+            </div>
+            <input type="text" [(ngModel)]="formData.username"
+                   class="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors bg-gray-50 focus:bg-white text-sm"
+                   placeholder="กรอกชื่อผู้ใช้งาน (ขั้นต่ำ 6 ตัวอักษร)">
+          </div>
+          <p class="text-xs text-gray-400 mt-1">ขั้นต่ำ 6 ตัวอักษร (a-z, A-Z, 0-9, อักขระพิเศษ)</p>
+          <p *ngIf="formData.username && validateUsername(formData.username)" class="text-xs text-red-500 mt-1">
+            <i class="fas fa-exclamation-circle mr-1"></i>{{ validateUsername(formData.username) }}
+          </p>
+        </div>
+
+        <!-- Password -->
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-1">รหัสผ่าน <span class="text-red-500">*</span></label>
+          <div class="relative">
+            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <i class="fas fa-lock text-gray-400"></i>
+            </div>
+            <input [type]="showPassword ? 'text' : 'password'" [(ngModel)]="formData.password"
+                   class="w-full pl-10 pr-10 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors bg-gray-50 focus:bg-white text-sm"
+                   placeholder="ขั้นต่ำ 6 ตัวอักษร">
+            <button type="button" (click)="showPassword = !showPassword"
+                    class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600">
+              <i class="fas" [ngClass]="showPassword ? 'fa-eye-slash' : 'fa-eye'"></i>
+            </button>
+          </div>
+          <!-- Password strength bar -->
+          <div *ngIf="formData.password" class="mt-2">
+            <div class="flex items-center gap-2 mb-1">
+              <div class="flex-1 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                <div class="h-full rounded-full transition-all duration-300"
+                     [ngClass]="getPasswordStrength(formData.password).color"
+                     [style.width.%]="getPasswordStrength(formData.password).level * 16.6"></div>
+              </div>
+              <span class="text-xs font-bold" [ngClass]="getPasswordStrength(formData.password).color === 'bg-red-500' ? 'text-red-500' : getPasswordStrength(formData.password).color === 'bg-yellow-500' ? 'text-yellow-600' : 'text-green-600'">
+                {{ getPasswordStrength(formData.password).text }}
+              </span>
+            </div>
+            <div class="grid grid-cols-2 gap-x-2 text-xs">
+              <span [class]="formData.password.length >= 6 ? 'text-green-600' : 'text-gray-400'"><i class="fas" [class]="formData.password.length >= 6 ? 'fa-check-circle' : 'fa-circle'"></i> 6 ตัวอักษรขึ้นไป</span>
+              <span [class]="formData.password.match('[a-z]') ? 'text-green-600' : 'text-gray-400'"><i class="fas" [class]="formData.password.match('[a-z]') ? 'fa-check-circle' : 'fa-circle'"></i> พิมพ์เล็ก (a-z)</span>
+              <span [class]="formData.password.match('[A-Z]') ? 'text-green-600' : 'text-gray-400'"><i class="fas" [class]="formData.password.match('[A-Z]') ? 'fa-check-circle' : 'fa-circle'"></i> พิมพ์ใหญ่ (A-Z)</span>
+              <span [class]="formData.password.match('[0-9]') ? 'text-green-600' : 'text-gray-400'"><i class="fas" [class]="formData.password.match('[0-9]') ? 'fa-check-circle' : 'fa-circle'"></i> ตัวเลข (0-9)</span>
+              <span [class]="formData.password.match('[^a-zA-Z0-9]') ? 'text-green-600' : 'text-gray-400'" class="col-span-2"><i class="fas" [class]="formData.password.match('[^a-zA-Z0-9]') ? 'fa-check-circle' : 'fa-circle'"></i> อักขระพิเศษ (!@#$...)</span>
+            </div>
+          </div>
+          <p *ngIf="!formData.password" class="text-xs text-gray-400 mt-1">ขั้นต่ำ 6 ตัวอักษร ต้องมี a-z, A-Z, 0-9, อักขระพิเศษ ครบทุกประเภท</p>
+        </div>
+
+        <!-- Confirm Password -->
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-1">ยืนยันรหัสผ่าน <span class="text-red-500">*</span></label>
+          <div class="relative">
+            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <i class="fas fa-lock text-gray-400"></i>
+            </div>
+            <input [type]="showConfirmPassword ? 'text' : 'password'" [(ngModel)]="confirmPassword"
+                   class="w-full pl-10 pr-10 py-2.5 border rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors bg-gray-50 focus:bg-white text-sm"
+                   [ngClass]="confirmPassword && confirmPassword !== formData.password ? 'border-red-400' : 'border-gray-300'"
+                   placeholder="กรอกรหัสผ่านอีกครั้ง">
+            <button type="button" (click)="showConfirmPassword = !showConfirmPassword"
+                    class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600">
+              <i class="fas" [ngClass]="showConfirmPassword ? 'fa-eye-slash' : 'fa-eye'"></i>
+            </button>
+          </div>
+          <p *ngIf="confirmPassword && confirmPassword !== formData.password" class="text-xs text-red-500 mt-1">
+            <i class="fas fa-times-circle mr-1"></i>รหัสผ่านไม่ตรงกัน
+          </p>
+          <p *ngIf="confirmPassword && confirmPassword === formData.password && formData.password" class="text-xs text-green-600 mt-1">
+            <i class="fas fa-check-circle mr-1"></i>รหัสผ่านตรงกัน
+          </p>
+        </div>
+
+        <!-- ชื่อ / นามสกุล -->
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-1">
+              ชื่อ <span class="text-red-500">*</span>
+              <span *ngIf="thaidRegVerified && formData.firstname" class="text-[10px] font-normal text-blue-500 ml-1">
+                <i class="fas fa-check-circle"></i> จาก SSO
+              </span>
+            </label>
+            <input type="text" [(ngModel)]="formData.firstname"
+                   class="w-full px-4 py-2.5 border rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors bg-gray-50 focus:bg-white text-sm"
+                   [ngClass]="thaidRegVerified && formData.firstname ? 'border-blue-300 bg-blue-50' : 'border-gray-300'"
+                   placeholder="กรอกชื่อ">
+          </div>
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-1">
+              นามสกุล <span class="text-red-500">*</span>
+              <span *ngIf="thaidRegVerified && formData.lastname" class="text-[10px] font-normal text-blue-500 ml-1">
+                <i class="fas fa-check-circle"></i> จาก SSO
+              </span>
+            </label>
+            <input type="text" [(ngModel)]="formData.lastname"
+                   class="w-full px-4 py-2.5 border rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors bg-gray-50 focus:bg-white text-sm"
+                   [ngClass]="thaidRegVerified && formData.lastname ? 'border-blue-300 bg-blue-50' : 'border-gray-300'"
+                   placeholder="กรอกนามสกุล">
+          </div>
+        </div>
+
+        <!-- อำเภอ / หน่วยบริการ -->
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-1">อำเภอ</label>
+            <select [(ngModel)]="selectedDistrictId" (change)="onDistrictChange()"
+                    class="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors bg-gray-50 focus:bg-white text-sm">
+              <option value="">-- เลือกอำเภอ --</option>
+              <option *ngFor="let d of districts" [value]="d.distid">{{ d.distname }}</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-1">หน่วยบริการ <span class="text-red-500">*</span></label>
+            <select [(ngModel)]="formData.hospcode"
+                    class="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors bg-gray-50 focus:bg-white text-sm">
+              <option value="">-- เลือกหน่วยบริการ --</option>
+              <option *ngFor="let h of filteredHospitals" [value]="h.hoscode">{{ h.hoscode }}: {{ h.hosname }}</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- เบอร์โทร -->
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-1">
+            เบอร์โทรศัพท์ <span class="text-red-500">*</span>
+            <span *ngIf="thaidRegVerified && formData.phone" class="text-[10px] font-normal text-blue-500 ml-1">
+              <i class="fas fa-check-circle"></i> จาก SSO
+            </span>
+          </label>
+          <div class="relative">
+            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <i class="fas fa-phone text-gray-400"></i>
+            </div>
+            <input type="text" [value]="formatPhoneDisplay(formData.phone)" (input)="onPhoneInput($event)"
+                   class="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors bg-gray-50 focus:bg-white text-sm"
+                   placeholder="0X-XXXX-XXXX" maxlength="12">
+          </div>
+          <p class="text-xs text-gray-400 mt-1">ตัวเลข 10 หลัก (ระบบจะจัดรูปแบบให้อัตโนมัติ)</p>
+          <p *ngIf="formData.phone && !validatePhone(formData.phone)" class="text-xs text-red-500 mt-1">
+            <i class="fas fa-exclamation-circle mr-1"></i>เบอร์โทรศัพท์ต้องเป็นตัวเลข 10 หลัก (ขณะนี้ {{ formData.phone.length }} หลัก)
+          </p>
+        </div>
+
+        <!-- อีเมล -->
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-1">
+            อีเมล (Email)
+            <span *ngIf="thaidRegVerified && formData.email" class="text-[10px] font-normal text-blue-500 ml-1">
+              <i class="fas fa-check-circle"></i> จาก SSO
+            </span>
+          </label>
+          <div class="relative">
+            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <i class="fas fa-envelope text-gray-400"></i>
+            </div>
+            <input type="email" [(ngModel)]="formData.email"
+                   class="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors bg-gray-50 focus:bg-white text-sm"
+                   placeholder="example@email.com">
+          </div>
+          <p *ngIf="formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)" class="text-xs text-red-500 mt-1">
+            <i class="fas fa-exclamation-circle mr-1"></i>รูปแบบอีเมลไม่ถูกต้อง
+          </p>
+          <p class="text-xs text-blue-500 mt-1">
+            <i class="fas fa-info-circle mr-1"></i>ใช้สำหรับรับแจ้งผลการอนุมัติ/ไม่อนุมัติ ถ้าไม่กรอกระบบจะไม่ส่งผลทาง Email
+          </p>
+        </div>
+
+        <!-- หน่วยงาน -->
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-1">สังกัดหน่วยงาน <span class="text-red-500">*</span></label>
+          <select [(ngModel)]="formData.dept_id"
+                  class="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors bg-gray-50 focus:bg-white text-sm">
+            <option value="">-- เลือกหน่วยงาน --</option>
+            <option *ngFor="let dept of departments" [value]="dept.id">{{ dept.dept_name }}</option>
+          </select>
+        </div>
+
+        <!-- เลขบัตรประชาชน -->
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-1">เลขบัตรประชาชน 13 หลัก <span *ngIf="!thaidRegVerified" class="text-red-500">*</span></label>
+          <!-- แสดง badge "ยืนยันด้วย ThaiD แล้ว" เมื่อ verify สำเร็จ -->
+          <div *ngIf="thaidRegVerified" class="flex items-center gap-3 px-4 py-3 bg-green-50 border border-green-300 rounded-xl">
+            <span class="text-2xl">🪪</span>
+            <div>
+              <p class="text-sm font-bold text-green-800">ยืนยันตัวตนด้วย ThaiD เรียบร้อยแล้ว</p>
+              <p class="text-xs text-green-600 mt-0.5">เลขบัตรประชาชนถูกบันทึกอย่างปลอดภัยจาก DGA — ไม่ต้องกรอกอีกครั้ง</p>
+            </div>
+          </div>
+          <!-- ฟอร์มกรอกเอง (แสดงเฉพาะเมื่อไม่ได้ใช้ ThaiD) -->
+          <div *ngIf="!thaidRegVerified">
+            <div class="relative">
+              <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <i class="fas fa-id-card text-gray-400"></i>
+              </div>
+              <input type="text" [value]="formatNationalIdDisplay(formData.cid)" (input)="onNationalIdInput($event)"
+                     class="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors bg-gray-50 focus:bg-white text-sm"
+                     placeholder="X-XXXX-XXXXX-XX-X" maxlength="17">
+            </div>
+            <p *ngIf="formData.cid && formData.cid.length < 13" class="text-xs text-red-500 mt-1">
+              <i class="fas fa-exclamation-circle mr-1"></i>เลขบัตรประชาชนต้องเป็นตัวเลข 13 หลัก (ขณะนี้ {{ formData.cid.length }} หลัก)
+            </p>
+            <p *ngIf="formData.cid && formData.cid.length === 13 && !validateNationalId(formData.cid)" class="text-xs text-red-500 mt-1">
+              <i class="fas fa-exclamation-circle mr-1"></i>เลขบัตรประชาชนไม่ผ่านการตรวจสอบ Check Digit (Modulus 11)
+            </p>
+            <p *ngIf="formData.cid && validateNationalId(formData.cid)" class="text-xs text-green-600 mt-1">
+              <i class="fas fa-check-circle mr-1"></i>ผ่านการตรวจสอบ Check Digit ถูกต้อง
+            </p>
+          </div>
+        </div>
+
+        <!-- สิทธิ์การใช้งาน -->
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-1">สิทธิ์ที่ต้องการ <span class="text-red-500">*</span></label>
+          <select [(ngModel)]="formData.role"
+                  class="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors bg-gray-50 focus:bg-white text-sm">
+            <option *ngFor="let r of roleOptions" [value]="r.value">{{ r.label }}</option>
+          </select>
+          <p class="text-xs text-gray-400 mt-1"><i class="fas fa-info-circle mr-1"></i>การอนุมัติสิทธิ์ขึ้นอยู่กับผู้ดูแลระบบ</p>
+        </div>
+
+        <!-- Submit Button -->
+        <button (click)="onSubmit()" [disabled]="isSubmitting"
+                class="w-full py-3 px-4 bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600 text-white font-bold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none">
+          <span *ngIf="!isSubmitting"><i class="fas fa-user-plus mr-2"></i>ลงทะเบียน</span>
+          <span *ngIf="isSubmitting"><i class="fas fa-spinner fa-spin mr-2"></i>กำลังลงทะเบียน...</span>
+        </button>
+
+        <!-- Back to login -->
+        <div class="text-center mt-4">
+          <p class="text-sm text-gray-500">
+            มีบัญชีอยู่แล้ว?
+            <a routerLink="/login" class="font-semibold text-green-600 hover:text-green-800 transition-colors">เข้าสู่ระบบ</a>
+          </p>
+        </div>
+        <div class="text-center mt-2">
+          <a routerLink="/help-public" class="text-xs text-gray-400 hover:text-green-600 transition-colors">
+            <i class="fas fa-book-open mr-1"></i>คู่มือการใช้งาน
+          </a>
+        </div>
+      </div>
+      </div>  <!-- ปิด glassmorphism card -->
+    </div>    <!-- ปิด max-w-2xl -->
+  </div>      <!-- ปิด relative z-10 centered content -->
+</div>        <!-- ปิด outer gradient background -->

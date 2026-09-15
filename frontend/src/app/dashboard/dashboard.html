@@ -1,0 +1,1889 @@
+<ng-container>
+  <div class="p-6">
+      <!-- Loading overlay ถูก replace ด้วย Search Status SweetAlert -->
+      <div class="bg-white rounded-2xl shadow-sm border border-gray-100 flex flex-col">
+        <!-- Sticky top wrapper (mobile/tablet): ตรึงส่วนบน header + filter + search ให้คงที่ ขณะที่ตัวชี้วัด scroll -->
+        <div class="sticky top-0 z-30 bg-white lg:static lg:z-auto rounded-t-2xl">
+        <div class="px-4 md:px-6 py-3 md:py-4 border-b border-gray-100 flex flex-col md:flex-row justify-between items-start md:items-center bg-white gap-3 rounded-t-2xl">
+          <div>
+            <h4 class="text-lg font-bold text-gray-800 flex items-center gap-2">
+              <i class="fas fa-list-alt text-green-600"></i>
+              บันทึกผลงานตัวชี้วัด
+            </h4>
+            <p class="text-xs text-gray-500">จัดการและตรวจสอบผลการดำเนินงานรายตัวชี้วัด</p>
+          </div>
+          <div class="flex flex-wrap gap-2 w-full md:w-auto">
+            <!-- กลุ่ม "จัดการข้อมูลตัวชี้วัด" (เฉพาะ admin_ssj + super_admin) -->
+            <div *ngIf="isAdmin && !isEditing && !isReviewMode && !isDeleteMode" class="relative flex-1 md:flex-initial md:w-auto min-w-0">
+              <button (click)="showManageMenu = !showManageMenu"
+                      class="w-full md:w-auto px-3 md:px-4 py-2 bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white rounded-xl shadow-md transition-all text-xs font-bold flex items-center justify-center gap-1.5">
+                <i class="fas fa-tools shrink-0"></i>
+                <span class="truncate">จัดการตัวชี้วัด</span>
+                <i class="fas fa-chevron-down text-[10px] shrink-0" [class.rotate-180]="showManageMenu"></i>
+              </button>
+              <div *ngIf="showManageMenu" class="absolute z-30 right-0 mt-1 w-48 bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden">
+                <button *ngIf="!isEntryLocked" (click)="openAddModal(); showManageMenu = false"
+                        class="w-full px-4 py-2.5 text-left hover:bg-green-50 text-xs font-bold text-green-700 flex items-center gap-2 border-b border-gray-100">
+                  <i class="fas fa-plus w-4 text-center"></i> เพิ่มตัวชี้วัด
+                </button>
+                <button *ngIf="!isEntryLocked" (click)="toggleEditMode(); showManageMenu = false"
+                        class="w-full px-4 py-2.5 text-left hover:bg-amber-50 text-xs font-bold text-amber-700 flex items-center gap-2 border-b border-gray-100">
+                  <i class="fas fa-edit w-4 text-center"></i> แก้ไขผลงาน
+                </button>
+                <button (click)="toggleDeleteMode(); showManageMenu = false"
+                        class="w-full px-4 py-2.5 text-left hover:bg-red-50 text-xs font-bold text-red-700 flex items-center gap-2">
+                  <i class="fas fa-trash w-4 text-center"></i> โหมดลบตัวชี้วัด
+                </button>
+              </div>
+            </div>
+            <!-- ปุ่มเพิ่ม/แก้ไข แยก (สำหรับ user ทั่วไป ที่ไม่ใช่ admin) -->
+            <button *ngIf="!isAdmin && !isEditing && !isEntryLocked" (click)="openAddModal()" class="flex-1 md:flex-none px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-xl shadow-md transition-all text-xs font-bold flex items-center justify-center gap-2">
+              <i class="fas fa-plus"></i> เพิ่ม
+            </button>
+            <button *ngIf="!isAdmin && !isEditing && !isEntryLocked" (click)="toggleEditMode()" class="flex-1 md:flex-none px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl shadow-md transition-all text-xs font-bold flex items-center justify-center gap-2">
+              <i class="fas fa-edit"></i> แก้ไข
+            </button>
+            <button *ngIf="isSuperAdmin && !isEditing" (click)="unlockAll()" class="flex-1 md:flex-none px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl shadow-md transition-all text-xs font-bold flex items-center justify-center gap-2">
+              <i class="fas fa-lock-open"></i> ปลดล็อคทั้งหมด
+              <span *ngIf="lockedCount > 0" class="px-1.5 py-0.5 bg-white/30 rounded-full text-[10px]">{{ lockedCount }}</span>
+            </button>
+            <span *ngIf="isEntryLocked && !isEditing" class="flex-1 md:flex-none px-4 py-2 bg-red-100 text-red-700 rounded-xl text-xs font-bold flex items-center justify-center gap-2 border border-red-200">
+              <i class="fas fa-lock"></i> {{dataEntryLock.lock_reason || 'ระบบปิดการคีย์ข้อมูลชั่วคราว'}}
+            </span>
+
+            <div *ngIf="isEditing" class="flex flex-wrap gap-2 w-full md:w-auto">
+              <button (click)="saveKpiData()" class="flex-1 md:flex-none px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-xl shadow-md transition-all text-xs font-bold flex items-center justify-center gap-2">
+                <i class="fas fa-save"></i> บันทึก
+              </button>
+              <button (click)="resetData()" class="flex-1 md:flex-none px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-xl shadow-md transition-all text-xs font-bold flex items-center justify-center gap-2">
+                <i class="fas fa-undo"></i> คืนค่า
+              </button>
+              <button (click)="toggleEditMode()" class="flex-1 md:flex-none px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-xl shadow-md transition-all text-xs font-bold flex items-center justify-center gap-2">
+                <i class="fas fa-times"></i> ยกเลิก
+              </button>
+            </div>
+
+            <button *ngIf="(isAdmin || isSuperAdmin) && selectedStatus === 'pending' && !isReviewMode" (click)="approveAll()" class="w-full md:w-auto px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs transition-all shadow-md flex items-center justify-center gap-2">
+              <i class="fas fa-check-double"></i> อนุมัติทั้งหมด ({{ filteredData.length }})
+            </button>
+            <button *ngIf="(isAdmin || isSuperAdmin) && selectedStatus === 'pending' && !isReviewMode" (click)="rejectAll()" class="w-full md:w-auto px-4 py-2 bg-red-500 hover:bg-red-600 text-white font-bold rounded-xl text-xs transition-all shadow-md flex items-center justify-center gap-2">
+              <i class="fas fa-undo-alt"></i> ตีกลับทั้งหมด ({{ filteredData.length }})
+            </button>
+
+            <!-- ปุ่มตรวจสอบ (Review Mode) + count pending -->
+            <button *ngIf="isAdmin && !isEditing && !isReviewMode && !isDeleteMode" (click)="toggleReviewMode()" class="flex-1 md:flex-initial md:w-auto min-w-0 px-3 md:px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white font-bold rounded-xl text-xs transition-all shadow-md flex items-center justify-center gap-1.5">
+              <i class="fas fa-clipboard-check shrink-0"></i>
+              <span class="truncate">ตรวจสอบ</span>
+              <span *ngIf="pendingCount > 0" class="px-1.5 py-0.5 bg-white/30 rounded-full text-[10px] shrink-0">{{ pendingCount }}</span>
+            </button>
+            <!-- Review Mode Actions -->
+            <div *ngIf="isReviewMode" class="flex flex-wrap gap-2 w-full md:w-auto">
+              <button (click)="approveSelected()" class="flex-1 md:flex-none px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-bold rounded-xl text-xs transition-all shadow-md flex items-center justify-center gap-2">
+                <i class="fas fa-check-double"></i> อนุมัติที่เลือก ({{ reviewSelected.size }})
+              </button>
+              <button (click)="rejectSelected()" class="flex-1 md:flex-none px-4 py-2 bg-red-500 hover:bg-red-600 text-white font-bold rounded-xl text-xs transition-all shadow-md flex items-center justify-center gap-2">
+                <i class="fas fa-undo-alt"></i> ตีกลับที่เลือก ({{ reviewSelected.size }})
+              </button>
+              <button (click)="toggleReviewMode()" class="flex-1 md:flex-none px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white font-bold rounded-xl text-xs transition-all shadow-md flex items-center justify-center gap-2">
+                <i class="fas fa-times"></i> ยกเลิก
+              </button>
+            </div>
+            <!-- Delete Mode Actions -->
+            <div *ngIf="isDeleteMode" class="flex flex-wrap gap-2 w-full md:w-auto">
+              <button (click)="confirmBulkDelete()" [disabled]="deleteSelected.size === 0" class="flex-1 md:flex-none px-4 py-2 bg-red-600 hover:bg-red-700 disabled:opacity-40 text-white font-bold rounded-xl text-xs transition-all shadow-md flex items-center justify-center gap-2">
+                <i class="fas fa-trash-alt"></i> ลบที่เลือก ({{ deleteSelected.size }})
+              </button>
+              <button (click)="toggleDeleteMode()" class="flex-1 md:flex-none px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white font-bold rounded-xl text-xs transition-all shadow-md flex items-center justify-center gap-2">
+                <i class="fas fa-times"></i> ยกเลิก
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ปุ่มซ่อน/แสดงตัวกรอง + คำแนะนำ -->
+        <div class="px-6 py-2 border-b border-gray-100 flex items-center justify-between flex-wrap gap-2">
+          <div class="flex items-center gap-4">
+            <button (click)="showFilters = !showFilters" class="flex items-center gap-2 text-xs font-bold text-gray-500 hover:text-green-600 transition-colors">
+              <i class="fas" [ngClass]="showFilters ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+              {{ showFilters ? 'ซ่อนตัวกรอง' : 'แสดงตัวกรอง' }}
+            </button>
+            <button (click)="showGuide = !showGuide" class="flex items-center gap-2 text-xs font-bold text-blue-600 hover:text-blue-800 transition-colors">
+              <i class="fas" [ngClass]="showGuide ? 'fa-chevron-up' : 'fa-question-circle'"></i>
+              {{ showGuide ? 'ซ่อนคำแนะนำ' : 'คำแนะนำ' }}
+            </button>
+          </div>
+          <span *ngIf="(isAdmin || isSuperAdmin) && !selectedDept && !selectedHospital && !selectedIndicator && !selectedDistrict"
+                class="text-xs text-amber-600 flex items-center gap-1">
+            <i class="fas fa-exclamation-triangle animate-pulse"></i>
+            <span>กรุณาเลือกตัวกรอง แล้วกดปุ่ม <b>"ค้นหา"</b> เพื่อโหลดข้อมูล</span>
+          </span>
+        </div>
+
+        <!-- กรอบคำแนะนำการใช้งาน (ซ่อนได้) -->
+        <div *ngIf="showGuide" class="mx-5 mt-3 mb-2 p-4 bg-blue-50 border border-blue-200 rounded-xl space-y-4">
+
+          <!-- Section A: ตัวกรอง -->
+          <div>
+            <h5 class="font-bold text-blue-800 text-sm mb-2"><i class="fas fa-filter mr-1"></i>A. ตัวกรองข้อมูล (Multi-select)</h5>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
+              <div class="bg-white rounded-lg p-2 border border-teal-200"><b class="text-teal-700"><i class="fas fa-map-marker-alt mr-1"></i>สถานที่:</b> อำเภอ / ประเภท รพ. / หน่วยบริการ (cascade กัน)</div>
+              <div class="bg-white rounded-lg p-2 border border-amber-200"><b class="text-amber-700"><i class="fas fa-chart-pie mr-1"></i>ตัวชี้วัด:</b> หน่วยงาน / หมวดหมู่หลัก / ตัวชี้วัด</div>
+              <div class="bg-white rounded-lg p-2 border border-gray-200"><b class="text-gray-700"><i class="fas fa-tag mr-1"></i>สถานะ:</b> รอตรวจสอบ / ตรวจสอบแล้ว / ไม่พบข้อมูล (เลือกได้หลายค่า)</div>
+              <div class="bg-white rounded-lg p-2 border border-blue-200"><b class="text-blue-700"><i class="fas fa-search mr-1"></i>ค้นหาข้อความ:</b> พิมพ์คำ → กรองตามชื่อตัวชี้วัด</div>
+            </div>
+            <div class="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+              <div class="bg-green-100 rounded-lg p-2 text-green-800"><b><i class="fas fa-search mr-1"></i>ปุ่มค้นหา</b> — โหลดข้อมูลตามตัวกรอง (admin_ssj/super_admin ต้องกดเสมอ)</div>
+              <div class="bg-gray-100 rounded-lg p-2 text-gray-700"><b><i class="fas fa-undo mr-1"></i>ล้างตัวกรอง</b> — ล้างทุก filter ในคลิกเดียว (อยู่ต่อจากปุ่มค้นหา)</div>
+            </div>
+          </div>
+
+          <!-- Section B: ปุ่มการทำงาน -->
+          <div class="border-t border-blue-200 pt-3">
+            <h5 class="font-bold text-indigo-800 text-sm mb-2"><i class="fas fa-tools mr-1"></i>B. ปุ่มการทำงาน (ด้านบน)</h5>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
+              <div class="bg-gradient-to-r from-emerald-50 to-green-50 rounded-lg p-2 border border-green-200">
+                <b class="text-green-700"><i class="fas fa-tools mr-1"></i>จัดการข้อมูลตัวชี้วัด</b> (admin_ssj+)
+                <div class="text-[11px] text-green-600 mt-1">dropdown รวม: + เพิ่ม / แก้ไข / โหมดลบ</div>
+              </div>
+              <div class="bg-teal-50 rounded-lg p-2 border border-teal-200">
+                <b class="text-teal-700"><i class="fas fa-clipboard-check mr-1"></i>ตรวจสอบ (N)</b>
+                <div class="text-[11px] text-teal-600 mt-1">N = จำนวนรายการรอตรวจสอบ → เข้า Review Mode</div>
+              </div>
+              <div class="bg-amber-50 rounded-lg p-2 border border-amber-200">
+                <b class="text-amber-700"><i class="fas fa-lock-open mr-1"></i>ปลดล็อค (N)</b>
+                <div class="text-[11px] text-amber-600 mt-1">N = จำนวนรายการที่ถูกล็อค (super_admin)</div>
+              </div>
+              <div class="bg-red-50 rounded-lg p-2 border border-red-200">
+                <b class="text-red-700"><i class="fas fa-trash mr-1"></i>โหมดลบ</b>
+                <div class="text-[11px] text-red-600 mt-1">ติ๊กรายการ → ลบ kpi_results + kpi_sub_results (super_admin)</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Section C: การแก้ไข -->
+          <div class="border-t border-blue-200 pt-3">
+            <h5 class="font-bold text-amber-800 text-sm mb-2"><i class="fas fa-edit mr-1"></i>C. วิธีแก้ไขผลงาน</h5>
+            <ol class="list-decimal ml-5 text-xs text-gray-700 space-y-1">
+              <li>กด <b>จัดการข้อมูลตัวชี้วัด → แก้ไขผลงาน</b> → ตารางเปลี่ยนเป็น input fields</li>
+              <li>แก้ค่าเป้าหมาย/เดือน → ช่องที่แก้จะ<b class="text-orange-600">เปลี่ยนสีส้ม</b></li>
+              <li>กด <b class="text-green-700">บันทึก</b> → แสดง <b>ตารางสรุปการเปลี่ยนแปลง</b>:
+                <div class="mt-1 bg-white rounded border border-amber-200 p-2 overflow-x-auto">
+                  <table class="min-w-[420px] w-full text-[11px]">
+                    <thead class="text-amber-800">
+                      <tr><th class="text-left">รายการ</th><th>เดือน</th><th>ค่าเดิม</th><th>ค่าใหม่</th><th>สถานะ</th></tr>
+                    </thead>
+                    <tbody>
+                      <tr><td>KPI A</td><td class="text-center">ม.ค.</td><td class="text-center">60</td><td class="text-center">80</td><td class="text-green-700 font-bold text-center">↑ เพิ่มขึ้น</td></tr>
+                      <tr><td>KPI B</td><td class="text-center">ก.พ.</td><td class="text-center">70</td><td class="text-center">50</td><td class="text-red-600 font-bold text-center">↓ ลดลง</td></tr>
+                      <tr><td>KPI C</td><td class="text-center">มี.ค.</td><td class="text-center">40</td><td class="text-center">—</td><td class="text-gray-600 font-bold text-center">− ลบ</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+              </li>
+              <li>ยืนยัน → บันทึก | กด <b>คืนค่า</b> → กลับค่าเดิม | กด <b>ยกเลิก</b> → ออกโหมดแก้ไข</li>
+            </ol>
+          </div>
+
+          <!-- Section D: ปุ่มต่อแถว -->
+          <div class="border-t border-blue-200 pt-3">
+            <h5 class="font-bold text-purple-800 text-sm mb-2"><i class="fas fa-mouse-pointer mr-1"></i>D. ปุ่มในแต่ละแถว KPI</h5>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
+              <div class="bg-green-50 rounded-lg p-2 border border-green-200"><i class="fas fa-check-circle text-green-600 mr-1"></i>อนุมัติ</div>
+              <div class="bg-red-50 rounded-lg p-2 border border-red-200"><i class="fas fa-undo-alt text-red-500 mr-1"></i>ตีกลับ (เหตุผล)</div>
+              <div class="bg-purple-50 rounded-lg p-2 border border-purple-200"><i class="fas fa-gavel text-purple-600 mr-1"></i>ยื่นอุทธรณ์</div>
+              <div class="bg-blue-50 rounded-lg p-2 border border-blue-200"><i class="fas fa-chart-line text-blue-500 mr-1"></i>ดูกราฟแนวโน้ม</div>
+              <div class="bg-indigo-50 rounded-lg p-2 border border-indigo-200"><i class="fas fa-list-ul text-indigo-600 mr-1"></i>ตัวชี้วัดย่อย</div>
+              <div class="bg-purple-50 rounded-lg p-2 border border-purple-200"><i class="fas fa-clipboard-list text-purple-500 mr-1"></i>กรอกแบบฟอร์ม</div>
+              <div class="bg-amber-50 rounded-lg p-2 border border-amber-200"><i class="fas fa-lock-open text-amber-500 mr-1"></i>ปลดล็อค (super_admin)</div>
+              <div class="bg-gray-50 rounded-lg p-2 border border-gray-200"><i class="fas fa-reply text-gray-600 mr-1"></i>ตอบกลับ (ตีกลับ)</div>
+            </div>
+          </div>
+
+          <!-- Section E: Tips -->
+          <div class="border-t border-blue-200 pt-3">
+            <h5 class="font-bold text-gray-800 text-sm mb-2"><i class="fas fa-lightbulb mr-1 text-yellow-500"></i>E. เคล็ดลับ</h5>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
+              <div class="bg-white rounded-lg p-2 border border-gray-200"><i class="fas fa-tags text-indigo-500 mr-1"></i><b>ป้ายประเภท</b> หน้าชื่อตัวชี้วัด — <span class="px-1 bg-blue-100 text-blue-700 font-bold">R9</span> / <span class="px-1 bg-red-100 text-red-700 font-bold">MOPH</span> / <span class="px-1 bg-green-100 text-green-700 font-bold">SSJ</span> / <span class="px-1 bg-yellow-100 text-yellow-700 font-bold">RMW</span></div>
+              <div class="bg-white rounded-lg p-2 border border-gray-200"><i class="fas fa-link text-teal-500 mr-1"></i><b>Cascade filter:</b> อำเภอ → หน่วยบริการ → หมวดหมู่ + ตัวชี้วัด แสดงเฉพาะที่เกี่ยวข้อง</div>
+              <div class="bg-white rounded-lg p-2 border border-gray-200"><i class="fas fa-layer-group text-purple-500 mr-1"></i><b>Sub-indicators:</b> ตัวชี้วัดที่มีย่อย → main row แสดงค่า AVG ของ sub ทั้งหมด</div>
+              <div class="bg-white rounded-lg p-2 border border-gray-200"><i class="fas fa-save text-green-500 mr-1"></i><b>ตรวจสอบแล้ว:</b> รายการที่มีผลงาน + ไม่มีค้างตรวจสอบ (สีพื้น teal)</div>
+            </div>
+          </div>
+        </div>
+
+        <div *ngIf="showFilters" class="px-5 py-2.5 bg-gray-50/50 border-b border-gray-100 space-y-2">
+          <!-- แถว 1: สถานที่ (teal) + เงื่อนไข (amber) -->
+          <div class="flex flex-wrap items-end gap-2">
+            <span class="px-1.5 py-0.5 bg-teal-100 text-teal-700 rounded text-[9px] font-bold self-center"><i class="fas fa-map-marker-alt mr-0.5"></i>สถานที่</span>
+            <!-- อำเภอ (multi) -->
+            <div class="relative min-w-[140px] flex-1 max-w-[200px]">
+              <button type="button" (click)="toggleDropdown('district')"
+                      class="w-full flex items-center justify-between px-2 py-1 border border-teal-200 rounded-lg bg-white text-xs hover:border-teal-400 focus:ring-1 focus:ring-teal-500 outline-none">
+                <span class="truncate" [class.text-gray-400]="selectedDistricts.length === 0">{{ filterLabel(selectedDistricts, 'อำเภอ: ทั้งหมด') }}</span>
+                <i class="fas fa-chevron-down ml-1 text-gray-400"></i>
+              </button>
+              <div *ngIf="openFilterDropdown === 'district'" class="absolute z-50 top-full left-0 mt-1 w-[min(18rem,calc(100vw-2rem))] bg-white border border-gray-200 rounded-lg shadow-xl max-h-80 overflow-hidden flex flex-col">
+                <div class="p-2 border-b bg-teal-50 flex items-center justify-between text-[10px]">
+                  <button type="button" (click)="clearFilterArr(selectedDistricts); onDistrictCascade()" class="px-2 py-0.5 bg-gray-200 hover:bg-gray-300 rounded font-bold">ล้าง</button>
+                  <span class="text-teal-700 font-bold">เลือก: {{ selectedDistricts.length }}</span>
+                  <button type="button" (click)="openFilterDropdown = ''" class="px-2 py-0.5 bg-teal-500 text-white rounded font-bold">ตกลง</button>
+                </div>
+                <div class="overflow-y-auto flex-1">
+                  <label *ngFor="let name of districtNames" class="flex items-center gap-2 px-3 py-1.5 hover:bg-gray-50 cursor-pointer text-xs">
+                    <input type="checkbox" [checked]="isFilterSelected(selectedDistricts, name)"
+                           (change)="toggleFilterItem(selectedDistricts, name); onDistrictCascade()" class="rounded text-teal-600">
+                    <span>{{ name }}</span>
+                  </label>
+                </div>
+              </div>
+            </div>
+            <!-- ประเภท รพ. (multi) -->
+            <div class="relative min-w-[160px] flex-1 max-w-[240px]">
+              <button type="button" (click)="toggleDropdown('hostype')"
+                      class="w-full flex items-center justify-between px-2 py-1 border border-teal-200 rounded-lg bg-white text-xs hover:border-teal-400 focus:ring-1 focus:ring-teal-500 outline-none">
+                <span class="truncate" [class.text-gray-400]="selectedHosTypes.length === 0">{{ hosTypeLabel() }}</span>
+                <i class="fas fa-chevron-down ml-1 text-gray-400"></i>
+              </button>
+              <div *ngIf="openFilterDropdown === 'hostype'" class="absolute z-50 top-full left-0 mt-1 w-[min(20rem,calc(100vw-2rem))] bg-white border border-gray-200 rounded-lg shadow-xl max-h-80 overflow-hidden flex flex-col">
+                <div class="p-2 border-b bg-teal-50 flex items-center justify-between text-[10px]">
+                  <button type="button" (click)="clearFilterArr(selectedHosTypes); onHosTypeCascade()" class="px-2 py-0.5 bg-gray-200 hover:bg-gray-300 rounded font-bold">ล้าง</button>
+                  <span class="text-teal-700 font-bold">เลือก: {{ selectedHosTypes.length }}</span>
+                  <button type="button" (click)="openFilterDropdown = ''" class="px-2 py-0.5 bg-teal-500 text-white rounded font-bold">ตกลง</button>
+                </div>
+                <div class="overflow-y-auto flex-1">
+                  <label *ngFor="let ht of hosTypeList" class="flex items-center gap-2 px-3 py-1.5 hover:bg-gray-50 cursor-pointer text-xs">
+                    <input type="checkbox" [checked]="isFilterSelected(selectedHosTypes, ht.hostypecode)"
+                           (change)="toggleFilterItem(selectedHosTypes, ht.hostypecode); onHosTypeCascade()" class="rounded text-teal-600">
+                    <span>{{ ht.hostypename }} ({{ ht.hospital_count }})</span>
+                  </label>
+                </div>
+              </div>
+            </div>
+            <!-- หน่วยบริการ (multi) -->
+            <div class="relative min-w-[160px] flex-1 max-w-[260px]">
+              <button type="button" (click)="toggleDropdown('hospital')"
+                      class="w-full flex items-center justify-between px-2 py-1 border border-teal-200 rounded-lg bg-white text-xs hover:border-teal-400 focus:ring-1 focus:ring-teal-500 outline-none">
+                <span class="truncate" [class.text-gray-400]="selectedHospitals.length === 0">{{ filterLabel(selectedHospitals, 'หน่วยบริการ: ทั้งหมด') }}</span>
+                <i class="fas fa-chevron-down ml-1 text-gray-400"></i>
+              </button>
+              <div *ngIf="openFilterDropdown === 'hospital'" class="absolute z-50 top-full left-0 mt-1 w-[min(24rem,calc(100vw-2rem))] bg-white border border-gray-200 rounded-lg shadow-xl max-h-96 overflow-hidden flex flex-col">
+                <div class="p-2 border-b bg-teal-50 flex items-center justify-between text-[10px]">
+                  <button type="button" (click)="clearFilterArr(selectedHospitals)" class="px-2 py-0.5 bg-gray-200 hover:bg-gray-300 rounded font-bold">ล้าง</button>
+                  <span class="text-teal-700 font-bold">เลือก: {{ selectedHospitals.length }} / {{ hospitalNames.length }}</span>
+                  <button type="button" (click)="openFilterDropdown = ''" class="px-2 py-0.5 bg-teal-500 text-white rounded font-bold">ตกลง</button>
+                </div>
+                <div class="overflow-y-auto flex-1">
+                  <label *ngFor="let name of hospitalNames" class="flex items-center gap-2 px-3 py-1.5 hover:bg-gray-50 cursor-pointer text-xs">
+                    <input type="checkbox" [checked]="isFilterSelected(selectedHospitals, name)"
+                           (change)="toggleFilterItem(selectedHospitals, name)" class="rounded text-teal-600">
+                    <span>{{ name }}</span>
+                  </label>
+                </div>
+              </div>
+            </div>
+            <span class="border-l border-gray-300 h-5 mx-0.5"></span>
+            <span class="px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded text-[9px] font-bold self-center"><i class="fas fa-sliders-h mr-0.5"></i>เงื่อนไข</span>
+            <div class="w-[90px]">
+              <select [(ngModel)]="selectedYear" title="ปีงบประมาณ"
+                      class="w-full px-2 py-1 border border-amber-200 rounded-lg focus:ring-1 focus:ring-amber-500 outline-none text-xs bg-white cursor-pointer">
+                <option *ngFor="let name of filterYears" [value]="name">{{ name }}</option>
+              </select>
+            </div>
+            <!-- สถานะ (multi) -->
+            <div class="relative min-w-[140px] flex-1 max-w-[200px]">
+              <button type="button" (click)="toggleDropdown('status')"
+                      class="w-full flex items-center justify-between px-2 py-1 border border-amber-200 rounded-lg bg-white text-xs hover:border-amber-400 focus:ring-1 focus:ring-amber-500 outline-none">
+                <span class="truncate" [class.text-gray-400]="selectedStatuses.length === 0">{{ filterLabel(selectedStatuses, 'สถานะ: ทั้งหมด') }}</span>
+                <i class="fas fa-chevron-down ml-1 text-gray-400"></i>
+              </button>
+              <div *ngIf="openFilterDropdown === 'status'" class="absolute z-50 top-full left-0 mt-1 w-[min(16rem,calc(100vw-2rem))] bg-white border border-gray-200 rounded-lg shadow-xl overflow-hidden">
+                <div class="p-2 border-b bg-amber-50 flex items-center justify-between text-[10px]">
+                  <button type="button" (click)="clearFilterArr(selectedStatuses)" class="px-2 py-0.5 bg-gray-200 hover:bg-gray-300 rounded font-bold">ล้าง</button>
+                  <button type="button" (click)="openFilterDropdown = ''" class="px-2 py-0.5 bg-amber-500 text-white rounded font-bold">ตกลง</button>
+                </div>
+                <label class="flex items-center gap-2 px-3 py-1.5 hover:bg-gray-50 cursor-pointer text-xs">
+                  <input type="checkbox" [checked]="isFilterSelected(selectedStatuses, 'pass')" (change)="toggleFilterItem(selectedStatuses, 'pass')" class="rounded text-green-600"><span class="text-green-600">ผ่านเป้าหมาย</span></label>
+                <label class="flex items-center gap-2 px-3 py-1.5 hover:bg-gray-50 cursor-pointer text-xs">
+                  <input type="checkbox" [checked]="isFilterSelected(selectedStatuses, 'fail')" (change)="toggleFilterItem(selectedStatuses, 'fail')" class="rounded text-red-600"><span class="text-red-600">ไม่ผ่านเป้าหมาย</span></label>
+                <label class="flex items-center gap-2 px-3 py-1.5 hover:bg-gray-50 cursor-pointer text-xs">
+                  <input type="checkbox" [checked]="isFilterSelected(selectedStatuses, 'pending')" (change)="toggleFilterItem(selectedStatuses, 'pending')" class="rounded text-amber-600"><span class="text-amber-600">รอตรวจสอบ</span></label>
+                <label class="flex items-center gap-2 px-3 py-1.5 hover:bg-gray-50 cursor-pointer text-xs">
+                  <input type="checkbox" [checked]="isFilterSelected(selectedStatuses, 'reviewed')" (change)="toggleFilterItem(selectedStatuses, 'reviewed')" class="rounded text-teal-600"><span class="text-teal-600">ตรวจสอบแล้ว</span></label>
+                <label class="flex items-center gap-2 px-3 py-1.5 hover:bg-gray-50 cursor-pointer text-xs">
+                  <input type="checkbox" [checked]="isFilterSelected(selectedStatuses, 'has_target_actual')" (change)="toggleFilterItem(selectedStatuses, 'has_target_actual')" class="rounded text-emerald-600"><span class="text-emerald-600">มีเป้า/มีผลงาน</span></label>
+                <label class="flex items-center gap-2 px-3 py-1.5 hover:bg-gray-50 cursor-pointer text-xs">
+                  <input type="checkbox" [checked]="isFilterSelected(selectedStatuses, 'no_target')" (change)="toggleFilterItem(selectedStatuses, 'no_target')" class="rounded text-gray-500"><span class="text-gray-500">ยังไม่มีเป้าหมาย</span></label>
+                <label class="flex items-center gap-2 px-3 py-1.5 hover:bg-gray-50 cursor-pointer text-xs">
+                  <input type="checkbox" [checked]="isFilterSelected(selectedStatuses, 'no_actual')" (change)="toggleFilterItem(selectedStatuses, 'no_actual')" class="rounded text-blue-600"><span class="text-blue-600">มีเป้า/ไม่มีผลงาน</span></label>
+                <label class="flex items-center gap-2 px-3 py-1.5 hover:bg-gray-50 cursor-pointer text-xs">
+                  <input type="checkbox" [checked]="isFilterSelected(selectedStatuses, 'no_target_no_actual')" (change)="toggleFilterItem(selectedStatuses, 'no_target_no_actual')" class="rounded text-rose-600"><span class="text-rose-600">ไม่มีเป้า/ไม่มีผลงาน</span></label>
+              </div>
+            </div>
+          </div>
+          <!-- แถว 2: ตัวชี้วัด (indigo) + ปุ่มค้นหา -->
+          <div class="flex flex-wrap items-end gap-2">
+            <span class="px-1.5 py-0.5 bg-indigo-100 text-indigo-700 rounded text-[9px] font-bold self-center"><i class="fas fa-bullseye mr-0.5"></i>ตัวชี้วัด</span>
+            <!-- หน่วยงาน (multi) -->
+            <div class="relative min-w-[140px] flex-1 max-w-[200px]">
+              <button type="button" (click)="toggleDropdown('dept')"
+                      class="w-full flex items-center justify-between px-2 py-1 border border-indigo-200 rounded-lg bg-white text-xs hover:border-indigo-400 focus:ring-1 focus:ring-indigo-500 outline-none">
+                <span class="truncate" [class.text-gray-400]="selectedDepts.length === 0">{{ filterLabel(selectedDepts, 'หน่วยงาน: ทั้งหมด') }}</span>
+                <i class="fas fa-chevron-down ml-1 text-gray-400"></i>
+              </button>
+              <div *ngIf="openFilterDropdown === 'dept'" class="absolute z-50 top-full left-0 mt-1 w-[min(20rem,calc(100vw-2rem))] bg-white border border-gray-200 rounded-lg shadow-xl max-h-80 overflow-hidden flex flex-col">
+                <div class="p-2 border-b bg-indigo-50 flex items-center justify-between text-[10px]">
+                  <button type="button" (click)="clearFilterArr(selectedDepts); onDeptCascade()" class="px-2 py-0.5 bg-gray-200 hover:bg-gray-300 rounded font-bold">ล้าง</button>
+                  <span class="text-indigo-700 font-bold">เลือก: {{ selectedDepts.length }}</span>
+                  <button type="button" (click)="openFilterDropdown = ''" class="px-2 py-0.5 bg-indigo-500 text-white rounded font-bold">ตกลง</button>
+                </div>
+                <div class="overflow-y-auto flex-1">
+                  <label *ngFor="let name of deptNames" class="flex items-center gap-2 px-3 py-1.5 hover:bg-gray-50 cursor-pointer text-xs">
+                    <input type="checkbox" [checked]="isFilterSelected(selectedDepts, name)"
+                           (change)="toggleFilterItem(selectedDepts, name); onDeptCascade()" class="rounded text-indigo-600">
+                    <span>{{ name }}</span>
+                  </label>
+                </div>
+              </div>
+            </div>
+            <!-- หมวดหมู่หลัก (single) -->
+            <div class="min-w-[140px] flex-1 max-w-[220px]">
+              <select [(ngModel)]="selectedMain" title="หมวดหมู่หลัก"
+                      class="w-full px-2 py-1 border border-indigo-200 rounded-lg focus:ring-1 focus:ring-indigo-500 outline-none text-xs bg-white cursor-pointer">
+                <option value="">หมวดหมู่: ทั้งหมด</option>
+                <option *ngFor="let cat of mainCategories" [value]="cat">{{ cat }}</option>
+              </select>
+            </div>
+            <!-- ตัวชี้วัด (single) -->
+            <div class="min-w-[160px] flex-1 max-w-[280px]">
+              <select [(ngModel)]="selectedIndicator" title="ตัวชี้วัด"
+                      class="w-full px-2 py-1 border border-indigo-200 rounded-lg focus:ring-1 focus:ring-indigo-500 outline-none text-xs bg-white cursor-pointer">
+                <option value="">ตัวชี้วัด: ทั้งหมด</option>
+                <option *ngFor="let name of indicatorNames" [value]="name">{{ name }}</option>
+              </select>
+            </div>
+            <!-- ตัวชี้วัดของ (multi) — filter kpi_indicators.required_off_types -->
+            <div class="relative min-w-[150px] flex-1 max-w-[200px]">
+              <button type="button" (click)="toggleDropdown('indOffType')"
+                      class="w-full flex items-center justify-between px-2 py-1 border border-cyan-200 rounded-lg bg-white text-xs hover:border-cyan-400 focus:ring-1 focus:ring-cyan-500 outline-none">
+                <span class="truncate" [class.text-gray-400]="selectedIndicatorOffTypes.length === 0">{{ indicatorOffTypeLabel() }}</span>
+                <i class="fas fa-chevron-down ml-1 text-gray-400"></i>
+              </button>
+              <div *ngIf="openFilterDropdown === 'indOffType'" class="absolute z-50 top-full left-0 mt-1 w-[min(20rem,calc(100vw-2rem))] bg-white border border-gray-200 rounded-lg shadow-xl max-h-80 overflow-hidden flex flex-col">
+                <div class="p-2 border-b bg-cyan-50 flex items-center justify-between text-[10px]">
+                  <button type="button" (click)="clearFilterArr(selectedIndicatorOffTypes)" class="px-2 py-0.5 bg-gray-200 hover:bg-gray-300 rounded font-bold">ล้าง</button>
+                  <span class="text-cyan-700 font-bold">เลือก: {{ selectedIndicatorOffTypes.length }}</span>
+                  <button type="button" (click)="openFilterDropdown = ''" class="px-2 py-0.5 bg-cyan-500 text-white rounded font-bold">ตกลง</button>
+                </div>
+                <div class="overflow-y-auto flex-1">
+                  <label *ngFor="let ht of _allHosTypes" class="flex items-center gap-2 px-3 py-1.5 hover:bg-gray-50 cursor-pointer text-xs">
+                    <input type="checkbox" [checked]="isFilterSelected(selectedIndicatorOffTypes, ht.hostypecode)"
+                           (change)="toggleFilterItem(selectedIndicatorOffTypes, ht.hostypecode)" class="rounded text-cyan-600">
+                    <span class="font-mono text-gray-500 text-[10px]">{{ ht.hostypecode }}</span>
+                    <span>{{ ht.hostypename }}</span>
+                  </label>
+                </div>
+              </div>
+            </div>
+            <!-- ประเภทตัวชี้วัด (multi) -->
+            <div class="relative min-w-[130px] flex-1 max-w-[180px]">
+              <button type="button" (click)="toggleDropdown('type')"
+                      class="w-full flex items-center justify-between px-2 py-1 border border-indigo-200 rounded-lg bg-white text-xs hover:border-indigo-400 focus:ring-1 focus:ring-indigo-500 outline-none">
+                <span class="truncate" [class.text-gray-400]="selectedTypes.length === 0">{{ filterLabel(selectedTypes, 'ประเภท: ทั้งหมด') }}</span>
+                <i class="fas fa-chevron-down ml-1 text-gray-400"></i>
+              </button>
+              <div *ngIf="openFilterDropdown === 'type'" class="absolute z-50 top-full right-0 mt-1 w-[min(12rem,calc(100vw-2rem))] bg-white border border-gray-200 rounded-lg shadow-xl overflow-hidden">
+                <div class="p-2 border-b bg-indigo-50 flex items-center justify-between text-[10px]">
+                  <button type="button" (click)="clearFilterArr(selectedTypes)" class="px-2 py-0.5 bg-gray-200 hover:bg-gray-300 rounded font-bold">ล้าง</button>
+                  <button type="button" (click)="openFilterDropdown = ''" class="px-2 py-0.5 bg-indigo-500 text-white rounded font-bold">ตกลง</button>
+                </div>
+                <label class="flex items-center gap-2 px-3 py-1.5 hover:bg-gray-50 cursor-pointer text-xs">
+                  <input type="checkbox" [checked]="isFilterSelected(selectedTypes, 'r9')" (change)="toggleFilterItem(selectedTypes, 'r9')" class="rounded text-blue-600"><span>เขต 9</span></label>
+                <label class="flex items-center gap-2 px-3 py-1.5 hover:bg-gray-50 cursor-pointer text-xs">
+                  <input type="checkbox" [checked]="isFilterSelected(selectedTypes, 'moph')" (change)="toggleFilterItem(selectedTypes, 'moph')" class="rounded text-red-600"><span>กระทรวง</span></label>
+                <label class="flex items-center gap-2 px-3 py-1.5 hover:bg-gray-50 cursor-pointer text-xs">
+                  <input type="checkbox" [checked]="isFilterSelected(selectedTypes, 'ssj')" (change)="toggleFilterItem(selectedTypes, 'ssj')" class="rounded text-green-600"><span>สสจ.</span></label>
+                <label class="flex items-center gap-2 px-3 py-1.5 hover:bg-gray-50 cursor-pointer text-xs">
+                  <input type="checkbox" [checked]="isFilterSelected(selectedTypes, 'rmw')" (change)="toggleFilterItem(selectedTypes, 'rmw')" class="rounded text-amber-600"><span>ผู้ว่าฯ</span></label>
+                <label class="flex items-center gap-2 px-3 py-1.5 hover:bg-gray-50 cursor-pointer text-xs">
+                  <input type="checkbox" [checked]="isFilterSelected(selectedTypes, 'other')" (change)="toggleFilterItem(selectedTypes, 'other')" class="rounded text-gray-600"><span>อื่นๆ</span></label>
+              </div>
+            </div>
+            <button (click)="doSearch()" class="px-4 py-1 bg-green-600 hover:bg-green-700 text-white font-bold rounded-lg text-xs shadow transition-all flex items-center gap-1">
+              <i class="fas fa-search"></i> ค้นหา
+            </button>
+            <button (click)="clearFilters()"
+                    class="px-4 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-lg text-xs transition-all flex items-center gap-1">
+              <i class="fas fa-sync-alt"></i> ล้างตัวกรอง
+            </button>
+            <!-- Saved Views (Filter Preset) -->
+            <div class="relative">
+              <button (click)="toggleDropdown('savedViews')"
+                      class="px-3 py-1 bg-amber-50 hover:bg-amber-100 text-amber-700 font-bold rounded-lg text-xs border border-amber-200 transition-all flex items-center gap-1"
+                      title="View ของฉัน (filter ที่บันทึกไว้)">
+                <i class="fas fa-bookmark"></i> View ({{ savedViews.length }})
+                <i class="fas fa-chevron-down ml-0.5 text-[10px]"></i>
+              </button>
+              <div *ngIf="openFilterDropdown === 'savedViews'" class="absolute z-50 top-full right-0 mt-1 w-72 bg-white border border-gray-200 rounded-lg shadow-xl overflow-hidden">
+                <div class="px-3 py-2 border-b bg-amber-50 flex items-center justify-between">
+                  <span class="text-xs font-bold text-amber-700">View ของฉัน</span>
+                  <button (click)="openSaveViewModal(); openFilterDropdown = ''"
+                          class="px-2 py-0.5 bg-amber-500 hover:bg-amber-600 text-white text-[10px] rounded font-bold">
+                    <i class="fas fa-plus mr-1"></i>บันทึก View ปัจจุบัน
+                  </button>
+                </div>
+                <div *ngIf="savedViews.length === 0" class="px-3 py-4 text-center text-xs text-gray-400">
+                  ยังไม่มี View ที่บันทึกไว้<br>
+                  <span class="text-[10px]">ตั้งตัวกรองตามต้องการ → กด "บันทึก View ปัจจุบัน"</span>
+                </div>
+                <div class="max-h-64 overflow-y-auto">
+                  <div *ngFor="let v of savedViews" class="flex items-center gap-2 px-3 py-1.5 hover:bg-amber-50 group">
+                    <button (click)="applySavedView(v); openFilterDropdown = ''"
+                            class="flex-1 text-left text-xs text-gray-700 hover:text-amber-700 truncate">
+                      <i class="fas fa-bookmark text-amber-500 mr-1"></i>{{ v.name }}
+                    </button>
+                    <button (click)="deleteSavedView(v)" class="text-gray-300 hover:text-red-500 text-xs opacity-0 group-hover:opacity-100 transition-opacity" title="ลบ View นี้">
+                      <i class="fas fa-times"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="px-6 py-2 flex items-center gap-4 bg-white border-b border-gray-100">
+          <div class="relative flex-1">
+            <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs"></i>
+            <input type="text" [(ngModel)]="searchTerm" (keyup.enter)="doSearch()"
+                  placeholder="ค้นหาชื่อตัวชี้วัด หรือชื่อหน่วยงาน... (กด Enter)"
+                  class="w-full pl-9 pr-4 py-1.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 outline-none text-xs hover:border-green-400 transition-all">
+          </div>
+          <div class="text-[10px] text-gray-400 font-medium whitespace-nowrap">
+            พบทั้งหมด {{ filteredData.length }} รายการ
+          </div>
+        </div>
+
+        <!-- Review Mode Toolbar -->
+        <div *ngIf="isReviewMode" class="px-6 py-2 bg-teal-50 border-b border-teal-200 flex items-center gap-3 text-xs">
+          <label class="flex items-center gap-2 cursor-pointer text-teal-700 font-bold">
+            <input type="checkbox" [checked]="reviewAllChecked" (change)="toggleReviewAll()" class="rounded text-teal-600 focus:ring-teal-400">
+            เลือกทั้งหมดที่รอตรวจสอบ
+          </label>
+          <span class="text-teal-600">เลือกแล้ว <b>{{ reviewSelected.size }}</b> รายการ</span>
+        </div>
+
+        <!-- Delete Mode Toolbar -->
+        <div *ngIf="isDeleteMode" class="px-6 py-2 bg-red-50 border-b border-red-200 flex items-center gap-3 text-xs">
+          <label class="flex items-center gap-2 cursor-pointer text-red-700 font-bold">
+            <input type="checkbox" [checked]="deleteAllChecked" (change)="toggleDeleteAll()" class="rounded text-red-600 focus:ring-red-400">
+            เลือกทั้งหมด
+          </label>
+          <span class="text-red-600">เลือกแล้ว <b>{{ deleteSelected.size }}</b> / {{ filteredData.length }} รายการ</span>
+          <span class="ml-auto text-red-600 font-bold"><i class="fas fa-exclamation-triangle mr-1"></i>โหมดลบ — จะลบ kpi_results + kpi_sub_results</span>
+        </div>
+        </div>
+        <!-- END sticky top wrapper -->
+
+        <!-- super_admin: เลือกตัวกรองก่อน -->
+        <div *ngIf="(isSuperAdmin || isAdmin) && kpiData.length === 0 && !isLoading" class="px-6 py-16 text-center">
+          <div class="inline-flex items-center justify-center w-20 h-20 bg-indigo-100 rounded-2xl mb-4">
+            <i class="fas fa-filter text-indigo-500 text-3xl"></i>
+          </div>
+          <h3 class="text-lg font-bold text-gray-700 mb-2">กรุณาเลือกตัวกรองก่อนดูข้อมูล</h3>
+          <p class="text-sm text-gray-400 mb-4">เลือก อำเภอ, หน่วยบริการ, หน่วยงาน หรือตัวชี้วัด แล้วกดปุ่ม <b>"ค้นหา"</b></p>
+          <p class="text-xs text-gray-400"><i class="fas fa-circle-info mr-1"></i>เพื่อประสิทธิภาพการโหลด กรุณาเลือกตัวกรองให้แคบลงก่อนค้นหา</p>
+        </div>
+
+        <!-- Mobile Card View -->
+        <div class="overflow-x-auto bg-gray-50/30 lg:hidden">
+            <div>
+              <div *ngFor="let item of pagedData; let i = index" class="border-b border-gray-200 p-4 space-y-3 relative">
+                <!-- Review checkbox (Mobile) -->
+                <div *ngIf="isReviewMode" class="absolute top-4 left-4">
+                  <input type="checkbox" [checked]="reviewSelected.has(reviewKey(item))" (change)="toggleReviewItem(item)"
+                         class="rounded text-teal-600 focus:ring-teal-400 h-5 w-5" [disabled]="item.pending_count === 0">
+                </div>
+                <!-- Delete checkbox (Mobile) -->
+                <div *ngIf="isDeleteMode" class="absolute top-4 left-4">
+                  <input type="checkbox" [checked]="isDeleteSelected(item)" (change)="toggleDeleteItem(item)"
+                         class="rounded text-red-600 focus:ring-red-400 h-5 w-5">
+                </div>
+                <!-- สถานะการรับรอง (Mobile) -->
+                <div class="absolute top-4 right-12 flex gap-1">
+                  <span *ngIf="item.indicator_status === 'approved' || item.indicator_status === 'Approved'" class="status-badge status-approved">
+                    <i class="fas fa-check-circle"></i> รับรองแล้ว
+                  </span>
+                  <span *ngIf="item.indicator_status === 'pending' || item.indicator_status === 'Pending'" class="status-badge status-pending">
+                    <i class="fas fa-clock"></i> รอตรวจสอบ
+                  </span>
+                  <span *ngIf="item.indicator_status === 'rejected' || item.indicator_status === 'Rejected'" class="status-badge status-rejected cursor-pointer" (click)="viewRejectionHistory(item)">
+                    <i class="fas fa-undo-alt"></i> ถูกตีกลับ
+                  </span>
+                  <span *ngIf="item.indicator_status === 'resubmit' || item.indicator_status === 'Resubmit'" class="status-badge status-resubmit cursor-pointer" (click)="viewRejectionHistory(item)">
+                    <i class="fas fa-reply"></i> รอตอบกลับ
+                  </span>
+                  <span *ngIf="item.indicator_status === 'appeal' || item.indicator_status === 'Appeal'" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-100 text-purple-700 cursor-pointer" (click)="viewRejectionHistory(item)">
+                    <i class="fas fa-gavel"></i> ยื่นอุทธรณ์
+                  </span>
+                  <span *ngIf="item.is_locked" class="status-badge status-locked" title="เป้าหมายถูกล็อค">
+                    <i class="fas fa-lock"></i> ล็อค
+                  </span>
+                </div>
+                <!-- ปุ่มตอบกลับ (Mobile) -->
+                <div *ngIf="!isAdmin && (item.indicator_status === 'resubmit' || item.indicator_status === 'Resubmit')" class="absolute top-12 right-12">
+                  <button (click)="openReplyModal(item)"
+                          class="px-2 py-0.5 bg-blue-500 hover:bg-blue-600 text-white rounded-full text-[9px] font-bold transition-all">
+                    <i class="fas fa-paper-plane mr-0.5"></i>ตอบกลับ
+                  </button>
+                </div>
+
+                <div class="flex justify-between items-start">
+                  <div class="flex-1">
+                    <div class="flex items-center gap-1 mb-2 flex-wrap">
+                      <span *ngIf="isTargetMet(item)" class="text-green-600 text-sm">✓</span>
+                      <span *ngIf="!isTargetMet(item)" class="text-red-600 text-sm">✗</span>
+                      <!-- Type indicators (mobile) -->
+                      <span *ngFor="let typeItem of getIndicatorTypes(item)"
+                            class="inline-block px-1.5 py-0.5 rounded text-[9px] font-bold whitespace-nowrap"
+                            [ngClass]="typeItem.color"
+                            [title]="typeItem.label">
+                        {{ typeItem.label }}
+                      </span>
+                      <ng-container *ngIf="getIndicatorOffTypeBadge(item) as offBadge">
+                        <span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-bold whitespace-nowrap"
+                              [ngClass]="offBadge.color" [title]="offBadge.title">
+                          <i class="fas fa-hospital text-[8px]"></i>{{ offBadge.label }}
+                        </span>
+                      </ng-container>
+                      <h3 class="font-semibold text-gray-900 text-sm">{{ item.kpi_indicators_name }}</h3>
+                    </div>
+                    <p class="text-xs text-gray-600 mb-1">{{ item.main_indicator_name }}</p>
+                    <p class="text-xs text-gray-500">{{ item.dept_name }} | {{ item.year_bh }}</p>
+                    <p *ngIf="item.hosname" class="text-xs text-blue-500">
+                      {{ item.hosname }}
+                      <span *ngIf="item.hostypename" class="ml-1 px-1.5 py-0.5 bg-cyan-50 text-cyan-700 rounded-full text-[9px] font-semibold">{{ item.hostypename }}</span>
+                      <span *ngIf="item.distname" class="text-gray-400">| {{ item.distname }}</span>
+                    </p>
+                  </div>
+                  <div class="flex flex-col gap-1 items-end">
+                    <button (click)="openTrendModal(item)" class="text-blue-500 hover:text-blue-700 p-1" title="ดูแนวโน้ม">
+                      <i class="fas fa-chart-line"></i>
+                    </button>
+                    <button *ngIf="getSubCount(item.indicator_id) > 0" (click)="openSubResultModal(item)"
+                            class="text-indigo-600 hover:text-indigo-800 p-1 text-xs" title="ตัวชี้วัดย่อย">
+                      <i class="fas fa-list-ul"></i> {{ getSubCount(item.indicator_id) }}
+                      <span *ngIf="getSubSummary(item) as sum" class="text-[10px] bg-indigo-50 text-indigo-600 rounded px-1 ml-0.5">
+                        เฉลี่ย {{ sum.avg_pct }}%
+                      </span>
+                    </button>
+                  </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3 text-xs">
+                  <div class="bg-yellow-50 p-2 rounded">
+                    <span class="text-gray-600">เป้าหมาย:</span>
+                    <span *ngIf="!canShowTargetInput(item)" class="font-bold ml-1">{{ item.target_value || '-' }}</span>
+                    <input *ngIf="canShowTargetInput(item)" type="text" [(ngModel)]="item.target_value" class="w-full border border-orange-300 rounded px-1 py-1 text-right text-xs focus:outline-none focus:border-orange-500 transition-colors" [ngClass]="(isModified(item, 'target_value') || isEditingTarget(item)) ? 'bg-orange-100 font-bold text-orange-700 ring-2 ring-orange-400' : 'bg-white'">
+                  </div>
+                  <div class="bg-blue-50 p-2 rounded">
+                    <span class="text-gray-600">ผลงาน:</span>
+                    <span class="font-bold ml-1" [ngClass]="!isTargetMet(item) ? 'text-red-600' : 'text-blue-600'">{{ item.last_actual || '-' }}</span>
+                  </div>
+                  <div class="bg-gray-50 p-2 rounded col-span-2">
+                    <span class="text-gray-600">%:</span>
+                    <span class="font-bold ml-1" [ngClass]="isTargetMet(item) ? 'text-green-600' : 'text-red-600'">{{ calcPercent(item) | number:'1.2-2' }}%</span>
+                  </div>
+                </div>
+
+                <div class="grid grid-cols-3 gap-2 text-xs" *ngIf="isEditing">
+                  <div *ngFor="let month of [{key: 'oct', name: 'ต.ค.'}, {key: 'nov', name: 'พ.ย.'}, {key: 'dece', name: 'ธ.ค.'}, {key: 'jan', name: 'ม.ค.'}, {key: 'feb', name: 'ก.พ.'}, {key: 'mar', name: 'มี.ค.'}, {key: 'apr', name: 'เม.ย.'}, {key: 'may', name: 'พ.ค.'}, {key: 'jun', name: 'มิ.ย.'}, {key: 'jul', name: 'ก.ค.'}, {key: 'aug', name: 'ส.ค.'}, {key: 'sep', name: 'ก.ย.'}]"
+                       class="text-center p-1 rounded relative"
+                       [ngClass]="item.is_locked ? 'bg-gray-100 border border-gray-200' : ((item[month.key] && item[month.key] !== '0') ? 'bg-green-100' : 'bg-gray-50')">
+                    <div class="text-gray-600 mb-1 flex items-center justify-center gap-1">
+                      {{ month.name }}
+                      <i *ngIf="item.is_locked" class="fas fa-lock text-amber-500 text-[9px]" title="ล็อค — แก้ไขไม่ได้"></i>
+                    </div>
+                    <input *ngIf="!item.is_locked && canEditActual" type="text" [(ngModel)]="item[month.key]" (ngModelChange)="onValueChange(item, month.key)"
+                           class="w-full border border-gray-300 rounded px-1 py-1 text-center text-xs focus:outline-none focus:border-green-500 hover:border-green-400 transition-colors"
+                           [ngClass]="isModified(item, month.key) ? 'bg-orange-200 font-bold text-red-600 ring-2 ring-orange-400' : 'bg-white'">
+                    <span *ngIf="item.is_locked || !canEditActual" class="block font-bold text-gray-600">{{ (item[month.key] && item[month.key] !== '0') ? item[month.key] : '-' }}</span>
+                  </div>
+                </div>
+
+                <!-- 12 เดือน — scroll แนวนอน เริ่มที่ 6 เดือนล่าสุดที่มีข้อมูล -->
+                <div *ngIf="!isEditing"
+                     class="overflow-x-auto pb-1 -mx-1"
+                     [initScrollLeft]="getMobileMonthScroll(item, 6, 62, 8)"
+                     style="scrollbar-width: thin;">
+                  <div class="flex gap-2 text-xs px-1" style="width: max-content;">
+                    <div *ngFor="let month of FISCAL_MONTHS"
+                         class="w-[62px] shrink-0 text-center p-1 rounded"
+                         [ngClass]="(item[month.key] && item[month.key] !== '0') ? 'bg-green-100 font-bold text-gray-900' : 'text-gray-400 bg-white border border-gray-100'">
+                      <div class="text-gray-600 mb-1">{{ month.name }}</div>
+                      <div>{{ (item[month.key] && item[month.key] !== '0') ? item[month.key] : '-' }}</div>
+                    </div>
+                  </div>
+                </div>
+                  <div class="flex gap-2">
+                    <button *ngIf="(isAdmin || isSuperAdmin) && (item.indicator_status === 'pending' || item.indicator_status === 'Pending')"
+                            (click)="approveKpi(item)"
+                            class="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded-lg text-[10px] font-bold flex items-center transition-all shadow-md active:scale-95">
+                      <i class="fas fa-check-circle mr-1"></i> รับรองข้อมูล
+                    </button>
+                    <button *ngIf="(isAdmin || isSuperAdmin) && (item.indicator_status === 'pending' || item.indicator_status === 'Pending')"
+                            (click)="openRejectModal(item)"
+                            class="px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white rounded-lg text-[10px] font-bold flex items-center transition-all shadow-md active:scale-95">
+                      <i class="fas fa-undo-alt mr-1"></i> ส่งคืนแก้ไข
+                    </button>
+                    <button *ngIf="isSuperAdmin && (item.indicator_status === 'approved' || item.indicator_status === 'Approved')"
+                            (click)="unlockKpi(item)"
+                            class="px-3 py-1.5 bg-orange-500 hover:bg-orange-600 text-white rounded-lg text-[10px] font-bold flex items-center transition-all shadow-md active:scale-95">
+                      <i class="fas fa-lock-open mr-1"></i> ปลดล็อค
+                    </button>
+                    <!-- ปุ่มยื่นอุทธรณ์ (user) -->
+                    <button *ngIf="(isLocalAdmin || (!isAdmin && !isSuperAdmin)) && appealSettings.is_open && (item.indicator_status === 'approved' || item.indicator_status === 'Approved')"
+                            (click)="openAppealModal(item)"
+                            class="px-3 py-1.5 bg-purple-500 hover:bg-purple-600 text-white rounded-lg text-[10px] font-bold flex items-center transition-all shadow-md active:scale-95">
+                      <i class="fas fa-gavel mr-1"></i> ยื่นอุทธรณ์
+                    </button>
+                    <!-- Admin จัดการอุทธรณ์ -->
+                    <button *ngIf="(isAdmin || isSuperAdmin) && (item.indicator_status === 'appeal' || item.indicator_status === 'Appeal')"
+                            (click)="approveAppeal(item)"
+                            class="px-3 py-1.5 bg-green-500 hover:bg-green-600 text-white rounded-lg text-[10px] font-bold flex items-center transition-all shadow-md active:scale-95">
+                      <i class="fas fa-check mr-1"></i> อนุมัติอุทธรณ์
+                    </button>
+                    <button *ngIf="(isAdmin || isSuperAdmin) && (item.indicator_status === 'appeal' || item.indicator_status === 'Appeal')"
+                            (click)="rejectAppeal(item)"
+                            class="px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white rounded-lg text-[10px] font-bold flex items-center transition-all shadow-md active:scale-95">
+                      <i class="fas fa-times mr-1"></i> ปฏิเสธอุทธรณ์
+                    </button>
+                    <!-- ปุ่มแก้ไขเฉพาะข้อ (Mobile) -->
+                    <button *ngIf="(isLocalAdmin || (!isAdmin && !isSuperAdmin)) && !isEditing && item.appeal_approved > 0 && !item.is_locked && (item.indicator_status === 'pending' || item.indicator_status === 'Pending') && !isSingleEditing(item)"
+                            (click)="startEditSingle(item)"
+                            class="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-[10px] font-bold flex items-center transition-all shadow-md active:scale-95">
+                      <i class="fas fa-pen-square mr-1"></i> แก้ไขข้อนี้
+                    </button>
+                    <!-- ปุ่มแก้ไขเป้าหมายรายข้อ (Mobile - ตามสิทธิ์ role เมื่อไม่ล็อค) -->
+                    <button *ngIf="canEditTarget && !isEditing && !isSingleEditing(item) && !isEditingTarget(item) && !item.is_locked"
+                            (click)="startEditTarget(item)"
+                            class="px-3 py-1.5 bg-orange-500 hover:bg-orange-600 text-white rounded-lg text-[10px] font-bold flex items-center transition-all shadow-md active:scale-95">
+                      <i class="fas fa-bullseye mr-1"></i> แก้ไขเป้าหมาย
+                    </button>
+                    <!-- บันทึก/ยกเลิกเมื่อกำลังแก้ไข -->
+                    <button *ngIf="isEditingTarget(item)"
+                            (click)="saveTargetOnly(item)"
+                            class="px-3 py-1.5 bg-orange-600 hover:bg-orange-700 text-white rounded-lg text-[10px] font-bold flex items-center transition-all shadow-md active:scale-95">
+                      <i class="fas fa-save mr-1"></i> บันทึกเป้าหมาย
+                    </button>
+                    <button *ngIf="isEditingTarget(item)"
+                            (click)="cancelEditTarget(item)"
+                            class="px-3 py-1.5 bg-gray-500 hover:bg-gray-600 text-white rounded-lg text-[10px] font-bold flex items-center transition-all shadow-md active:scale-95">
+                      <i class="fas fa-times mr-1"></i> ยกเลิก
+                    </button>
+                    <!-- ปุ่มขออนุมัติ/แสดงสถานะ (Mobile - เมื่อล็อค) -->
+                    <ng-container *ngIf="canRequestTargetEdit && !isEditing && !isSingleEditing(item) && !isEditingTarget(item) && !item.is_locked">
+                      <ng-container *ngIf="!getTargetEditRequest(item)">
+                        <button (click)="requestTargetEdit(item)"
+                                class="px-3 py-1.5 bg-orange-500 hover:bg-orange-600 text-white rounded-lg text-[10px] font-bold flex items-center transition-all shadow-md active:scale-95">
+                          <i class="fas fa-bullseye mr-1"></i> ขอแก้ไขเป้าหมาย
+                        </button>
+                      </ng-container>
+                      <ng-container *ngIf="getTargetEditRequest(item) as req">
+                        <span *ngIf="req.status === 'pending'"
+                              class="px-3 py-1.5 bg-yellow-100 text-yellow-700 rounded-lg text-[10px] font-bold flex items-center border border-yellow-300">
+                          <i class="fas fa-clock mr-1"></i> รอการอนุมัติ...
+                        </span>
+                        <button *ngIf="req.status === 'pending' && isAdmin"
+                                (click)="approveTargetRequest(req)"
+                                class="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded-lg text-[10px] font-bold flex items-center transition-all shadow-md active:scale-95">
+                          <i class="fas fa-check mr-1"></i> อนุมัติคำขอ
+                        </button>
+                        <button *ngIf="req.status === 'pending' && isAdmin"
+                                (click)="rejectTargetRequest(req)"
+                                class="px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white rounded-lg text-[10px] font-bold flex items-center transition-all shadow-md active:scale-95">
+                          <i class="fas fa-ban mr-1"></i> ปฏิเสธ
+                        </button>
+                        <button *ngIf="req.status === 'approved'"
+                                (click)="startEditTarget(item)"
+                                class="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded-lg text-[10px] font-bold flex items-center transition-all shadow-md active:scale-95">
+                          <i class="fas fa-pen mr-1"></i> แก้ไขเป้าหมาย
+                        </button>
+                        <span *ngIf="req.status === 'rejected'"
+                              class="px-3 py-1.5 bg-red-100 text-red-600 rounded-lg text-[10px] font-bold flex items-center border border-red-300"
+                              [title]="'ถูกปฏิเสธ' + (req.reject_reason ? ': ' + req.reject_reason : '')">
+                          <i class="fas fa-ban mr-1"></i> ถูกปฏิเสธ
+                        </span>
+                        <button *ngIf="req.status === 'rejected'"
+                                (click)="requestTargetEdit(item)"
+                                class="px-3 py-1.5 bg-orange-500 hover:bg-orange-600 text-white rounded-lg text-[10px] font-bold flex items-center transition-all shadow-md active:scale-95">
+                          <i class="fas fa-redo mr-1"></i> ขอใหม่
+                        </button>
+                      </ng-container>
+                    </ng-container>
+                    <button *ngIf="isSingleEditing(item)"
+                            (click)="saveSingleItem()"
+                            class="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded-lg text-[10px] font-bold flex items-center transition-all shadow-md active:scale-95">
+                      <i class="fas fa-save mr-1"></i> บันทึกและส่งตรวจสอบ
+                    </button>
+                    <button *ngIf="isSingleEditing(item)"
+                            (click)="cancelEditSingle()"
+                            class="px-3 py-1.5 bg-gray-500 hover:bg-gray-600 text-white rounded-lg text-[10px] font-bold flex items-center transition-all shadow-md active:scale-95">
+                      <i class="fas fa-times mr-1"></i> ยกเลิก
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+        </div>
+
+        <!-- Desktop Table View -->
+        <div class="kpi-table-wrapper hidden lg:block">
+          <table class="kpi-table text-left">
+            <thead>
+              <tr class="text-white text-xs uppercase font-bold">
+                <!-- Frozen columns 1-8 -->
+                <th *ngIf="isReviewMode" class="px-2 py-3 bg-green-800 text-center w-8">
+                  <input type="checkbox" [checked]="reviewAllChecked" (change)="toggleReviewAll()" class="rounded text-teal-400 focus:ring-teal-400">
+                </th>
+                <th *ngIf="isDeleteMode" class="px-2 py-3 bg-red-700 text-center w-8" title="เลือกทั้งหมด">
+                  <input type="checkbox" [checked]="deleteAllChecked" (change)="toggleDeleteAll()" class="rounded text-red-400 focus:ring-red-400">
+                </th>
+                <th class="px-3 py-3 frozen col-1 bg-green-700">หมวดหมู่หลัก</th>
+                <th class="px-3 py-3 frozen col-2 bg-green-700 border-r border-green-600">ชื่อตัวชี้วัด</th>
+                <th class="px-2 py-3 frozen col-3 bg-green-700 text-center border-r border-green-600">จัดการ</th>
+                <th class="px-3 py-3 frozen col-4 bg-green-700 border-r border-green-600">หน่วยบริการ</th>
+                <th class="px-3 py-3 bg-green-800 text-right">เป้าหมาย</th>
+                <th class="px-3 py-3 bg-green-800 text-right">ผลงานรวม</th>
+                <th class="px-2 py-3 bg-green-800 text-center border-r border-green-600">%</th>
+                <!-- Scrollable monthly columns -->
+                <th class="px-2 py-3 text-center border-x border-green-600 bg-green-700 month-col" *ngFor="let m of ['ต.ค.','พ.ย.','ธ.ค.','ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.']; let last = last" [class.rounded-tr-xl]="last">
+                  {{m}}
+                </th>
+              </tr>
+            </thead>
+
+            <tbody class="divide-y divide-gray-100 bg-white">
+              <tr *ngFor="let item of pagedData; let i = index" class="hover:bg-green-50/30 transition-all duration-150 text-xs">
+
+                <!-- Review checkbox -->
+                <td *ngIf="isReviewMode" class="px-2 py-2 text-center">
+                  <input type="checkbox" [checked]="reviewSelected.has(reviewKey(item))" (change)="toggleReviewItem(item)"
+                         class="rounded text-teal-600 focus:ring-teal-400" [disabled]="item.pending_count === 0"
+                         [title]="item.pending_count > 0 ? 'เลือกเพื่อตรวจสอบ' : 'ไม่มีรายการรอตรวจสอบ'">
+                </td>
+                <!-- Delete checkbox -->
+                <td *ngIf="isDeleteMode" class="px-2 py-2 text-center bg-red-50">
+                  <input type="checkbox" [checked]="isDeleteSelected(item)" (change)="toggleDeleteItem(item)"
+                         class="rounded text-red-600 focus:ring-red-400" title="เลือกเพื่อลบ">
+                </td>
+
+                <!-- Col 1: หมวดหมู่หลัก (with rowSpan) -->
+                <td *ngIf="item.rowSpan > 0"
+                    [attr.rowspan]="item.rowSpan"
+                    class="px-3 py-2 frozen col-1 bg-green-50 border-r border-gray-100 align-top rowspan-cell">
+                  <div class="mt-1 sticky top-10 font-bold text-green-800 whitespace-normal break-words" [title]="item.main_indicator_name">
+                    {{ item.main_indicator_name }}
+                  </div>
+                </td>
+
+                <!-- Col 2: ชื่อตัวชี้วัด -->
+                <td class="px-3 py-2 frozen col-2 bg-white border-r border-gray-100">
+                  <div class="flex items-start gap-1.5 min-w-0 flex-wrap">
+                      <i *ngIf="isTargetMet(item)" class="fas fa-check-circle text-green-500 mt-0.5 shrink-0 text-xs"></i>
+                      <i *ngIf="!isTargetMet(item)" class="fas fa-times-circle text-red-500 mt-0.5 shrink-0 text-xs"></i>
+                      <!-- สถานะ (merged เข้า col ชื่อตัวชี้วัด) -->
+                      <span *ngIf="item.indicator_status === 'approved' || item.indicator_status === 'Approved'" class="status-badge status-approved shrink-0 mt-0.5">
+                        <i class="fas fa-check-circle"></i> ตรวจสอบแล้ว
+                      </span>
+                      <span *ngIf="item.indicator_status === 'pending' || item.indicator_status === 'Pending'" class="status-badge status-pending animate-pulse shrink-0 mt-0.5">
+                        <i class="fas fa-clock"></i> รอตรวจสอบ
+                      </span>
+                      <span *ngIf="item.indicator_status === 'rejected' || item.indicator_status === 'Rejected'" class="status-badge status-rejected cursor-pointer shrink-0 mt-0.5" (click)="viewRejectionHistory(item)" title="คลิกดูเหตุผล">
+                        <i class="fas fa-undo-alt"></i> ถูกตีกลับ
+                      </span>
+                      <span *ngIf="item.indicator_status === 'resubmit' || item.indicator_status === 'Resubmit'" class="status-badge status-resubmit cursor-pointer shrink-0 mt-0.5" (click)="viewRejectionHistory(item)" title="คลิกดูเหตุผล">
+                        <i class="fas fa-reply"></i> รอตอบกลับ
+                      </span>
+                      <span *ngIf="item.indicator_status === 'appeal' || item.indicator_status === 'Appeal'" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-100 text-purple-700 cursor-pointer shrink-0 mt-0.5" (click)="viewRejectionHistory(item)" title="คลิกดูรายละเอียด">
+                        <i class="fas fa-gavel"></i> ยื่นอุทธรณ์
+                      </span>
+                      <span *ngIf="item.is_locked" class="status-badge status-locked shrink-0 mt-0.5">
+                        <i class="fas fa-lock"></i> ล็อค
+                      </span>
+                      <!-- ปีงบประมาณ -->
+                      <span class="inline-flex items-center px-1.5 py-0.5 bg-gray-100 text-gray-600 rounded text-[10px] font-bold shrink-0 mt-0.5" title="ปีงบประมาณ">
+                        <i class="fas fa-calendar-alt text-[8px] mr-0.5"></i>{{ item.year_bh }}
+                      </span>
+                      <button *ngIf="!isAdmin && (item.indicator_status === 'resubmit' || item.indicator_status === 'Resubmit')"
+                              (click)="openReplyModal(item)"
+                              class="px-1.5 py-0.5 bg-blue-500 hover:bg-blue-600 text-white rounded text-[9px] font-bold transition-all shrink-0 mt-0.5">
+                        <i class="fas fa-paper-plane mr-0.5"></i>ตอบกลับ
+                      </button>
+                      <!-- Type indicators (desktop) -->
+                      <span *ngFor="let typeItem of getIndicatorTypes(item)"
+                            class="inline-block px-1 py-0.5 rounded text-[8px] font-bold whitespace-nowrap shrink-0 mt-0.5"
+                            [ngClass]="typeItem.color"
+                            [title]="typeItem.label">
+                        {{ typeItem.label }}
+                      </span>
+                      <!-- ตัวชี้วัดของ (required_off_types / evaluation_mode) -->
+                      <ng-container *ngIf="getIndicatorOffTypeBadge(item) as offBadge">
+                        <span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[8px] font-bold whitespace-nowrap shrink-0 mt-0.5"
+                              [ngClass]="offBadge.color" [title]="offBadge.title">
+                          <i class="fas fa-hospital text-[7px]"></i>{{ offBadge.label }}
+                        </span>
+                      </ng-container>
+                      <span class="font-medium text-gray-900 whitespace-normal break-words" [title]="item.kpi_indicators_name">{{ item.kpi_indicators_name }}</span>
+                      <span *ngIf="item.dept_name" class="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-slate-100 text-slate-700 border border-slate-200 rounded text-[10px] font-semibold whitespace-nowrap shrink-0" [title]="'หน่วยงาน: ' + item.dept_name">
+                        <i class="fas fa-building text-[8px]"></i>{{ item.dept_name }}
+                      </span>
+                      <button (click)="openTrendModal(item)" class="text-blue-500 hover:text-blue-700 p-0.5 focus:outline-none shrink-0" title="ดูแนวโน้ม">
+                        <i class="fas fa-chart-line text-xs"></i>
+                      </button>
+                  </div>
+                </td>
+
+                <!-- Col 3: จัดการ (action icons — แนวตั้ง) — frozen -->
+                <td class="px-1 py-2 frozen col-3 bg-white border-r border-gray-100">
+                  <div class="flex flex-col items-center gap-0.5">
+                      <button *ngIf="(isAdmin || isSuperAdmin) && (item.indicator_status === 'pending' || item.indicator_status === 'Pending')"
+                              (click)="approveKpi(item)"
+                              class="text-green-600 hover:text-green-800 p-0.5 transition-colors"
+                              title="รับรองข้อมูล">
+                        <i class="fas fa-check-circle text-xs"></i>
+                      </button>
+                      <button *ngIf="(isAdmin || isSuperAdmin) && (item.indicator_status === 'pending' || item.indicator_status === 'Pending')"
+                              (click)="openRejectModal(item)"
+                              class="text-red-500 hover:text-red-700 p-0.5 transition-colors"
+                              title="ส่งคืนแก้ไข">
+                        <i class="fas fa-undo-alt text-xs"></i>
+                      </button>
+                      <button *ngIf="isSuperAdmin && (item.indicator_status === 'approved' || item.indicator_status === 'Approved')"
+                              (click)="unlockKpi(item)"
+                              class="text-amber-500 hover:text-amber-700 p-0.5 transition-colors"
+                              title="ปลดล็อคเป้าหมาย">
+                        <i class="fas fa-lock-open text-xs"></i>
+                      </button>
+                      <button *ngIf="(isLocalAdmin || (!isAdmin && !isSuperAdmin)) && appealSettings.is_open && (item.indicator_status === 'approved' || item.indicator_status === 'Approved')"
+                              (click)="openAppealModal(item)"
+                              class="text-purple-500 hover:text-purple-700 p-0.5 transition-colors"
+                              title="ยื่นอุทธรณ์">
+                        <i class="fas fa-gavel text-xs"></i>
+                      </button>
+                      <!-- ปุ่มแก้ไขเฉพาะข้อ (อุทธรณ์ได้รับอนุมัติ) -->
+                      <button *ngIf="(isLocalAdmin || (!isAdmin && !isSuperAdmin)) && !isEditing && item.appeal_approved > 0 && !item.is_locked && (item.indicator_status === 'pending' || item.indicator_status === 'Pending') && !isSingleEditing(item)"
+                              (click)="startEditSingle(item)"
+                              class="text-purple-600 hover:text-purple-800 p-0.5 transition-colors"
+                              title="แก้ไขข้อนี้ (อุทธรณ์อนุมัติแล้ว)">
+                        <i class="fas fa-pen-square text-xs"></i>
+                      </button>
+                      <button *ngIf="isSingleEditing(item)"
+                              (click)="saveSingleItem()"
+                              class="text-green-600 hover:text-green-800 p-0.5 transition-colors"
+                              title="บันทึกและส่งตรวจสอบ">
+                        <i class="fas fa-save text-xs"></i>
+                      </button>
+                      <button *ngIf="isSingleEditing(item)"
+                              (click)="cancelEditSingle()"
+                              class="text-gray-500 hover:text-gray-700 p-0.5 transition-colors"
+                              title="ยกเลิกการแก้ไข">
+                        <i class="fas fa-times text-xs"></i>
+                      </button>
+                      <!-- ปุ่มแก้ไขเป้าหมายรายข้อ (ตามสิทธิ์ role เมื่อไม่ล็อค) -->
+                      <button *ngIf="canEditTarget && !isEditing && !isSingleEditing(item) && !isEditingTarget(item) && !item.is_locked"
+                              (click)="startEditTarget(item)"
+                              class="text-orange-500 hover:text-orange-700 p-0.5 transition-colors"
+                              title="แก้ไขเป้าหมาย">
+                        <i class="fas fa-bullseye text-xs"></i>
+                      </button>
+                      <!-- บันทึก/ยกเลิกเมื่อกำลังแก้ไขเป้าหมาย -->
+                      <button *ngIf="isEditingTarget(item)"
+                              (click)="saveTargetOnly(item)"
+                              class="text-orange-600 hover:text-orange-800 p-0.5 transition-colors"
+                              title="บันทึกเป้าหมาย">
+                        <i class="fas fa-save text-xs"></i>
+                      </button>
+                      <button *ngIf="isEditingTarget(item)"
+                              (click)="cancelEditTarget(item)"
+                              class="text-gray-500 hover:text-gray-700 p-0.5 transition-colors"
+                              title="ยกเลิกแก้ไขเป้าหมาย">
+                        <i class="fas fa-times text-xs"></i>
+                      </button>
+                      <!-- ปุ่มขออนุมัติ/แสดงสถานะ (เมื่อล็อค: admin_cup/admin_ssj/super_admin) -->
+                      <ng-container *ngIf="canRequestTargetEdit && !isEditing && !isSingleEditing(item) && !isEditingTarget(item) && !item.is_locked">
+                        <ng-container *ngIf="!getTargetEditRequest(item)">
+                          <button (click)="requestTargetEdit(item)"
+                                  class="text-orange-500 hover:text-orange-700 p-0.5 transition-colors"
+                                  title="ขอแก้ไขเป้าหมาย">
+                            <i class="fas fa-bullseye text-xs"></i>
+                          </button>
+                        </ng-container>
+                        <ng-container *ngIf="getTargetEditRequest(item) as req">
+                          <span *ngIf="req.status === 'pending'"
+                                class="text-yellow-500 p-0.5"
+                                title="รอการอนุมัติจาก Admin">
+                            <i class="fas fa-clock text-xs"></i>
+                          </span>
+                          <button *ngIf="req.status === 'pending' && isAdmin"
+                                  (click)="approveTargetRequest(req)"
+                                  class="text-green-500 hover:text-green-700 p-0.5 transition-colors"
+                                  title="อนุมัติคำขอ">
+                            <i class="fas fa-check text-xs"></i>
+                          </button>
+                          <button *ngIf="req.status === 'pending' && isAdmin"
+                                  (click)="rejectTargetRequest(req)"
+                                  class="text-red-500 hover:text-red-700 p-0.5 transition-colors"
+                                  title="ปฏิเสธคำขอ">
+                            <i class="fas fa-ban text-xs"></i>
+                          </button>
+                          <button *ngIf="req.status === 'approved'"
+                                  (click)="startEditTarget(item)"
+                                  class="text-green-600 hover:text-green-800 p-0.5 transition-colors"
+                                  title="แก้ไขเป้าหมาย (ได้รับอนุมัติแล้ว)">
+                            <i class="fas fa-pen text-xs"></i>
+                          </button>
+                          <span *ngIf="req.status === 'rejected'"
+                                class="text-red-400 p-0.5"
+                                [title]="'ถูกปฏิเสธ' + (req.reject_reason ? ': ' + req.reject_reason : '')">
+                            <i class="fas fa-ban text-xs"></i>
+                          </span>
+                          <button *ngIf="req.status === 'rejected'"
+                                  (click)="requestTargetEdit(item)"
+                                  class="text-orange-500 hover:text-orange-700 p-0.5 transition-colors"
+                                  title="ขอแก้ไขใหม่">
+                            <i class="fas fa-redo text-xs"></i>
+                          </button>
+                        </ng-container>
+                      </ng-container>
+                      <button *ngIf="(isAdmin || isSuperAdmin) && (item.indicator_status === 'appeal' || item.indicator_status === 'Appeal')"
+                              (click)="approveAppeal(item)"
+                              class="text-green-500 hover:text-green-700 p-0.5 transition-colors"
+                              title="อนุมัติอุทธรณ์">
+                        <i class="fas fa-check-circle text-xs"></i>
+                      </button>
+                      <button *ngIf="(isAdmin || isSuperAdmin) && (item.indicator_status === 'appeal' || item.indicator_status === 'Appeal')"
+                              (click)="rejectAppeal(item)"
+                              class="text-red-500 hover:text-red-700 p-0.5 transition-colors"
+                              title="ปฏิเสธอุทธรณ์">
+                        <i class="fas fa-times-circle text-xs"></i>
+                      </button>
+                      <button *ngIf="item.table_process && item.has_form_schema"
+                              (click)="openDynamicForm(item)"
+                              class="text-purple-500 hover:text-purple-700 p-0.5 transition-colors"
+                              title="กรอกข้อมูลแบบฟอร์ม">
+                        <i class="fas fa-clipboard-list text-xs"></i>
+                      </button>
+                      <button *ngIf="getSubCount(item.indicator_id) > 0" (click)="openSubResultModal(item)"
+                              class="text-indigo-600 hover:text-indigo-800 p-0.5 focus:outline-none flex items-center gap-0.5"
+                              [title]="getSubSummary(item) ? 'ย่อย ' + getSubCount(item.indicator_id) + ' ตัว | เฉลี่ยเป้า ' + formatNum(getSubSummary(item).avg_target) + ' | ผลงาน ' + formatNum(getSubSummary(item).last_actual) + ' | บรรลุ ' + getSubSummary(item).avg_pct + '%' : 'ตัวชี้วัดย่อย'">
+                        <i class="fas fa-list-ul text-xs"></i>
+                        <span class="text-[10px] font-bold">{{ getSubCount(item.indicator_id) }}</span>
+                        <span *ngIf="getSubSummary(item) as sum" class="text-[9px] text-indigo-500 bg-indigo-50 rounded px-1 ml-0.5">
+                          {{ sum.avg_pct }}%
+                        </span>
+                      </button>
+                  </div>
+                </td>
+
+                <!-- Col 4: หน่วยบริการ (+ ประเภทย่อ + อำเภอบรรทัด 2) — frozen -->
+                <td class="px-3 py-2 frozen col-4 bg-white border-r border-gray-100 text-gray-600 text-xs">
+                  <div class="flex items-center gap-1 flex-wrap">
+                    <span class="break-words">{{ item.hosname || '-' }}</span>
+                    <span *ngIf="item.hostype" class="px-1.5 py-0.5 bg-cyan-50 text-cyan-700 border border-cyan-200 rounded text-[10px] font-bold whitespace-nowrap shrink-0"
+                          [title]="item.hostypename">{{ getHosTypeAbbr(item.hostype) }}</span>
+                  </div>
+                  <div *ngIf="item.distname" class="text-[10px] text-gray-500 mt-0.5 flex items-center gap-1">
+                    <i class="fas fa-map-marker-alt text-gray-400 text-[9px]"></i>{{ item.distname }}
+                  </div>
+                </td>
+
+
+                <!-- Col 8: เป้าหมาย -->
+                <td class="px-1 py-2 bg-amber-50/30 font-bold text-gray-800 text-right whitespace-nowrap">
+                  <span *ngIf="!canShowTargetInput(item)">{{ item.target_value || '-' }}</span>
+                  <input *ngIf="canShowTargetInput(item)" type="text" [(ngModel)]="item.target_value"
+                         class="w-20 border border-amber-200 rounded px-1 py-1 text-right text-xs focus:ring-1 focus:ring-orange-500 outline-none bg-orange-50 hover:border-orange-400 transition-all"
+                         [ngClass]="isModified(item, 'target_value') || isEditingTarget(item) ? '!bg-orange-100 !text-orange-700 ring-2 ring-orange-400 font-bold' : ''">
+                </td>
+
+                <!-- Col 7: ผลงานรวม -->
+                <td class="px-2 py-2 bg-blue-50/30 font-bold text-right whitespace-nowrap"
+                  [ngClass]="isTargetMet(item) ? 'text-blue-600' : 'text-red-600'">
+                  {{ item.last_actual || '-' }}
+                </td>
+
+                <!-- Col 8: % -->
+                <td class="px-2 py-2 bg-gray-50/50 font-bold border-r text-center whitespace-nowrap"
+                  [ngClass]="isTargetMet(item) ? 'text-green-600' : 'text-red-600'">
+                  {{ calcPercent(item) | number:'1.2-2' }}%
+                </td>
+
+                <!-- Scrollable monthly columns -->
+                <td *ngFor="let m of ['oct','nov','dece','jan','feb','mar','apr','may','jun','jul','aug','sep']"
+                    class="px-1 py-2 text-center border-x group whitespace-nowrap month-col relative"
+                    [ngClass]="hasFormData(item, m) ? 'bg-purple-50/60 text-gray-900 font-bold' : (item[m] && item[m] !== '0') ? 'bg-green-100/40 text-gray-900 font-bold' : 'text-gray-300'">
+                  <span *ngIf="(!isEditing && !isSingleEditing(item)) || item.is_locked || !canEditActual">
+                    {{ (item[m] && item[m] !== '0') ? item[m] : '-' }}
+                    <i *ngIf="hasFormData(item, m)" class="fas fa-clipboard-check text-purple-400 text-[8px] ml-0.5" title="ข้อมูลจากแบบฟอร์ม"></i>
+                  </span>
+                  <input *ngIf="(isEditing || isSingleEditing(item)) && !item.is_locked && canEditActual" type="text" [(ngModel)]="item[m]" (ngModelChange)="onValueChange(item, m)"
+                         class="w-full border border-green-200 rounded px-1 py-1 text-center text-xs focus:ring-1 focus:ring-green-500 outline-none hover:border-green-400 transition-all bg-white/80 group-hover:bg-white"
+                         [ngClass]="isModified(item, m) ? '!bg-orange-200 !text-red-600 ring-2 ring-orange-400 font-bold' : ''">
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+          <div class="p-4 bg-white border-t border-gray-100 rounded-b-2xl shadow-sm">
+            <span class="text-xs text-gray-500 font-medium">แสดง {{ filteredData.length }} รายการ</span>
+            <span *ngIf="kpiData.length >= 500" class="text-xs text-amber-500 font-medium ml-2"><i class="fas fa-exclamation-triangle mr-1"></i>แสดงสูงสุด 500 — กรุณาเลือกตัวกรองเพิ่ม</span>
+                </div>
+              </div><!-- /p-6 wrapper -->
+            </ng-container>
+
+<!-- Modal: ดูแนวโน้มกราฟ (Trend Chart) -->
+<div *ngIf="showTrendModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-3xl p-6 transform transition-all scale-100 overflow-y-auto max-h-[90vh]">
+    <div class="flex justify-between items-center mb-4">
+      <h3 class="text-lg font-bold text-gray-800"><i class="fas fa-chart-line text-blue-500 mr-2"></i>{{ selectedKpiName }}</h3>
+      <button (click)="closeTrendModal()" class="text-gray-400 hover:text-gray-600 text-xl"><i class="fas fa-times"></i></button>
+    </div>
+    <apx-chart
+      [series]="kpiTrendOptions.series"
+      [chart]="kpiTrendOptions.chart"
+      [dataLabels]="kpiTrendOptions.dataLabels"
+      [stroke]="kpiTrendOptions.stroke"
+      [title]="kpiTrendOptions.title"
+      [grid]="kpiTrendOptions.grid"
+      [xaxis]="kpiTrendOptions.xaxis"
+      [colors]="kpiTrendOptions.colors"
+      [markers]="kpiTrendOptions.markers"
+    ></apx-chart>
+    <div class="mt-4 flex justify-end">
+      <button (click)="closeTrendModal()" class="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg font-bold text-sm">ปิด</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: ส่งคืนแก้ไข (Reject) -->
+<div *ngIf="showRejectModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg p-6 transform transition-all scale-100">
+    <h3 class="text-lg font-bold text-gray-800 mb-4"><i class="fas fa-undo-alt text-red-500 mr-2"></i>ส่งคืนแก้ไข</h3>
+    <p class="text-sm text-gray-600 mb-2">ตัวชี้วัด: <span class="font-bold">{{ rejectingItem?.kpi_indicators_name }}</span></p>
+    <p class="text-sm text-gray-500 mb-3">ปีงบประมาณ: <span class="font-bold">{{ rejectingItem?.year_bh }}</span> | หน่วยบริการ: <span class="font-bold">{{ rejectingItem?.hosname || '-' }}</span></p>
+
+    <!-- เลือกเดือนที่ต้องแก้ไข -->
+    <div class="mb-3">
+      <label class="block text-sm font-medium text-gray-700 mb-2">เดือนที่ต้องแก้ไข <span class="text-red-500">*</span></label>
+      <div class="grid grid-cols-4 gap-2">
+        <button *ngFor="let m of rejectMonthOptions" (click)="toggleRejectMonth(m.key)" type="button"
+                class="px-2 py-1.5 rounded-lg text-xs font-bold border transition-all text-center"
+                [ngClass]="rejectSelectedMonths.includes(m.key) ? 'bg-red-500 text-white border-red-500' : 'bg-white text-gray-600 border-gray-200 hover:border-red-300'">
+          {{ m.name }}
+        </button>
+      </div>
+    </div>
+
+    <div>
+      <label class="block text-sm font-medium text-gray-700 mb-1">เหตุผลการส่งคืนแก้ไข <span class="text-red-500">*</span></label>
+      <textarea [(ngModel)]="rejectComment" rows="4" placeholder="กรุณาระบุเหตุผล..."
+                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 outline-none text-sm hover:border-red-400 transition-colors"></textarea>
+    </div>
+    <div class="mt-4 flex justify-end gap-3">
+      <button (click)="showRejectModal = false" class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg font-bold text-sm">ยกเลิก</button>
+      <button (click)="confirmReject()" class="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg font-bold text-sm shadow-md">ส่งคืนแก้ไข</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: ตอบกลับการตีกลับ (Reply) -->
+<div *ngIf="showReplyModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg p-6 transform transition-all scale-100 overflow-y-auto max-h-[90vh]">
+    <h3 class="text-lg font-bold text-gray-800 mb-4"><i class="fas fa-reply text-blue-500 mr-2"></i>ตอบกลับการตีกลับ</h3>
+    <p class="text-sm text-gray-600 mb-1">ตัวชี้วัด: <span class="font-bold">{{ replyingItem?.kpi_indicators_name }}</span></p>
+    <p class="text-sm text-gray-500 mb-3">ปีงบประมาณ: <span class="font-bold">{{ replyingItem?.year_bh }}</span></p>
+
+    <!-- แสดงเหตุผลตีกลับล่าสุด -->
+    <div *ngIf="replyRejectionInfo" class="bg-red-50 border border-red-200 rounded-lg p-3 mb-3">
+      <div class="text-xs font-bold text-red-600 mb-1"><i class="fas fa-exclamation-triangle mr-1"></i>เหตุผลที่ถูกตีกลับ:</div>
+      <p class="text-sm text-gray-700">{{ replyRejectionInfo.comment }}</p>
+      <div *ngIf="replyRejectionInfo.reject_months" class="mt-2">
+        <span class="text-xs font-bold text-red-500">เดือนที่ต้องแก้ไข: </span>
+        <span class="text-xs text-gray-600">{{ replyRejectionInfo.reject_months_display }}</span>
+      </div>
+      <div class="text-xs text-gray-400 mt-1">ตีกลับโดย: {{ replyRejectionInfo.firstname }} {{ replyRejectionInfo.lastname }} | {{ replyRejectionInfo.created_at | date:'dd/MM/yyyy HH:mm' }}</div>
+    </div>
+
+    <div>
+      <label class="block text-sm font-medium text-gray-700 mb-1">ข้อความตอบกลับ <span class="text-gray-400 text-xs">(ไม่บังคับ)</span></label>
+      <textarea [(ngModel)]="replyMessage" rows="4" placeholder="ระบุรายละเอียดการแก้ไข หรือชี้แจงเหตุผล... (หากไม่ระบุ ระบบจะใช้ข้อความเริ่มต้น)"
+                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm hover:border-blue-400 transition-colors"></textarea>
+    </div>
+    <div class="mt-4 flex justify-end gap-3">
+      <button (click)="showReplyModal = false" class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg font-bold text-sm">ยกเลิก</button>
+      <button (click)="confirmReply()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold text-sm shadow-md">
+        <i class="fas fa-paper-plane mr-1"></i>ส่งตอบกลับ
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: เพิ่มตัวชี้วัด (Add KPI) -->
+<div *ngIf="showAddModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-6xl p-6 transform transition-all scale-100 overflow-y-auto max-h-[90vh]">
+    <div class="flex justify-between items-center mb-4">
+      <h3 class="text-lg font-bold text-gray-800"><i class="fas fa-plus-circle text-green-500 mr-2"></i>เพิ่มตัวชี้วัด</h3>
+      <button (click)="closeAddModal()" class="text-gray-400 hover:text-gray-600 text-xl"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="mb-4 flex flex-wrap items-end gap-3">
+      <div class="space-y-1">
+        <label class="text-xs font-bold text-gray-500">ปีงบประมาณ</label>
+        <select [(ngModel)]="addKpiSelectedYear" (change)="loadAddKpiList()" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none text-sm">
+          <option *ngFor="let y of addKpiYears" [value]="y">{{ y }}</option>
+        </select>
+      </div>
+      <!-- Admin/Admin CUP: multi-select checkbox dropdowns (เหมือนตัวกรองหน้า dashboard) -->
+      <ng-container *ngIf="isAdmin || isLocalAdmin">
+        <!-- อำเภอ (multi) -->
+        <div class="space-y-1">
+          <label class="text-xs font-bold text-gray-500">อำเภอ</label>
+          <div class="relative min-w-[150px]">
+            <button type="button" (click)="toggleAddKpiDropdown('district')"
+                    class="w-full flex items-center justify-between px-3 py-2 border border-gray-300 rounded-lg bg-white text-sm hover:border-green-400 outline-none">
+              <span class="truncate" [class.text-gray-400]="addKpiSelDistricts.length === 0">{{ addKpiDistrictLabel() }}</span>
+              <i class="fas fa-chevron-down ml-1 text-gray-400 text-xs"></i>
+            </button>
+            <div *ngIf="addKpiOpenDropdown === 'district'" class="absolute z-50 top-full left-0 mt-1 w-[min(20rem,calc(100vw-2rem))] bg-white border border-gray-200 rounded-lg shadow-xl max-h-72 overflow-hidden flex flex-col">
+              <div class="p-2 border-b bg-gray-50 flex items-center justify-between text-[11px]">
+                <button type="button" (click)="clearAddKpiArr(addKpiSelDistricts); onAddKpiDistrictChange()" class="px-2 py-0.5 bg-gray-200 hover:bg-gray-300 rounded font-bold">ทั้งหมด</button>
+                <span class="text-green-700 font-bold">เลือก: {{ addKpiSelDistricts.length }}</span>
+                <button type="button" (click)="addKpiOpenDropdown = ''" class="px-2 py-0.5 bg-green-500 text-white rounded font-bold">ตกลง</button>
+              </div>
+              <div class="overflow-y-auto flex-1">
+                <label *ngFor="let d of addKpiDistrictList" class="flex items-center gap-2 px-3 py-1.5 hover:bg-gray-50 cursor-pointer text-xs">
+                  <input type="checkbox" [checked]="isAddKpiFilterSel(addKpiSelDistricts, d.distid)"
+                         (change)="toggleAddKpiFilter(addKpiSelDistricts, d.distid); onAddKpiDistrictChange()" class="rounded text-green-600">
+                  <span>{{ d.distname }}</span>
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ประเภทหน่วยบริการ (multi) -->
+        <div class="space-y-1">
+          <label class="text-xs font-bold text-teal-600">ประเภทหน่วยบริการ</label>
+          <div class="relative min-w-[160px]">
+            <button type="button" (click)="toggleAddKpiDropdown('hostype')"
+                    class="w-full flex items-center justify-between px-3 py-2 border border-teal-300 rounded-lg bg-white text-sm hover:border-teal-400 outline-none">
+              <span class="truncate" [class.text-gray-400]="addKpiSelHosTypes.length === 0">{{ addKpiHosTypeLabel() }}</span>
+              <i class="fas fa-chevron-down ml-1 text-gray-400 text-xs"></i>
+            </button>
+            <div *ngIf="addKpiOpenDropdown === 'hostype'" class="absolute z-50 top-full left-0 mt-1 w-[min(20rem,calc(100vw-2rem))] bg-white border border-gray-200 rounded-lg shadow-xl max-h-72 overflow-hidden flex flex-col">
+              <div class="p-2 border-b bg-teal-50 flex items-center justify-between text-[11px]">
+                <button type="button" (click)="clearAddKpiArr(addKpiSelHosTypes); onAddKpiHosTypeChange()" class="px-2 py-0.5 bg-gray-200 hover:bg-gray-300 rounded font-bold">ทั้งหมด</button>
+                <span class="text-teal-700 font-bold">เลือก: {{ addKpiSelHosTypes.length }}</span>
+                <button type="button" (click)="addKpiOpenDropdown = ''" class="px-2 py-0.5 bg-teal-500 text-white rounded font-bold">ตกลง</button>
+              </div>
+              <div class="overflow-y-auto flex-1">
+                <label *ngFor="let ht of hosTypeList" class="flex items-center gap-2 px-3 py-1.5 hover:bg-gray-50 cursor-pointer text-xs">
+                  <input type="checkbox" [checked]="isAddKpiFilterSel(addKpiSelHosTypes, ht.hostypecode)"
+                         (change)="toggleAddKpiFilter(addKpiSelHosTypes, ht.hostypecode); onAddKpiHosTypeChange()" class="rounded text-teal-600">
+                  <span>{{ ht.hostypename }}</span>
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- หน่วยบริการ (multi-target + เลือกทั้งหมด) -->
+        <div class="space-y-1">
+          <label class="text-xs font-bold text-green-700">หน่วยบริการปลายทาง <span class="text-[10px] text-gray-400">(เลือกได้หลายแห่ง)</span></label>
+          <div class="relative min-w-[200px]">
+            <button type="button" (click)="toggleAddKpiDropdown('hospcode')"
+                    class="w-full flex items-center justify-between px-3 py-2 border-2 rounded-lg bg-white text-sm outline-none"
+                    [ngClass]="addKpiSelHospcodes.length > 0 ? 'border-green-500' : 'border-green-300'">
+              <span class="truncate" [class.text-gray-400]="addKpiSelHospcodes.length === 0">{{ addKpiHospLabel() }}</span>
+              <i class="fas fa-chevron-down ml-1 text-gray-400 text-xs"></i>
+            </button>
+            <div *ngIf="addKpiOpenDropdown === 'hospcode'" class="absolute z-50 top-full left-0 mt-1 w-[min(26rem,calc(100vw-2rem))] bg-white border border-gray-200 rounded-lg shadow-xl max-h-80 overflow-hidden flex flex-col">
+              <div class="p-2 border-b bg-green-50 flex items-center justify-between text-[11px]">
+                <label class="flex items-center gap-1.5 font-bold text-green-700 cursor-pointer">
+                  <input type="checkbox" [checked]="isAllAddKpiHospcodes()" (change)="toggleAllAddKpiHospcodes()" class="rounded text-green-600">
+                  เลือกทั้งหมด ({{ addKpiFilteredHospitals.length }})
+                </label>
+                <span class="text-green-700 font-bold">เลือก: {{ addKpiSelHospcodes.length }}</span>
+                <button type="button" (click)="addKpiOpenDropdown = ''" class="px-2 py-0.5 bg-green-500 text-white rounded font-bold">ตกลง</button>
+              </div>
+              <div class="overflow-y-auto flex-1">
+                <label *ngFor="let h of addKpiFilteredHospitals" class="flex items-center gap-2 px-3 py-1.5 hover:bg-gray-50 cursor-pointer text-xs">
+                  <input type="checkbox" [checked]="isAddKpiFilterSel(addKpiSelHospcodes, h.hoscode)"
+                         (change)="toggleAddKpiFilter(addKpiSelHospcodes, h.hoscode); onAddKpiHospitalChange()" class="rounded text-green-600">
+                  <span class="truncate" [title]="h.hosname">{{ h.hosname }}</span>
+                </label>
+                <div *ngIf="addKpiFilteredHospitals.length === 0" class="px-3 py-3 text-center text-gray-400 text-xs">ไม่มีหน่วยบริการ (ลองปรับตัวกรองอำเภอ/ประเภท)</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- หน่วยงาน (multi + เลือกทั้งหมด) -->
+        <div class="space-y-1">
+          <label class="text-xs font-bold text-indigo-600">หน่วยงาน</label>
+          <div class="relative min-w-[160px]">
+            <button type="button" (click)="toggleAddKpiDropdown('dept')"
+                    class="w-full flex items-center justify-between px-3 py-2 border border-indigo-300 rounded-lg bg-white text-sm hover:border-indigo-400 outline-none">
+              <span class="truncate" [class.text-gray-400]="addKpiSelDepts.length === 0">{{ addKpiDeptLabel() }}</span>
+              <i class="fas fa-chevron-down ml-1 text-gray-400 text-xs"></i>
+            </button>
+            <div *ngIf="addKpiOpenDropdown === 'dept'" class="absolute z-50 top-full left-0 mt-1 w-[min(22rem,calc(100vw-2rem))] bg-white border border-gray-200 rounded-lg shadow-xl max-h-80 overflow-hidden flex flex-col">
+              <div class="p-2 border-b bg-indigo-50 flex items-center justify-between text-[11px]">
+                <label class="flex items-center gap-1.5 font-bold text-indigo-700 cursor-pointer">
+                  <input type="checkbox" [checked]="isAllAddKpiDepts()" (change)="toggleAllAddKpiDepts()" class="rounded text-indigo-600">
+                  เลือกทั้งหมด ({{ addKpiDeptList.length }})
+                </label>
+                <span class="text-indigo-700 font-bold">เลือก: {{ addKpiSelDepts.length }}</span>
+                <button type="button" (click)="addKpiOpenDropdown = ''" class="px-2 py-0.5 bg-indigo-500 text-white rounded font-bold">ตกลง</button>
+              </div>
+              <div class="overflow-y-auto flex-1">
+                <label *ngFor="let dept of addKpiDeptList" class="flex items-center gap-2 px-3 py-1.5 hover:bg-gray-50 cursor-pointer text-xs">
+                  <input type="checkbox" [checked]="isAddKpiFilterSel(addKpiSelDepts, dept.id.toString())"
+                         (change)="toggleAddKpiFilter(addKpiSelDepts, dept.id.toString()); onAddKpiDeptChange()" class="rounded text-indigo-600">
+                  <span>{{ dept.dept_name }}</span>
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+      </ng-container>
+      <!-- User: แสดงข้อมูลหน่วยบริการ/หน่วยงาน อัตโนมัติ -->
+      <ng-container *ngIf="!isAdmin && !isLocalAdmin">
+        <div class="space-y-1">
+          <label class="text-xs font-bold text-gray-500">หน่วยบริการ</label>
+          <div class="px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-700 font-medium">
+            <i class="fas fa-hospital text-green-500 mr-1"></i>{{ currentUser?.service_unit || currentUser?.hospcode || '-' }}
+          </div>
+        </div>
+        <div class="space-y-1">
+          <label class="text-xs font-bold text-gray-500">หน่วยงาน</label>
+          <div class="px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-700 font-medium">
+            <i class="fas fa-building text-blue-500 mr-1"></i>{{ currentUser?.dept_name || '-' }}
+          </div>
+        </div>
+      </ng-container>
+
+      <!-- หมวดหมู่หลัก (multi-select checkbox) — แสดงทั้ง admin + user -->
+      <div *ngIf="addKpiMainList.length > 0" class="space-y-1">
+        <label class="text-xs font-bold text-purple-600">หมวดหมู่หลัก</label>
+        <div class="relative min-w-[170px]">
+          <button type="button" (click)="toggleAddKpiDropdown('main')"
+                  class="w-full flex items-center justify-between px-3 py-2 border border-purple-300 rounded-lg bg-white text-sm hover:border-purple-400 outline-none">
+            <span class="truncate" [class.text-gray-400]="addKpiSelMains.length === 0">{{ addKpiMainLabel() }}</span>
+            <i class="fas fa-chevron-down ml-1 text-gray-400 text-xs"></i>
+          </button>
+          <div *ngIf="addKpiOpenDropdown === 'main'" class="absolute z-50 top-full left-0 mt-1 w-[min(24rem,calc(100vw-2rem))] bg-white border border-gray-200 rounded-lg shadow-xl max-h-80 overflow-hidden flex flex-col">
+            <div class="p-2 border-b bg-purple-50 flex items-center justify-between text-[11px]">
+              <label class="flex items-center gap-1.5 font-bold text-purple-700 cursor-pointer">
+                <input type="checkbox" [checked]="isAllAddKpiMains()" (change)="toggleAllAddKpiMains()" class="rounded text-purple-600">
+                เลือกทั้งหมด ({{ addKpiMainList.length }})
+              </label>
+              <span class="text-purple-700 font-bold">เลือก: {{ addKpiSelMains.length }}</span>
+              <button type="button" (click)="addKpiOpenDropdown = ''" class="px-2 py-0.5 bg-purple-500 text-white rounded font-bold">ตกลง</button>
+            </div>
+            <div class="overflow-y-auto flex-1">
+              <label *ngFor="let m of addKpiMainList" class="flex items-center gap-2 px-3 py-1.5 hover:bg-gray-50 cursor-pointer text-xs">
+                <input type="checkbox" [checked]="isAddKpiFilterSel(addKpiSelMains, m)"
+                       (change)="toggleAddKpiFilter(addKpiSelMains, m)" class="rounded text-purple-600">
+                <span>{{ m }}</span>
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- สรุปหน่วยบริการปลายทาง -->
+    <div *ngIf="(isAdmin || isLocalAdmin) && addKpiTargetHospcodes.length > 0" class="mb-3 px-3 py-2 bg-green-50 border border-green-200 rounded-xl text-xs text-green-800">
+      <i class="fas fa-hospital-user mr-1"></i>จะบันทึกตัวชี้วัดที่เลือกไปยัง <b>{{ addKpiTargetHospcodes.length }}</b> หน่วยบริการ
+      <span class="text-green-600">(ตัวชี้วัดที่มีอยู่แล้วในแต่ละหน่วยบริการจะถูกข้ามอัตโนมัติ)</span>
+    </div>
+
+    <!-- สรุปจำนวน + ตัวกรอง + ปุ่ม Reset -->
+    <div *ngIf="addKpiTotalTemplateCount > 0" class="flex flex-wrap items-center justify-between gap-2 mb-3 px-1">
+      <div class="flex flex-wrap items-center gap-2 text-xs">
+        <span class="px-2.5 py-1 bg-gray-100 text-gray-600 rounded-lg font-bold">
+          <i class="fas fa-list mr-1"></i>ทั้งหมด: {{ addKpiTotalTemplateCount }}
+        </span>
+        <span class="px-2.5 py-1 bg-blue-100 text-blue-700 rounded-lg font-bold">
+          <i class="fas fa-check-circle mr-1"></i>มีอยู่แล้ว: {{ addKpiExistingCount }}
+        </span>
+        <span class="px-2.5 py-1 bg-green-100 text-green-700 rounded-lg font-bold">
+          <i class="fas fa-plus-circle mr-1"></i>ยังไม่มี: {{ newKpiList.length }}
+        </span>
+        <span class="px-2.5 py-1 bg-purple-100 text-purple-700 rounded-lg font-bold">
+          <i class="fas fa-check-square mr-1"></i>เลือก: {{ addKpiSelectedIds.size }} / {{ filteredNewKpiList.length }}
+        </span>
+      </div>
+      <button *ngIf="newKpiList.length > 0" (click)="resetAddKpi()" class="px-3 py-1.5 bg-orange-500 hover:bg-orange-600 text-white rounded-lg text-xs font-bold transition-all shadow-sm">
+        <i class="fas fa-undo mr-1"></i>คืนค่าเริ่มต้น
+      </button>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="w-full text-left border-collapse text-xs">
+        <thead class="bg-gradient-to-r from-green-700 to-green-600 text-white">
+          <tr>
+            <th class="px-2 py-2 text-center w-8">
+              <input type="checkbox" [checked]="isAllAddKpiSelected()" (change)="toggleAllAddKpi()" class="rounded text-purple-600 focus:ring-purple-400" title="เลือกทั้งหมด">
+            </th>
+            <th class="px-3 py-2 font-bold">หมวดหมู่หลัก</th>
+            <th class="px-3 py-2 font-bold">ชื่อตัวชี้วัด</th>
+            <th class="px-3 py-2 font-bold">หน่วยงาน</th>
+            <th class="px-2 py-2 font-bold text-center">ปีงบฯ</th>
+            <th class="px-3 py-2 font-bold text-right">เป้าหมาย</th>
+            <th class="px-2 py-2 font-bold text-center" *ngFor="let m of ['ต.ค.','พ.ย.','ธ.ค.','ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.']">{{ m }}</th>
+            <th class="px-1 py-2 font-bold text-center w-8"></th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100">
+          <tr *ngFor="let item of filteredNewKpiList" class="hover:bg-gray-50"
+              [class.bg-purple-50]="isAddKpiSelected(item)">
+            <td class="px-2 py-2 text-center">
+              <input type="checkbox" [checked]="isAddKpiSelected(item)" (change)="toggleAddKpi(item)" class="rounded text-purple-600 focus:ring-purple-400">
+            </td>
+            <td class="px-3 py-2 text-gray-600">{{ item.main_indicator_name }}</td>
+            <td class="px-3 py-2 font-medium text-gray-900">{{ item.kpi_indicators_name }}</td>
+            <td class="px-3 py-2 text-gray-600">{{ item.dept_name }}</td>
+            <td class="px-2 py-2 text-center text-gray-500 font-medium">{{ item.year_bh }}</td>
+            <td class="px-2 py-2">
+              <input type="text" [(ngModel)]="item.target_value"
+                     class="w-full border rounded px-1 py-1 text-right text-xs focus:outline-none focus:border-green-500 transition-colors"
+                     [ngClass]="isAddKpiModified(item, 'target_value') ? 'bg-yellow-200 !text-red-600 font-bold border-orange-400' : 'border-gray-300'">
+            </td>
+            <td class="px-1 py-2" *ngFor="let m of ['oct','nov','dece','jan','feb','mar','apr','may','jun','jul','aug','sep']">
+              <input type="text" [(ngModel)]="item[m]" (ngModelChange)="onValueChange(item, m)"
+                     class="w-full border rounded px-1 py-1 text-center text-xs focus:outline-none focus:border-green-500 transition-colors"
+                     [ngClass]="isAddKpiModified(item, m) ? 'bg-yellow-200 !text-red-600 font-bold border-orange-400' : 'border-gray-300'">
+            </td>
+            <td class="px-1 py-2 text-center">
+              <button *ngIf="isAddKpiRowModified(item)" (click)="undoAddKpiRow(item)"
+                      class="text-gray-400 hover:text-orange-600 transition-colors" title="คืนค่าเดิมแถวนี้">
+                <i class="fas fa-undo text-xs"></i>
+              </button>
+            </td>
+          </tr>
+          <tr *ngIf="filteredNewKpiList.length === 0">
+            <td colspan="19" class="px-6 py-8 text-center text-gray-400">
+              <ng-container *ngIf="newKpiList.length === 0">ไม่มีตัวชี้วัดที่สามารถเพิ่มได้สำหรับปีงบประมาณนี้ (อาจมีครบแล้ว หรือลองปรับตัวกรองหน่วยงาน)</ng-container>
+              <ng-container *ngIf="newKpiList.length > 0 && filteredNewKpiList.length === 0">ไม่พบรายการในหมวดหมู่ที่เลือก — ลองเปลี่ยนตัวกรอง</ng-container>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="mt-4 flex justify-end gap-3">
+      <button (click)="closeAddModal()" class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg font-bold text-sm">ยกเลิก</button>
+      <button (click)="saveNewKpis()" [disabled]="addKpiSelectedIds.size === 0" class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-bold text-sm shadow-md disabled:opacity-50 disabled:cursor-not-allowed">
+        <i class="fas fa-save mr-1"></i>บันทึก ({{ addKpiSelectedIds.size }} ตัวชี้วัด<span *ngIf="addKpiTargetHospcodes.length > 1"> × {{ addKpiTargetHospcodes.length }} หน่วย</span>)
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: ประวัติการตีกลับ (Rejection History) -->
+<div *ngIf="showRejectionHistoryModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg p-6 transform transition-all scale-100 overflow-y-auto max-h-[90vh]">
+    <div class="flex justify-between items-center mb-4">
+      <h3 class="text-lg font-bold text-gray-800"><i class="fas fa-history text-orange-500 mr-2"></i>ประวัติการตีกลับ <span class="text-xs text-gray-400 font-normal">(ล่าสุด)</span></h3>
+      <button (click)="showRejectionHistoryModal = false" class="text-gray-400 hover:text-gray-600 text-xl"><i class="fas fa-times"></i></button>
+    </div>
+    <div *ngIf="rejectionHistory.length === 0" class="text-center text-gray-400 py-8">ไม่มีประวัติการตีกลับ</div>
+    <div *ngFor="let h of rejectionHistory" class="border-b border-gray-100 py-3 last:border-0">
+      <div *ngIf="h.type === 'reject' || !h.type" class="mb-2">
+        <div class="flex justify-between items-start mb-1">
+          <span class="text-sm font-bold text-red-600"><i class="fas fa-undo-alt mr-1"></i>ตีกลับโดย: {{ h.firstname || h.rejected_by }} {{ h.lastname || '' }}</span>
+          <span class="text-xs text-gray-400">{{ h.created_at | date:'dd/MM/yyyy HH:mm' }}</span>
+        </div>
+        <p class="text-sm text-gray-700 bg-red-50 rounded-lg p-2">{{ h.comment }}</p>
+        <p *ngIf="h.reject_months" class="text-xs text-red-500 mt-1"><i class="fas fa-calendar-alt mr-1"></i>เดือนที่ต้องแก้ไข: {{ h.reject_months_display }}</p>
+      </div>
+      <div *ngIf="h.type === 'reply'" class="mb-2">
+        <div class="flex justify-between items-start mb-1">
+          <span class="text-sm font-bold text-blue-600"><i class="fas fa-reply mr-1"></i>ตอบกลับโดย: {{ h.firstname || h.replied_by }} {{ h.lastname || '' }}</span>
+          <span class="text-xs text-gray-400">{{ h.created_at | date:'dd/MM/yyyy HH:mm' }}</span>
+        </div>
+        <p class="text-sm text-gray-700 bg-blue-50 rounded-lg p-2">{{ h.comment }}</p>
+      </div>
+    </div>
+    <div class="mt-4 flex justify-between items-center">
+      <button *ngIf="rejectionHistoryFull.length > 1" (click)="goToNotificationsReject()"
+              class="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-bold text-sm shadow-md">
+        <i class="fas fa-list mr-1"></i>ดูทั้งหมด ({{ rejectionHistoryFull.length }})
+      </button>
+      <div *ngIf="rejectionHistoryFull.length <= 1"></div>
+      <button (click)="showRejectionHistoryModal = false" class="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg font-bold text-sm">ปิด</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Dynamic Form Modal ===== -->
+<div *ngIf="showDynamicFormModal && dynamicFormItem" class="fixed inset-0 z-50 flex items-start justify-center bg-black/60 overflow-y-auto py-4 px-2">
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-5xl my-auto">
+    <!-- Header -->
+    <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-purple-700 to-purple-600 rounded-t-2xl">
+      <div>
+        <h3 class="text-base font-bold text-white flex items-center gap-2">
+          <i class="fas fa-clipboard-list"></i>
+          {{ dynamicFormSchema?.form_title || 'กรอกข้อมูล' }}
+        </h3>
+        <p class="text-purple-200 text-xs mt-0.5 whitespace-normal break-words">{{ dynamicFormItem?.kpi_indicators_name }}</p>
+      </div>
+      <div class="flex items-center gap-2">
+        <button (click)="switchDynamicFormTab('form')"
+                class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
+                [ngClass]="dynamicFormTab === 'form' ? 'bg-white text-purple-700' : 'bg-white/20 text-white hover:bg-white/30'">
+          <i class="fas fa-edit mr-1"></i>กรอกข้อมูล
+        </button>
+        <button (click)="switchDynamicFormTab('list')"
+                class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
+                [ngClass]="dynamicFormTab === 'list' ? 'bg-white text-purple-700' : 'bg-white/20 text-white hover:bg-white/30'">
+          <i class="fas fa-list mr-1"></i>ข้อมูลที่บันทึก
+        </button>
+        <button (click)="closeDynamicForm()" class="text-white/70 hover:text-white ml-1">
+          <i class="fas fa-times text-lg"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Tab: Form (12-month table) -->
+    <div *ngIf="dynamicFormTab === 'form'" class="p-4 sm:p-6">
+      <!-- ข้อมูลพื้นฐาน -->
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3 text-xs">
+        <div class="bg-gray-50 rounded-lg p-2">
+          <p class="text-gray-500 font-bold">ปีงบประมาณ</p>
+          <select [(ngModel)]="dynamicFormData.year_bh" (ngModelChange)="onDynamicYearChange()"
+                  [disabled]="dynamicEditMode"
+                  class="w-full border border-gray-200 rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-purple-400 bg-white disabled:bg-gray-100">
+            <option *ngFor="let y of availableYears" [value]="y">{{ y }}</option>
+          </select>
+        </div>
+        <div class="bg-gray-50 rounded-lg p-2">
+          <p class="text-gray-500 font-bold">หน่วยบริการ</p>
+          <p class="font-bold text-gray-800 truncate">{{ dynamicFormItem?.hosname || dynamicFormData.hospcode }}</p>
+        </div>
+        <div class="bg-purple-50 rounded-lg p-2">
+          <p class="text-purple-600 font-bold">ฟิลด์ในแบบฟอร์ม</p>
+          <p class="font-bold text-purple-800">{{ (dynamicFormSchema?.fields || []).length }} ฟิลด์ × 12 เดือน</p>
+        </div>
+      </div>
+
+      <!-- คำอธิบาย -->
+      <p *ngIf="dynamicFormSchema?.form_description" class="text-xs text-gray-500 mb-3 italic">
+        <i class="fas fa-info-circle mr-1"></i>{{ dynamicFormSchema?.form_description }}
+      </p>
+
+      <!-- Mode Toolbar -->
+      <div class="flex flex-wrap items-center gap-2 mb-3">
+        <button *ngIf="!dynamicEditMode && !isEntryLocked"
+                (click)="toggleDynamicEditMode()"
+                class="flex-1 sm:flex-none px-4 py-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-xs font-bold shadow-sm flex items-center justify-center gap-1.5">
+          <i class="fas fa-edit"></i>แก้ไขข้อมูลรายเดือน
+        </button>
+        <button *ngIf="dynamicEditMode"
+                (click)="toggleDynamicEditMode()"
+                class="flex-1 sm:flex-none px-4 py-1.5 bg-gray-500 hover:bg-gray-600 text-white rounded-xl text-xs font-bold shadow-sm flex items-center justify-center gap-1.5">
+          <i class="fas fa-times"></i>ยกเลิกแก้ไข
+        </button>
+        <span *ngIf="isEntryLocked && !dynamicEditMode"
+              class="flex-1 sm:flex-none px-4 py-1.5 bg-red-100 text-red-700 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 border border-red-200">
+          <i class="fas fa-lock"></i>{{ dataEntryLock.lock_reason || 'ระบบปิดการคีย์ข้อมูลชั่วคราว' }}
+        </span>
+      </div>
+
+      <!-- Status banner -->
+      <div *ngIf="!dynamicEditMode" class="mb-3 px-3 py-2 bg-amber-50 border border-amber-200 rounded-xl text-xs flex items-center gap-2">
+        <i class="fas fa-lock text-amber-600"></i>
+        <span class="text-amber-800"><b>โหมดดูอย่างเดียว</b> — กดปุ่ม <b class="text-amber-900">"แก้ไขข้อมูลรายเดือน"</b> เพื่อเริ่มกรอกผลงาน</span>
+      </div>
+      <div *ngIf="dynamicEditMode" class="mb-3 px-3 py-2 bg-emerald-50 border border-emerald-200 rounded-xl text-xs flex items-center gap-2">
+        <i class="fas fa-unlock text-emerald-600"></i>
+        <span class="text-emerald-800"><b>โหมดแก้ไข</b> — กรอกข้อมูลในแต่ละเดือน → กด "บันทึกทั้งหมด" (ระบบจะส่งเฉพาะเดือนที่เปลี่ยนแปลง)</span>
+      </div>
+
+      <!-- Loading -->
+      <div *ngIf="isDynamicDataLoading" class="flex justify-center py-8">
+        <div class="animate-spin rounded-full h-8 w-8 border-t-4 border-purple-600"></div>
+      </div>
+
+      <!-- Grid 6 คอลัมน์ × 2 แถว — เดือนละ 1 card -->
+      <div *ngIf="!isDynamicDataLoading">
+        <div *ngIf="(dynamicFormSchema?.fields || []).length === 0" class="px-3 py-10 text-center text-gray-400 text-sm border border-dashed border-gray-200 rounded-xl">
+          <i class="fas fa-inbox text-3xl mb-2 block"></i>แบบฟอร์มยังไม่มีฟิลด์
+        </div>
+        <div *ngIf="(dynamicFormSchema?.fields || []).length > 0"
+             class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2.5 max-h-[60vh] overflow-y-auto pr-1">
+          <div *ngFor="let m of subMonthColumns"
+               class="rounded-xl border-2 p-2.5 transition-all"
+               [ngClass]="dynamicEditMode && isMonthlyRowChanged(m)
+                  ? 'border-yellow-400 bg-yellow-50 shadow-md'
+                  : (hasMonthlyRowData(m)
+                      ? 'border-emerald-300 bg-emerald-50/40'
+                      : 'border-gray-200 bg-white hover:border-purple-200')">
+            <!-- Header: เดือน + สถานะ -->
+            <div class="flex items-center justify-between mb-2 pb-1.5 border-b border-gray-100">
+              <span class="font-bold text-sm"
+                    [ngClass]="hasMonthlyRowData(m) ? 'text-purple-700' : 'text-gray-500'">
+                {{ subMonthLabels[m] }}
+              </span>
+              <i *ngIf="hasMonthlyRowData(m)" class="fas fa-check-circle text-emerald-500 text-sm" title="มีข้อมูลแล้ว"></i>
+              <i *ngIf="!hasMonthlyRowData(m)" class="far fa-circle text-gray-300 text-sm" title="ยังไม่มีข้อมูล"></i>
+            </div>
+            <!-- Fields ภายใน card -->
+            <div class="space-y-2">
+              <div *ngFor="let field of dynamicFormSchema?.fields || []">
+                <label *ngIf="(dynamicFormSchema?.fields || []).length > 1"
+                       class="block text-[10px] font-bold text-gray-500 mb-0.5 truncate" [title]="field.field_label">
+                  {{ field.field_label }}
+                  <span *ngIf="field.is_required" class="text-red-500">*</span>
+                </label>
+                <!-- text / number / date -->
+                <input *ngIf="['text','number','date'].includes(field.field_type)"
+                       [type]="field.field_type" [(ngModel)]="dynamicMonthlyRows[m][field.field_name]"
+                       [readonly]="!dynamicEditMode"
+                       [placeholder]="dynamicEditMode ? field.field_label : ''"
+                       class="w-full px-2 py-1 border rounded-lg text-xs transition-all"
+                       [ngClass]="dynamicEditMode ? 'border-purple-200 focus:border-purple-500 focus:ring-2 focus:ring-purple-300 bg-white' : 'border-gray-100 bg-gray-50 text-gray-700 cursor-not-allowed'">
+                <!-- textarea -->
+                <textarea *ngIf="field.field_type === 'textarea'"
+                          [(ngModel)]="dynamicMonthlyRows[m][field.field_name]" rows="2"
+                          [readonly]="!dynamicEditMode"
+                          [placeholder]="dynamicEditMode ? field.field_label : ''"
+                          class="w-full px-2 py-1 border rounded-lg text-xs resize-y min-h-[32px]"
+                          [ngClass]="dynamicEditMode ? 'border-purple-200 focus:border-purple-500 focus:ring-2 focus:ring-purple-300 bg-white' : 'border-gray-100 bg-gray-50 text-gray-700 cursor-not-allowed'"></textarea>
+                <!-- select (legacy) -->
+                <select *ngIf="field.field_type === 'select'"
+                        [(ngModel)]="dynamicMonthlyRows[m][field.field_name]"
+                        [disabled]="!dynamicEditMode"
+                        class="w-full px-2 py-1 border rounded-lg text-xs bg-white"
+                        [ngClass]="dynamicEditMode ? 'border-purple-200 focus:border-purple-500 focus:ring-2 focus:ring-purple-300' : 'border-gray-100 bg-gray-50 text-gray-700 cursor-not-allowed'">
+                  <option value="">-- เลือก --</option>
+                  <option *ngFor="let opt of parseFieldOptions(field.field_options)" [value]="opt">{{ opt }}</option>
+                </select>
+                <!-- score_option: dropdown + % badge -->
+                <div *ngIf="field.field_type === 'score_option'" class="flex flex-col gap-1">
+                  <select [(ngModel)]="dynamicMonthlyRows[m][field.field_name]"
+                          [disabled]="!dynamicEditMode"
+                          class="w-full px-2 py-1 border rounded-lg text-xs bg-white"
+                          [ngClass]="dynamicEditMode ? 'border-purple-200 focus:border-purple-500 focus:ring-2 focus:ring-purple-300' : 'border-gray-100 bg-gray-50 text-gray-700 cursor-not-allowed'">
+                    <option value="">-- เลือก --</option>
+                    <option *ngFor="let opt of getScoreOptions(field)" [value]="opt.label || opt">
+                      {{ opt.label || opt }}<span *ngIf="opt.percentage != null"> ({{ opt.percentage }}%)</span>
+                    </option>
+                  </select>
+                  <span *ngIf="dynamicMonthlyRows[m][field.field_name] && getScoreOptionPct(field, dynamicMonthlyRows[m][field.field_name]) != null"
+                        class="inline-flex items-center justify-center px-2 py-0.5 rounded-md text-[11px] font-bold bg-purple-100 text-purple-700 border border-purple-200">
+                    = {{ getScoreOptionPct(field, dynamicMonthlyRows[m][field.field_name]) }}%
+                  </span>
+                </div>
+                <!-- checkbox -->
+                <div *ngIf="field.field_type === 'checkbox'" class="flex items-center gap-1.5">
+                  <input type="checkbox" [(ngModel)]="dynamicMonthlyRows[m][field.field_name]"
+                         [disabled]="!dynamicEditMode"
+                         class="w-4 h-4 rounded text-purple-600 focus:ring-purple-400">
+                  <span class="text-[11px] text-gray-600">{{ field.field_label }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Progress + Save -->
+      <div class="flex flex-wrap justify-between items-center gap-2 mt-4 pt-3 border-t border-gray-100">
+        <span class="text-xs text-gray-500">
+          <i class="fas fa-calendar-alt mr-1"></i>12 เดือน × {{ (dynamicFormSchema?.fields || []).length }} ฟิลด์
+          <span *ngIf="isDynamicFormSaving" class="ml-2 text-purple-600 font-bold">
+            กำลังบันทึก {{ dynamicBatchProgress }}/{{ dynamicBatchTotal }}...
+          </span>
+        </span>
+        <div class="flex flex-wrap gap-2">
+          <button *ngIf="dynamicEditMode" (click)="saveDynamicFormData()" [disabled]="isDynamicFormSaving"
+                  class="px-5 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-purple-300 text-white rounded-xl text-sm font-bold shadow flex items-center gap-1.5">
+            <i *ngIf="isDynamicFormSaving" class="fas fa-spinner fa-spin"></i>
+            <i *ngIf="!isDynamicFormSaving" class="fas fa-save"></i>
+            {{ isDynamicFormSaving ? 'กำลังบันทึก...' : 'บันทึกทั้งหมด' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab: List -->
+    <div *ngIf="dynamicFormTab === 'list'" class="p-4">
+      <div *ngIf="isDynamicDataLoading" class="flex justify-center py-8">
+        <div class="animate-spin rounded-full h-8 w-8 border-t-4 border-purple-600"></div>
+      </div>
+      <div *ngIf="!isDynamicDataLoading">
+        <div *ngIf="dynamicDataList.length === 0" class="text-center py-10 text-gray-400">
+          <i class="fas fa-inbox text-3xl mb-2 block"></i>
+          ยังไม่มีข้อมูลที่บันทึก
+        </div>
+        <div class="overflow-x-auto" *ngIf="dynamicDataList.length > 0">
+          <table class="w-full text-xs border-collapse">
+            <thead>
+              <tr class="bg-purple-50 text-purple-800">
+                <th class="px-3 py-2 text-left">ปีงบฯ</th>
+                <th class="px-3 py-2 text-left">เดือน</th>
+                <th *ngFor="let field of dynamicFormSchema?.fields || []" class="px-3 py-2 text-left">{{ field.field_label }}</th>
+                <th class="px-3 py-2 text-left">บันทึกโดย</th>
+                <th class="px-3 py-2 text-center">จัดการ</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+              <tr *ngFor="let row of dynamicDataList" class="hover:bg-purple-50/30">
+                <td class="px-3 py-2">{{ row.year_bh }}</td>
+                <td class="px-3 py-2">{{ row.month_bh || '-' }}</td>
+                <td *ngFor="let field of dynamicFormSchema?.fields || []" class="px-3 py-2">
+                  {{ row[field.field_name] ?? '-' }}
+                </td>
+                <td class="px-3 py-2 text-gray-500">{{ row.created_by_name || '-' }}</td>
+                <td class="px-3 py-2 text-center">
+                  <button (click)="editDynamicRow(row)"
+                          class="text-amber-500 hover:text-amber-700 p-0.5 mr-1" title="แก้ไข">
+                    <i class="fas fa-edit"></i>
+                  </button>
+                  <button *ngIf="isSuperAdmin" (click)="deleteDynamicRow(row)"
+                          class="text-red-500 hover:text-red-700 p-0.5" title="ลบ">
+                    <i class="fas fa-trash"></i>
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Sub-Result Modal: บันทึกผลงานตัวชี้วัดย่อย — ตาราง ต.ค.-ก.ย. 12 เดือน -->
+<div *ngIf="showSubResultModal" class="fixed inset-0 z-50 flex items-start justify-center bg-black/60 overflow-y-auto py-4 px-2">
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-[1200px] my-auto">
+    <div class="flex items-center justify-between px-6 py-4 border-b bg-gradient-to-r from-indigo-700 to-indigo-600 rounded-t-2xl">
+      <div>
+        <h3 class="text-lg font-bold text-white"><i class="fas fa-list-ul mr-2"></i>บันทึกผลงานตัวชี้วัดย่อย</h3>
+        <p class="text-indigo-200 text-xs mt-0.5 truncate max-w-[900px]">{{ subResultContext?.indicator_name }}</p>
+      </div>
+      <button (click)="closeSubResultModal()" class="text-white/70 hover:text-white"><i class="fas fa-times text-xl"></i></button>
+    </div>
+    <div class="p-4 sm:p-6">
+      <!-- Context Info -->
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3 text-xs">
+        <div class="bg-gray-50 rounded-lg p-2">
+          <p class="text-gray-500 font-bold">หน่วยบริการ</p>
+          <p class="font-bold text-gray-800">{{ subResultContext?.hosname }} ({{ subResultContext?.hospcode }})</p>
+        </div>
+        <div class="bg-gray-50 rounded-lg p-2">
+          <p class="text-gray-500 font-bold">ปีงบประมาณ</p>
+          <p class="font-bold text-gray-800">{{ subResultContext?.year_bh }}</p>
+        </div>
+        <div class="bg-indigo-50 rounded-lg p-2">
+          <p class="text-indigo-600 font-bold">ตัวชี้วัดย่อย</p>
+          <p class="font-bold text-indigo-800">{{ subResultList.length }} รายการ × 12 เดือน</p>
+        </div>
+      </div>
+
+      <!-- Summary: ผลงานรวม + % เฉลี่ย — คำนวณทันทีจาก subResultList -->
+      <ng-container *ngIf="getSubModalAverage() as sum">
+        <div class="grid grid-cols-3 gap-2 sm:gap-3 mb-4">
+          <div class="rounded-xl p-3 border-2 border-amber-200 bg-amber-50/50 text-center">
+            <p class="text-[10px] text-amber-700 font-bold mb-0.5"><i class="fas fa-bullseye mr-1"></i>เฉลี่ยเป้าหมาย</p>
+            <p class="text-xl sm:text-2xl font-bold text-amber-800">{{ sum.avgTarget }}</p>
+          </div>
+          <div class="rounded-xl p-3 border-2 border-emerald-200 bg-emerald-50/50 text-center">
+            <p class="text-[10px] text-emerald-700 font-bold mb-0.5"><i class="fas fa-chart-line mr-1"></i>ผลงานรวม (AVG)</p>
+            <p class="text-xl sm:text-2xl font-bold text-emerald-800">{{ sum.avgActual }}</p>
+          </div>
+          <div class="rounded-xl p-3 border-2 text-center"
+               [ngClass]="sum.metPct >= 80 ? 'border-green-300 bg-green-50/50' : (sum.metPct >= 50 ? 'border-amber-300 bg-amber-50/50' : 'border-red-300 bg-red-50/50')">
+            <p class="text-[10px] font-bold mb-0.5"
+               [ngClass]="sum.metPct >= 80 ? 'text-green-700' : (sum.metPct >= 50 ? 'text-amber-700' : 'text-red-700')">
+              <i class="fas fa-percent mr-1"></i>เฉลี่ย %
+            </p>
+            <p class="text-xl sm:text-2xl font-bold"
+               [ngClass]="sum.metPct >= 80 ? 'text-green-800' : (sum.metPct >= 50 ? 'text-amber-800' : 'text-red-800')">
+              {{ sum.avgPct === '-' ? '-' : sum.avgPct + '%' }}
+            </p>
+          </div>
+        </div>
+      </ng-container>
+
+      <!-- Mode Toolbar: ปุ่มแก้ไข + โหมดลบ (local ใน modal นี้เท่านั้น) -->
+      <div class="flex flex-wrap items-center gap-2 mb-3">
+        <!-- แก้ไขผลงาน -->
+        <button *ngIf="!subEditMode && !subDeleteMode && !isEntryLocked"
+                (click)="toggleSubEditMode()"
+                class="flex-1 sm:flex-none px-4 py-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-xs font-bold shadow-sm flex items-center justify-center gap-1.5">
+          <i class="fas fa-edit"></i>แก้ไขผลงาน
+        </button>
+        <button *ngIf="subEditMode"
+                (click)="toggleSubEditMode()"
+                class="flex-1 sm:flex-none px-4 py-1.5 bg-gray-500 hover:bg-gray-600 text-white rounded-xl text-xs font-bold shadow-sm flex items-center justify-center gap-1.5">
+          <i class="fas fa-times"></i>ยกเลิกแก้ไข
+        </button>
+
+        <!-- โหมดลบตัวชี้วัดย่อย (super_admin เท่านั้น) -->
+        <button *ngIf="isSuperAdmin && !subEditMode && !subDeleteMode"
+                (click)="toggleSubDeleteMode()"
+                class="flex-1 sm:flex-none px-4 py-1.5 bg-red-500 hover:bg-red-600 text-white rounded-xl text-xs font-bold shadow-sm flex items-center justify-center gap-1.5">
+          <i class="fas fa-trash"></i>โหมดลบตัวชี้วัด
+        </button>
+        <button *ngIf="subDeleteMode"
+                (click)="toggleSubDeleteMode()"
+                class="flex-1 sm:flex-none px-4 py-1.5 bg-gray-500 hover:bg-gray-600 text-white rounded-xl text-xs font-bold shadow-sm flex items-center justify-center gap-1.5">
+          <i class="fas fa-times"></i>ออกจากโหมดลบ
+        </button>
+
+        <!-- locked state hint -->
+        <span *ngIf="isEntryLocked && !subEditMode && !subDeleteMode"
+              class="flex-1 sm:flex-none px-4 py-1.5 bg-red-100 text-red-700 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 border border-red-200">
+          <i class="fas fa-lock"></i>{{ dataEntryLock.lock_reason || 'ระบบปิดการคีย์ข้อมูลชั่วคราว' }}
+        </span>
+      </div>
+
+      <!-- Read-only banner -->
+      <div *ngIf="!subEditMode && !subDeleteMode" class="mb-3 px-3 py-2 bg-amber-50 border border-amber-200 rounded-xl text-xs flex items-center gap-2">
+        <i class="fas fa-lock text-amber-600"></i>
+        <span class="text-amber-800">
+          <b>โหมดดูอย่างเดียว</b> — กดปุ่ม <b class="text-amber-900">"แก้ไขผลงาน"</b> หรือ <b class="text-amber-900">"โหมดลบตัวชี้วัด"</b> ด้านบน เพื่อเริ่มทำงาน
+        </span>
+      </div>
+      <div *ngIf="subEditMode" class="mb-3 px-3 py-2 bg-emerald-50 border border-emerald-200 rounded-xl text-xs flex items-center gap-2">
+        <i class="fas fa-unlock text-emerald-600"></i>
+        <span class="text-emerald-800"><b>โหมดแก้ไขผลงาน</b> — คุณสามารถแก้ไขค่าเป้าหมายและผลงานรายเดือนได้</span>
+      </div>
+      <div *ngIf="subDeleteMode" class="mb-3 px-3 py-2 bg-red-50 border border-red-200 rounded-xl text-xs flex items-center gap-2">
+        <i class="fas fa-trash text-red-600"></i>
+        <span class="text-red-800"><b>โหมดลบตัวชี้วัดย่อย</b> — ติ๊ก checkbox ตัวชี้วัดย่อยที่ต้องการลบ แล้วกด "ลบที่เลือก" (ลบถาวร ไม่สามารถกู้คืนได้)</span>
+      </div>
+      <!-- ตาราง: ตัวชี้วัดย่อย | เป้าหมาย | ผลงาน | % | 12 เดือน -->
+      <div class="border border-gray-200 rounded-xl overflow-auto max-h-[60vh]">
+        <table class="w-full text-xs">
+          <thead class="bg-indigo-700 text-white sticky top-0 z-10">
+            <tr>
+              <!-- Checkbox column เมื่อ subDeleteMode -->
+              <th *ngIf="subDeleteMode" class="px-2 py-2 text-center sticky left-0 bg-red-700 z-20 w-10">
+                <input type="checkbox" [checked]="subDeleteAllChecked" (change)="toggleSubDeleteAll()" class="rounded text-red-400 focus:ring-red-400" title="เลือกทั้งหมด">
+              </th>
+              <th class="px-2 py-2 text-left sticky bg-indigo-700 z-20 min-w-[200px]"
+                  [style.left]="subDeleteMode ? '40px' : '0'">ตัวชี้วัดย่อย</th>
+              <th class="px-1 py-2 text-center w-20 bg-amber-600">เป้าหมาย</th>
+              <th class="px-2 py-2 text-center w-20 bg-emerald-600">ผลงาน</th>
+              <th class="px-2 py-2 text-center w-16 bg-blue-600">%</th>
+              <th *ngFor="let m of subMonthColumns" class="px-1 py-2 text-center w-16">{{ subMonthLabels[m] }}</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100">
+            <tr *ngFor="let s of subResultList; let i = index" class="hover:bg-gray-50"
+                [class.bg-red-50]="subDeleteMode && isSubDeleteSelected(s.id)">
+              <td *ngIf="subDeleteMode" class="px-2 py-1.5 text-center sticky left-0 bg-white z-10">
+                <input type="checkbox" [checked]="isSubDeleteSelected(s.id)" (change)="toggleSubDeleteItem(s.id)" class="rounded text-red-600 focus:ring-red-400">
+              </td>
+              <td class="px-2 py-1.5 sticky bg-white z-10 border-r border-gray-200"
+                  [style.left]="subDeleteMode ? '40px' : '0'">
+                <p class="font-medium text-gray-900 text-xs leading-tight">{{ s.sub_indicator_name }}</p>
+                <p class="text-[10px] text-gray-400">{{ s.sub_indicator_code || '-' }}</p>
+              </td>
+              <td class="px-0.5 py-1">
+                <input type="text" [(ngModel)]="s._target"
+                       [readonly]="!subEditMode"
+                       class="w-full px-1 py-0.5 border rounded text-center text-xs"
+                       [ngClass]="subEditMode ? 'border-amber-200 bg-amber-50 focus:bg-white focus:border-amber-500 focus:ring-1 focus:ring-amber-400' : 'border-gray-100 bg-gray-50 text-gray-600 cursor-not-allowed'">
+              </td>
+              <td class="px-2 py-1 text-center font-bold text-emerald-700 bg-emerald-50">{{ getSubLastActual(s) || '-' }}</td>
+              <td class="px-2 py-1 text-center font-bold bg-blue-50"
+                  [ngClass]="{
+                    'text-green-600': +getSubPct(s) >= 80,
+                    'text-amber-600': +getSubPct(s) >= 50 && +getSubPct(s) < 80,
+                    'text-red-600': +getSubPct(s) > 0 && +getSubPct(s) < 50,
+                    'text-gray-400': !getSubPct(s)
+                  }">
+                {{ getSubPct(s) ? getSubPct(s) + '%' : '-' }}
+              </td>
+              <td *ngFor="let m of subMonthColumns" class="px-0.5 py-1">
+                <input type="text" [(ngModel)]="s._actuals[m]"
+                       [readonly]="!subEditMode"
+                       class="w-full px-1 py-0.5 border rounded text-center text-xs"
+                       [ngClass]="subEditMode
+                          ? 'border-gray-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-400 ' + (s._actuals[m] ? 'bg-indigo-50' : '')
+                          : 'border-gray-100 bg-gray-50 text-gray-600 cursor-not-allowed'">
+              </td>
+            </tr>
+            <tr *ngIf="subResultList.length === 0">
+              <td [attr.colspan]="subMonthColumns.length + 4 + (subDeleteMode ? 1 : 0)" class="px-3 py-10 text-center text-gray-400 text-sm">
+                <i class="fas fa-inbox text-3xl mb-2 block"></i>ไม่มีตัวชี้วัดย่อย
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="text-[11px] text-gray-400 mt-2"><i class="fas fa-info-circle mr-1"></i>กรอกเป้าหมายและผลงานรายเดือน → กด "บันทึกทั้งหมด" (ระบบจะส่งเฉพาะเซลล์ที่เปลี่ยนแปลง)</p>
+    </div>
+    <div class="px-6 py-4 border-t flex flex-wrap justify-between items-center gap-2 bg-gray-50 rounded-b-2xl">
+      <span class="text-xs text-gray-500">
+        {{ subResultList.length }} ตัวชี้วัดย่อย × 12 เดือน
+        <span *ngIf="subDeleteMode && subDeleteSelected.size > 0" class="ml-2 text-red-600 font-bold">
+          (เลือกลบ {{ subDeleteSelected.size }} รายการ)
+        </span>
+      </span>
+      <div class="flex flex-wrap gap-2">
+        <button (click)="closeSubResultModal()" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-xl text-sm font-bold">ปิด</button>
+
+        <!-- Edit mode → Save button -->
+        <button *ngIf="subResultList.length > 0 && subEditMode"
+                (click)="saveSubResults()"
+                class="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-bold shadow flex items-center gap-1.5">
+          <i class="fas fa-save"></i>บันทึกทั้งหมด
+        </button>
+
+        <!-- Delete mode → Delete Selected button -->
+        <button *ngIf="subResultList.length > 0 && subDeleteMode"
+                (click)="confirmDeleteSubIndicators()"
+                [disabled]="subDeleteSelected.size === 0"
+                class="px-6 py-2 bg-red-600 hover:bg-red-700 disabled:bg-red-300 disabled:cursor-not-allowed text-white rounded-xl text-sm font-bold shadow flex items-center gap-1.5">
+          <i class="fas fa-trash-alt"></i>ลบที่เลือก ({{ subDeleteSelected.size }})
+        </button>
+
+        <!-- Read-only badge -->
+        <span *ngIf="subResultList.length > 0 && !subEditMode && !subDeleteMode"
+              class="px-4 py-2 bg-gray-100 text-gray-400 rounded-xl text-xs font-semibold inline-flex items-center gap-1" title="โหมดดูอย่างเดียว">
+          <i class="fas fa-lock"></i>โหมดดูอย่างเดียว
+        </span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: บันทึก View ปัจจุบัน -->
+<div *ngIf="showSaveViewModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
+    <h3 class="text-lg font-bold text-gray-800 mb-3"><i class="fas fa-bookmark text-amber-500 mr-2"></i>บันทึก View</h3>
+    <p class="text-xs text-gray-500 mb-3">ตั้งชื่อ View นี้ — สามารถเรียกใช้ตัวกรองชุดเดิมได้ตลอดด้วยคลิกเดียว (เก็บใน browser ของคุณ)</p>
+    <input type="text" [(ngModel)]="newViewName" placeholder="เช่น: รพช. อ.เมือง 2569"
+           (keyup.enter)="saveCurrentView()"
+           class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 outline-none">
+    <div class="flex justify-end gap-2 mt-4">
+      <button (click)="showSaveViewModal = false" class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg font-bold text-sm">ยกเลิก</button>
+      <button (click)="saveCurrentView()" class="px-5 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg font-bold text-sm shadow">
+        <i class="fas fa-save mr-1"></i>บันทึก
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- FAB: เพิ่มตัวชี้วัด (mobile) -->
+<button *ngIf="!isAdmin && !isEditing && !isEntryLocked"
+        (click)="openAddModal()"
+        class="lg:hidden fixed bottom-5 right-5 z-40 w-14 h-14 rounded-full bg-green-600 hover:bg-green-700 text-white shadow-xl active:scale-95 transition-all flex items-center justify-center"
+        title="เพิ่มตัวชี้วัด">
+  <i class="fas fa-plus text-xl"></i>
+</button>

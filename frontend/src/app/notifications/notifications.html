@@ -1,0 +1,289 @@
+<div class="p-4 sm:p-6 max-w-5xl mx-auto w-full">
+      <!-- Filter Tabs + Mark All -->
+      <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-3">
+        <div class="flex gap-2 flex-wrap">
+          <button (click)="setFilter('all')" class="px-4 py-2 rounded-xl text-xs font-bold transition-all"
+                  [ngClass]="activeFilter === 'all' ? 'bg-green-600 text-white shadow-md' : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'">
+            ทั้งหมด ({{ notifications.length }})
+          </button>
+          <button (click)="setFilter('unread')" class="px-4 py-2 rounded-xl text-xs font-bold transition-all"
+                  [ngClass]="activeFilter === 'unread' ? 'bg-blue-600 text-white shadow-md' : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'">
+            ยังไม่อ่าน ({{ unreadNotifCount }})
+          </button>
+          <button (click)="setFilter('approve')" class="px-4 py-2 rounded-xl text-xs font-bold transition-all"
+                  [ngClass]="activeFilter === 'approve' ? 'bg-emerald-600 text-white shadow-md' : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'">
+            <i class="fas fa-check-circle mr-1"></i>อนุมัติ ({{ approveCount }})
+          </button>
+          <button (click)="setFilter('reject')" class="px-4 py-2 rounded-xl text-xs font-bold transition-all"
+                  [ngClass]="activeFilter === 'reject' ? 'bg-red-500 text-white shadow-md' : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'">
+            <i class="fas fa-undo-alt mr-1"></i>ตีกลับ ({{ rejectCount }})
+          </button>
+          <button (click)="setFilter('appeal')" class="px-4 py-2 rounded-xl text-xs font-bold transition-all"
+                  [ngClass]="activeFilter === 'appeal' ? 'bg-purple-600 text-white shadow-md' : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'">
+            <i class="fas fa-gavel mr-1"></i>อุทธรณ์ ({{ appealCount }})
+          </button>
+          <button (click)="setFilter('reply')" class="px-4 py-2 rounded-xl text-xs font-bold transition-all"
+                  [ngClass]="activeFilter === 'reply' ? 'bg-indigo-600 text-white shadow-md' : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'">
+            <i class="fas fa-reply mr-1"></i>ตอบกลับ ({{ replyCount }})
+          </button>
+          <button (click)="setFilter('mine')" class="px-4 py-2 rounded-xl text-xs font-bold transition-all"
+                  [ngClass]="activeFilter === 'mine' ? 'bg-cyan-600 text-white shadow-md' : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'">
+            <i class="fas fa-hospital mr-1"></i>หน่วยบริการของฉัน ({{ mineCount }})
+          </button>
+        </div>
+        <button *ngIf="unreadNotifCount > 0" (click)="markAllAsRead()" class="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-xl text-xs font-bold transition-all shadow-md">
+          <i class="fas fa-check-double mr-1"></i> อ่านทั้งหมด
+        </button>
+      </div>
+
+      <!-- Loading -->
+      <div *ngIf="isLoading" class="flex items-center justify-center py-16">
+        <div class="animate-spin rounded-full h-10 w-10 border-4 border-green-200 border-t-green-600"></div>
+      </div>
+
+      <!-- ===== แสดงเมื่อไม่ใช่ tab ตอบกลับ ===== -->
+      <ng-container *ngIf="activeFilter !== 'reply'">
+        <!-- Empty State -->
+        <div *ngIf="!isLoading && filteredNotifications.length === 0" class="bg-white rounded-2xl shadow-sm p-12 text-center">
+          <i class="fas fa-bell-slash text-5xl text-gray-300 mb-4"></i>
+          <p class="text-gray-400 text-lg font-medium">ไม่มีการแจ้งเตือน</p>
+          <p class="text-gray-300 text-sm mt-1">เมื่อมีการอนุมัติหรือตีกลับ KPI จะแสดงที่นี่</p>
+        </div>
+
+        <!-- Notification List -->
+        <div *ngIf="!isLoading && filteredNotifications.length > 0" class="space-y-2 overflow-y-auto card-scroll pr-1" style="max-height: calc(100vh - 230px);">
+          <div *ngFor="let notif of filteredNotifications"
+               (click)="openNotifDetail(notif)"
+               class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 hover:shadow-md transition-all cursor-pointer"
+               [ngClass]="notif.is_read ? 'opacity-75' : 'border-l-4 border-l-blue-500'">
+            <div class="flex items-start gap-3">
+              <!-- Icon -->
+              <div class="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
+                   [ngClass]="notif.type === 'approve' ? 'bg-green-100' :
+                              notif.type === 'reject' ? 'bg-red-100' :
+                              notif.type === 'appeal' ? 'bg-purple-100' :
+                              notif.title?.includes('กระทู้') ? 'bg-teal-100' :
+                              notif.title?.includes('ตอบกลับกระทู้') ? 'bg-teal-100' :
+                              notif.title?.includes('รอการอนุมัติ') ? 'bg-amber-100' :
+                              notif.title?.includes('Login') || notif.title?.includes('เข้าสู่ระบบ') ? 'bg-indigo-100' : 'bg-blue-100'">
+                <i class="fas text-lg"
+                   [ngClass]="notif.type === 'approve' ? 'fa-check-circle text-green-600' :
+                              notif.type === 'reject' ? 'fa-times-circle text-red-500' :
+                              notif.type === 'appeal' ? 'fa-gavel text-purple-600' :
+                              notif.title?.includes('ตอบกลับกระทู้') ? 'fa-reply text-teal-600' :
+                              notif.title?.includes('กระทู้') ? 'fa-comments text-teal-600' :
+                              notif.title?.includes('รอการอนุมัติ') ? 'fa-user-clock text-amber-600' :
+                              notif.title?.includes('Login') || notif.title?.includes('เข้าสู่ระบบ') ? 'fa-sign-in-alt text-indigo-600' :
+                              'fa-bell text-blue-500'"></i>
+              </div>
+              <!-- Content -->
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center justify-between gap-2">
+                  <h4 class="text-sm font-bold text-gray-800">{{ notif.title }}</h4>
+                  <span *ngIf="!notif.is_read" class="h-2.5 w-2.5 rounded-full bg-blue-500 shrink-0"></span>
+                </div>
+                <p class="text-sm text-gray-600 mt-1">{{ notif.message }}</p>
+                <div class="flex items-center gap-3 mt-2">
+                  <span class="text-xs text-gray-400">
+                    <i class="fas fa-clock mr-1"></i>{{ getTimeAgo(notif.created_at) }}
+                  </span>
+                  <span class="text-xs text-gray-400">{{ notif.created_at | date:'dd/MM/yyyy HH:mm' }}</span>
+                  <span *ngIf="notif.created_by_name" class="text-xs text-gray-400">
+                    <i class="fas fa-user mr-1"></i>{{ notif.created_by_name }} {{ notif.created_by_lastname }}
+                  </span>
+                  <!-- ปุ่มดูรายละเอียด: แสดงเฉพาะ super_admin/admin_ssj ที่แจ้งเตือนผู้สมัครใหม่ -->
+                  <button *ngIf="isAdmin && notif.title && notif.title.includes('รอการอนุมัติ') && notif.created_by"
+                          (click)="markAsRead(notif); viewPendingUserDetail(notif); $event.stopPropagation()"
+                          class="px-3 py-1 bg-indigo-500 hover:bg-indigo-600 text-white rounded-full text-xs font-bold transition-all shadow-sm">
+                    <i class="fas fa-user-circle mr-1"></i>ดูรายละเอียด
+                  </button>
+                  <!-- ปุ่มตอบกลับ: แสดงเฉพาะ reject ที่ยังไม่เคยตอบกลับ -->
+                  <button *ngIf="!isAdmin && notif.type === 'reject' && notif.indicator_id && !notif.has_reply"
+                          (click)="markAsRead(notif); replyNotification(notif); $event.stopPropagation()"
+                          class="px-3 py-1 bg-blue-500 hover:bg-blue-600 text-white rounded-full text-xs font-bold transition-all shadow-sm">
+                    <i class="fas fa-paper-plane mr-1"></i>ตอบกลับ
+                  </button>
+                  <!-- แสดงสถานะ: ตอบกลับแล้ว -->
+                  <span *ngIf="!isAdmin && notif.type === 'reject' && notif.has_reply"
+                        class="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-bold">
+                    <i class="fas fa-check-circle mr-1"></i>ตอบกลับแล้ว
+                  </span>
+                  <!-- ปุ่มยื่นอุทธรณ์: user เห็นใน notification approve ถ้าช่วงอุทธรณ์เปิด -->
+                  <button *ngIf="!isAdmin && notif.type === 'approve' && appealSettings.is_open && notif.indicator_id"
+                          (click)="markAsRead(notif); openAppealFromNotif(notif); $event.stopPropagation()"
+                          class="px-3 py-1 bg-purple-500 hover:bg-purple-600 text-white rounded-full text-xs font-bold transition-all shadow-sm">
+                    <i class="fas fa-gavel mr-1"></i>ยื่นอุทธรณ์
+                  </button>
+                  <!-- Admin จัดการอุทธรณ์ (แสดงเฉพาะ KPI ที่ยังเป็นสถานะ Appeal) -->
+                  <button *ngIf="isAdmin && notif.type === 'appeal' && notif.indicator_id && notif.kpi_status === 'Appeal'"
+                          (click)="markAsRead(notif); approveAppealFromNotif(notif); $event.stopPropagation()"
+                          class="px-3 py-1 bg-green-500 hover:bg-green-600 text-white rounded-full text-xs font-bold transition-all shadow-sm">
+                    <i class="fas fa-check mr-1"></i>อนุมัติ
+                  </button>
+                  <button *ngIf="isAdmin && notif.type === 'appeal' && notif.indicator_id && notif.kpi_status === 'Appeal'"
+                          (click)="markAsRead(notif); rejectAppealFromNotif(notif); $event.stopPropagation()"
+                          class="px-3 py-1 bg-red-500 hover:bg-red-600 text-white rounded-full text-xs font-bold transition-all shadow-sm">
+                    <i class="fas fa-times mr-1"></i>ปฏิเสธ
+                  </button>
+                  <!-- สถานะ: อนุมัติอุทธรณ์แล้ว -->
+                  <span *ngIf="notif.type === 'appeal' && notif.kpi_status && notif.kpi_status !== 'Appeal'"
+                        class="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-bold">
+                    <i class="fas fa-check-circle mr-1"></i>{{notif.kpi_status === 'Approved' ? 'ปฏิเสธอุทธรณ์แล้ว' : 'อนุมัติอุทธรณ์แล้ว'}}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </ng-container>
+
+      <!-- ===== Reply Tab Content ===== -->
+      <ng-container *ngIf="activeFilter === 'reply'">
+        <!-- Loading Replies -->
+        <div *ngIf="isLoadingReplies" class="flex items-center justify-center py-16">
+          <div class="animate-spin rounded-full h-10 w-10 border-4 border-indigo-200 border-t-indigo-600"></div>
+        </div>
+
+        <!-- Empty Reply State -->
+        <div *ngIf="!isLoadingReplies && replies.length === 0" class="bg-white rounded-2xl shadow-sm p-12 text-center">
+          <i class="fas fa-reply text-5xl text-gray-300 mb-4"></i>
+          <p class="text-gray-400 text-lg font-medium">ไม่มีข้อมูลการตอบกลับ</p>
+          <p class="text-gray-300 text-sm mt-1">เมื่อมีการตอบกลับจากหน่วยบริการจะแสดงที่นี่</p>
+        </div>
+
+        <!-- Reply List -->
+        <div *ngIf="!isLoadingReplies && replies.length > 0" class="space-y-3 overflow-y-auto card-scroll pr-1" style="max-height: calc(100vh - 230px);">
+          <div *ngFor="let r of replies"
+               class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 hover:shadow-md transition-all">
+            <div class="flex items-start gap-3">
+              <!-- Icon -->
+              <div class="w-10 h-10 rounded-full flex items-center justify-center shrink-0 bg-indigo-100">
+                <i class="fas fa-reply text-lg text-indigo-600"></i>
+              </div>
+              <!-- Content -->
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center justify-between gap-2 flex-wrap">
+                  <h4 class="text-sm font-bold text-gray-800">{{ r.indicator_name }}</h4>
+                  <span class="px-2 py-0.5 bg-indigo-100 text-indigo-700 rounded-full text-xs font-bold">ตอบกลับ</span>
+                </div>
+                <!-- Reply message -->
+                <div class="bg-indigo-50 border border-indigo-100 rounded-lg p-3 mt-2">
+                  <p class="text-sm text-gray-700">{{ r.comment || 'ดำเนินการแก้ไขเรียบร้อยแล้ว' }}</p>
+                </div>
+                <!-- Original rejection reason -->
+                <div *ngIf="r.original_reject_comment" class="bg-red-50 border border-red-100 rounded-lg p-2 mt-2">
+                  <span class="text-xs font-bold text-red-500"><i class="fas fa-exclamation-triangle mr-1"></i>เหตุผลตีกลับเดิม:</span>
+                  <p class="text-xs text-gray-600 mt-0.5">{{ r.original_reject_comment }}</p>
+                </div>
+                <!-- Meta info -->
+                <div class="flex items-center gap-3 mt-2 flex-wrap">
+                  <span class="text-xs text-gray-400">
+                    <i class="fas fa-clock mr-1"></i>{{ getTimeAgo(r.created_at) }}
+                  </span>
+                  <span class="text-xs text-gray-400">{{ r.created_at | date:'dd/MM/yyyy HH:mm' }}</span>
+                  <span *ngIf="r.firstname" class="text-xs text-gray-400">
+                    <i class="fas fa-user mr-1"></i>{{ r.firstname }} {{ r.lastname }}
+                  </span>
+                  <span *ngIf="r.hospname" class="text-xs text-blue-500">
+                    <i class="fas fa-hospital mr-1"></i>{{ r.hospname }}
+                  </span>
+                  <span *ngIf="r.dept_name" class="text-xs text-green-500">
+                    <i class="fas fa-building mr-1"></i>{{ r.dept_name }}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </ng-container>
+
+<!-- ==================== Notification Detail Modal ==================== -->
+<div *ngIf="showDetailModal && selectedNotif" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+  <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" (click)="showDetailModal = false"></div>
+  <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden">
+    <!-- Header -->
+    <div class="px-6 py-4 border-b"
+         [ngClass]="selectedNotif.type === 'approve' ? 'bg-gradient-to-r from-green-600 to-emerald-500' :
+                    selectedNotif.type === 'reject' ? 'bg-gradient-to-r from-red-500 to-rose-500' :
+                    selectedNotif.type === 'appeal' ? 'bg-gradient-to-r from-purple-600 to-indigo-500' :
+                    'bg-gradient-to-r from-blue-600 to-cyan-500'">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center">
+            <i class="fas text-white text-lg"
+               [ngClass]="selectedNotif.type === 'approve' ? 'fa-check-circle' :
+                          selectedNotif.type === 'reject' ? 'fa-times-circle' :
+                          selectedNotif.type === 'appeal' ? 'fa-gavel' :
+                          selectedNotif.title?.includes('กระทู้') ? 'fa-comments' :
+                          selectedNotif.title?.includes('รอการอนุมัติ') ? 'fa-user-clock' :
+                          'fa-bell'"></i>
+          </div>
+          <div>
+            <p class="text-white/80 text-xs">
+              {{ selectedNotif.type === 'approve' ? 'อนุมัติ' :
+                 selectedNotif.type === 'reject' ? 'ตีกลับ' :
+                 selectedNotif.type === 'appeal' ? 'อุทธรณ์' : 'แจ้งเตือน' }}
+            </p>
+            <h3 class="text-white font-bold">{{ selectedNotif.title }}</h3>
+          </div>
+        </div>
+        <button (click)="showDetailModal = false" class="w-8 h-8 rounded-lg bg-white/20 text-white flex items-center justify-center hover:bg-white/30">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Body -->
+    <div class="p-6 space-y-4">
+      <!-- ข้อความ -->
+      <div class="bg-gray-50 rounded-xl p-4">
+        <p class="text-sm text-gray-700 whitespace-pre-wrap">{{ selectedNotif.message }}</p>
+      </div>
+
+      <!-- รายละเอียด -->
+      <div class="grid grid-cols-2 gap-3 text-sm">
+        <div *ngIf="selectedNotif.created_by_name" class="flex items-center gap-2 text-gray-600">
+          <i class="fas fa-user text-gray-400 w-4 text-center"></i>
+          <span>{{ selectedNotif.created_by_name }} {{ selectedNotif.created_by_lastname }}</span>
+        </div>
+        <div class="flex items-center gap-2 text-gray-600">
+          <i class="fas fa-clock text-gray-400 w-4 text-center"></i>
+          <span>{{ selectedNotif.created_at | date:'dd/MM/yyyy HH:mm' }}</span>
+        </div>
+        <div *ngIf="selectedNotif.hospcode" class="flex items-center gap-2 text-gray-600">
+          <i class="fas fa-hospital text-gray-400 w-4 text-center"></i>
+          <span>{{ selectedNotif.hospcode }}</span>
+        </div>
+        <div *ngIf="selectedNotif.indicator_id" class="flex items-center gap-2 text-gray-600">
+          <i class="fas fa-chart-bar text-gray-400 w-4 text-center"></i>
+          <span>ตัวชี้วัด ID: {{ selectedNotif.indicator_id }}</span>
+        </div>
+        <div *ngIf="selectedNotif.year_bh" class="flex items-center gap-2 text-gray-600">
+          <i class="fas fa-calendar text-gray-400 w-4 text-center"></i>
+          <span>ปีงบฯ {{ selectedNotif.year_bh }}</span>
+        </div>
+        <div class="flex items-center gap-2 text-gray-600">
+          <i class="fas fa-tag text-gray-400 w-4 text-center"></i>
+          <span>{{ getTimeAgo(selectedNotif.created_at) }}</span>
+        </div>
+      </div>
+
+      <!-- สถานะ -->
+      <div class="flex items-center gap-2">
+        <span class="text-xs font-bold" [ngClass]="selectedNotif.is_read ? 'text-green-600' : 'text-blue-600'">
+          <i class="fas mr-1" [ngClass]="selectedNotif.is_read ? 'fa-check-double' : 'fa-envelope'"></i>
+          {{ selectedNotif.is_read ? 'อ่านแล้ว' : 'ยังไม่ได้อ่าน' }}
+        </span>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="px-6 py-3 bg-gray-50 border-t border-gray-100 flex justify-end">
+      <button (click)="showDetailModal = false" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-xl text-sm font-bold transition-all">
+        ปิด
+      </button>
+    </div>
+  </div>
+</div>
+
+</div>

@@ -1,0 +1,449 @@
+import { Component, OnInit, OnDestroy, inject, ChangeDetectorRef, NgZone, ViewChild, HostListener, ElementRef } from '@angular/core';
+import { Router, RouterModule, RouterOutlet, NavigationEnd, ActivatedRoute } from '@angular/router';
+import { AuthService } from '../services/auth';
+import { ThemeService } from '../services/theme.service';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import Swal from 'sweetalert2';
+import { filter, map, mergeMap } from 'rxjs/operators';
+import { Title } from '@angular/platform-browser';
+import { CommandPaletteComponent } from '../shared/command-palette/command-palette';
+
+@Component({
+  selector: 'app-layout',
+  standalone: true,
+  imports: [CommonModule, FormsModule, RouterModule, RouterOutlet, CommandPaletteComponent],
+  templateUrl: './layout.html',
+  styleUrls: ['./layout.css']
+})
+export class LayoutComponent implements OnInit, OnDestroy {
+  private router = inject(Router);
+  private activatedRoute = inject(ActivatedRoute);
+  private titleService = inject(Title);
+  private authService = inject(AuthService);
+  private cdr = inject(ChangeDetectorRef);
+  private ngZone = inject(NgZone);
+  private el = inject(ElementRef);
+
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent) {
+    if (this.showProfileDropdown && !this.profileClosing) {
+      const container = this.el.nativeElement.querySelector('.profile-dropdown-container');
+      if (container && !container.contains(event.target as Node)) {
+        this.closeProfileDropdown();
+      }
+    }
+  }
+  themeService = inject(ThemeService);
+
+  @ViewChild(CommandPaletteComponent) commandPalette?: CommandPaletteComponent;
+
+  pageTitle: string = '';
+  announcement: any = null;
+
+  openCommandPalette() { this.commandPalette?.show(); }
+
+  isSidebarOpen: boolean = window.innerWidth >= 1024; // desktop เปิด, mobile ซ่อน
+  isSidebarCollapsed: boolean = false; // desktop icon-only mode
+  private _prevSidebarOpen: boolean = true; // เก็บค่าเดิมก่อนเข้า focus mode
+  private _prevSidebarCollapsed: boolean = false;
+  isFocusMode: boolean = false;
+  isLoading: boolean = false;
+  isAdmin: boolean = false;       // admin_ssj + super_admin (ส่วนกลาง)
+  isAnyAdmin: boolean = false;    // admin_cup + admin_ssj + super_admin (ทุกระดับ admin)
+  isSuperAdmin: boolean = false;
+  currentUser: any = null;
+  systemVersion: string = 'v1.0.0';
+  pendingKpiCount: number = 0;
+  pendingStats: any = { deptCount: 0, hosCount: 0, indicatorCount: 0 };
+  pendingUsersCount: number = 0;   // user รออนุมัติ (badge เมนูจัดการผู้ใช้งาน)
+
+  maintenanceMode: boolean = false;
+  maintenanceMessage: string = '';
+
+  showChangePasswordModal: boolean = false;
+  changePasswordForm: any = { currentPassword: '', newPassword: '', confirmPassword: '' };
+  showCurrentPw: boolean = false;
+  showNewPw: boolean = false;
+  showConfirmPw: boolean = false;
+
+  notifications: any[] = [];
+  unreadNotifCount: number = 0;
+  showNotifDropdown: boolean = false;
+
+  get unreadNotifications(): any[] {
+    return this.notifications.filter(n => !n.is_read);
+  }
+  feedbackUnreadCount: number = 0;
+  showProfileDropdown: boolean = false;
+  profileClosing: boolean = false;
+  showContactModal: boolean = false;
+
+  ngOnDestroy() {
+    this.authService.stopTokenExpiryWatcher();
+  }
+
+  ngOnInit() {
+    this.currentUser = this.authService.getUser();
+    const role = this.authService.getUserRole();
+    this.isAdmin = ['admin_ssj', 'super_admin'].includes(role);
+    this.isAnyAdmin = ['admin_hos', 'admin_sso', 'admin_cup', 'admin_ssj', 'super_admin'].includes(role);
+    this.isSuperAdmin = role === 'super_admin';
+    this.authService.startTokenExpiryWatcher();
+    this.loadSettings();
+    this.loadPendingCount();
+    this.loadUnreadNotifCount();
+    this.loadFeedbackUnread();
+    this.loadAnnouncement();
+    this.checkMaintenanceMode();
+    this.checkLoginNotifications();
+
+    // Subscribe shared unread count → update badge realtime
+    this.authService.unreadCount$.subscribe(count => {
+      this.unreadNotifCount = count;
+      this.cdr.detectChanges();
+    });
+
+    // Subscribe shared pending stats → update badge realtime
+    this.authService.pendingStats$.subscribe(stats => {
+      this.pendingStats = stats;
+      this.pendingKpiCount = stats.indicatorCount || 0;
+      this.cdr.detectChanges();
+    });
+
+    // Subscribe จำนวน user รออนุมัติ → badge เมนูจัดการผู้ใช้งาน
+    this.authService.pendingUsers$.subscribe(count => {
+      this.pendingUsersCount = count;
+      this.cdr.detectChanges();
+    });
+
+    // Subscribe focus mode → ปิด sidebar อัตโนมัติเมื่อผู้ใช้ต้องการพื้นที่เต็ม (edit/delete KPI)
+    this.authService.focusMode$.subscribe(focus => {
+      if (focus && !this.isFocusMode) {
+        this._prevSidebarOpen = this.isSidebarOpen;
+        this._prevSidebarCollapsed = this.isSidebarCollapsed;
+        this.isSidebarOpen = false;
+        this.isSidebarCollapsed = true;
+      } else if (!focus && this.isFocusMode) {
+        this.isSidebarOpen = this._prevSidebarOpen;
+        this.isSidebarCollapsed = this._prevSidebarCollapsed;
+      }
+      this.isFocusMode = focus;
+      this.cdr.detectChanges();
+    });
+
+    // Auto-close sidebar on route change (mobile เท่านั้น, desktop เปิดค้างไว้)
+    this.router.events.pipe(filter(e => e instanceof NavigationEnd)).subscribe(() => {
+      if (window.innerWidth < 1024) {
+        this.isSidebarOpen = false;
+        this.cdr.detectChanges();
+      }
+    });
+
+    // Set title from current route immediately (for initial navigation)
+    let currentRoute = this.activatedRoute;
+    while (currentRoute.firstChild) currentRoute = currentRoute.firstChild;
+    const initialTitle = currentRoute.snapshot.data['title'];
+    if (initialTitle) {
+      this.pageTitle = initialTitle;
+      this.titleService.setTitle('Korat Health KPI | ' + this.pageTitle);
+    }
+
+    // Listen for future navigation changes
+    this.router.events.pipe(
+      filter(event => event instanceof NavigationEnd),
+      map(() => this.activatedRoute),
+      map(route => {
+        while (route.firstChild) route = route.firstChild;
+        return route;
+      }),
+      filter(route => route.outlet === 'primary'),
+      mergeMap(route => route.data)
+    ).subscribe(data => {
+      this.pageTitle = data['title'] || 'Dashboard';
+      this.titleService.setTitle('Korat Health KPI | ' + this.pageTitle);
+    });
+  }
+
+  loadSettings() {
+    this.authService.getSettings().subscribe({
+      next: (res) => {
+        if (res.success && res.data) {
+          const versionSetting = res.data.find((s: any) => s.setting_key === 'system_version');
+          if (versionSetting) {
+            this.systemVersion = versionSetting.setting_value;
+            this.cdr.detectChanges();
+          }
+        }
+      }
+    });
+  }
+
+  checkMaintenanceMode() {
+    this.authService.getMaintenanceStatus().subscribe({
+      next: (res: any) => {
+        this.maintenanceMode = res.maintenance;
+        this.maintenanceMessage = res.message;
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  loadPendingCount() {
+    if (this.isAdmin) {
+      this.authService.refreshPendingStats();
+    }
+    // ทุก admin (รวม admin_cup/hos/sso) เห็น badge user รออนุมัติตาม scope
+    if (this.isAnyAdmin) {
+      this.authService.refreshPendingUsers();
+    }
+  }
+
+  logout() {
+    Swal.fire({
+      title: 'ยืนยันการออกจากระบบ',
+      text: "คุณต้องการออกจากระบบใช่หรือไม่?",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#3085d6',
+      cancelButtonColor: '#d33',
+      confirmButtonText: 'ใช่, ออกจากระบบ',
+      cancelButtonText: 'ยกเลิก'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        sessionStorage.removeItem('welcomeShown');
+        this.authService.logout();
+        this.router.navigate(['/login']);
+      }
+    });
+  }
+
+  openChangePasswordModal() {
+    this.changePasswordForm = { currentPassword: '', newPassword: '', confirmPassword: '' };
+    this.showCurrentPw = false;
+    this.showNewPw = false;
+    this.showConfirmPw = false;
+    this.showChangePasswordModal = true;
+  }
+
+  // === Personal LINE notification settings ===
+  showLineModal: boolean = false;
+  lineForm: { line_user_id: string; notif_line_enabled: boolean } = { line_user_id: '', notif_line_enabled: true };
+  lineSystemConfigured: boolean = false;
+  lineLoading: boolean = false;
+
+  openLineModal() {
+    this.showLineModal = true;
+    this.lineLoading = true;
+    this.authService.getMyLine().subscribe({
+      next: (res: any) => {
+        this.lineLoading = false;
+        if (res.success) {
+          this.lineForm.line_user_id = res.line_user_id || '';
+          this.lineForm.notif_line_enabled = res.notif_line_enabled !== false;
+          this.lineSystemConfigured = !!res.system_line_configured;
+        }
+        this.cdr.detectChanges();
+      },
+      error: () => { this.lineLoading = false; }
+    });
+  }
+
+  closeLineModal() { this.showLineModal = false; }
+
+  saveLine() {
+    const id = (this.lineForm.line_user_id || '').trim();
+    if (id && !/^U[a-f0-9]{32}$/i.test(id)) {
+      Swal.fire('แจ้งเตือน', 'LINE userId ต้องเป็นรูปแบบ U + 32 hex chars (เช่น Uxxxxxx...)', 'warning');
+      return;
+    }
+    this.authService.updateMyLine(id, this.lineForm.notif_line_enabled).subscribe({
+      next: (res: any) => {
+        if (res.success) {
+          Swal.fire({ icon: 'success', title: 'บันทึกสำเร็จ', timer: 1500, showConfirmButton: false });
+        }
+      },
+      error: (err: any) => Swal.fire('ผิดพลาด', err.error?.message || 'บันทึกไม่ได้', 'error')
+    });
+  }
+
+  testMyLine() {
+    if (!this.lineForm.line_user_id) {
+      Swal.fire('แจ้งเตือน', 'กรอก LINE userId แล้วกดบันทึกก่อน', 'warning');
+      return;
+    }
+    Swal.fire({ title: 'กำลังส่ง...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+    this.authService.testMyLine().subscribe({
+      next: (res: any) => {
+        if (res.success) Swal.fire({ icon: 'success', title: 'สำเร็จ', text: 'ตรวจสอบ LINE ของคุณ', timer: 2500, showConfirmButton: false });
+        else Swal.fire('ผิดพลาด', res.message || 'ส่งไม่สำเร็จ', 'error');
+      },
+      error: (err: any) => Swal.fire('ผิดพลาด', err.error?.message || 'ส่งไม่ได้', 'error')
+    });
+  }
+
+  closeChangePasswordModal() {
+    this.showChangePasswordModal = false;
+  }
+
+  saveNewPassword() {
+    if (!this.changePasswordForm.currentPassword || !this.changePasswordForm.newPassword || !this.changePasswordForm.confirmPassword) {
+      Swal.fire('แจ้งเตือน', 'กรุณากรอกข้อมูลให้ครบทุกช่อง', 'warning');
+      return;
+    }
+    if (this.changePasswordForm.newPassword !== this.changePasswordForm.confirmPassword) {
+      Swal.fire('แจ้งเตือน', 'รหัสผ่านใหม่และยืนยันรหัสผ่านไม่ตรงกัน', 'warning');
+      return;
+    }
+    if (this.changePasswordForm.newPassword.length < 6) {
+      Swal.fire('แจ้งเตือน', 'รหัสผ่านใหม่ต้องมีอย่างน้อย 6 ตัวอักษร', 'warning');
+      return;
+    }
+    this.authService.changePassword(
+      this.changePasswordForm.currentPassword,
+      this.changePasswordForm.newPassword
+    ).subscribe({
+      next: (res) => {
+        if (res.success) {
+          this.closeChangePasswordModal();
+          this.cdr.detectChanges();
+          Swal.fire({
+            title: 'เปลี่ยนรหัสผ่านสำเร็จ',
+            text: res.message,
+            icon: 'success',
+            showConfirmButton: true,
+            showDenyButton: true,
+            confirmButtonText: 'ตกลง',
+            denyButtonText: 'กลับหน้า Login',
+            denyButtonColor: '#3b82f6'
+          }).then((result) => {
+            if (result.isDenied) {
+              this.authService.logout();
+              this.router.navigate(['/login']);
+            }
+          });
+        }
+      },
+      error: (err) => Swal.fire('ผิดพลาด', err.error?.message || 'ไม่สามารถเปลี่ยนรหัสผ่านได้', 'error')
+    });
+  }
+
+  closeSidebar() {
+    this.isSidebarOpen = false;
+  }
+
+  toggleSidebar() {
+    if (window.innerWidth >= 1024) {
+      // Desktop: toggle icon-only mode (ไม่ซ่อนทั้งหมด)
+      this.isSidebarCollapsed = !this.isSidebarCollapsed;
+    } else {
+      // Mobile: toggle dropdown
+      this.isSidebarOpen = !this.isSidebarOpen;
+    }
+  }
+
+  refreshDashboard(): void {
+    window.location.reload();
+  }
+
+  closeProfileDropdown() {
+    this.profileClosing = true;
+    setTimeout(() => {
+      this.showProfileDropdown = false;
+      this.profileClosing = false;
+      this.cdr.detectChanges();
+    }, 350); // match animation duration
+  }
+
+  loadAnnouncement() {
+    this.authService.getActiveAnnouncement().subscribe({
+      next: (res: any) => {
+        if (res.success && res.data && Number(res.data.show_on_header) === 1) {
+          this.announcement = res.data;
+          this.cdr.detectChanges();
+        } else {
+          this.announcement = null;
+        }
+      }
+    });
+  }
+
+  loadFeedbackUnread() {
+    this.authService.getFeedbackUnreadCount().subscribe({
+      next: (res: any) => { if (res.success) { this.feedbackUnreadCount = res.count; this.cdr.detectChanges(); } }
+    });
+  }
+
+  // ========== Notification Methods ==========
+  loadUnreadNotifCount() {
+    this.authService.refreshUnreadCount();
+  }
+
+  loadNotifications() {
+    this.authService.getNotifications().subscribe({
+      next: (res) => {
+        if (res.success) {
+          this.notifications = res.data;
+          this.cdr.detectChanges();
+        }
+      },
+      error: (err) => console.error('Error loading notifications:', err)
+    });
+  }
+
+  toggleNotifDropdown() {
+    this.showNotifDropdown = !this.showNotifDropdown;
+    if (this.showNotifDropdown) {
+      this.loadNotifications();
+    }
+  }
+
+  navigateToNotification(notif: any) {
+    this.router.navigate(['/notifications'], { queryParams: { id: notif.id } });
+  }
+
+  markAsRead(ids: number[]) {
+    this.authService.markNotificationsRead({ ids }).subscribe({
+      next: () => {
+        this.authService.refreshUnreadCount();
+        this.loadNotifications();
+      }
+    });
+  }
+
+  markAllAsRead() {
+    this.authService.markNotificationsRead({ all: true }).subscribe({
+      next: () => {
+        this.notifications.forEach(n => n.is_read = 1);
+        this.authService.refreshUnreadCount();
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  checkLoginNotifications() {
+    const welcomeShown = sessionStorage.getItem('welcomeShown');
+    if (welcomeShown) return;
+
+    this.authService.getUnreadNotificationCount().subscribe({
+      next: (res) => {
+        if (res.success && res.count > 0) {
+          Swal.fire({
+            title: 'การแจ้งเตือน',
+            html: `คุณมีการแจ้งเตือนที่ยังไม่ได้อ่าน <b>${res.count}</b> รายการ`,
+            icon: 'info',
+            confirmButtonText: 'ดูรายละเอียด',
+            showCancelButton: true,
+            cancelButtonText: 'ปิด',
+            confirmButtonColor: '#10b981'
+          }).then((result) => {
+            if (result.isConfirmed) {
+              this.router.navigate(['/notifications']);
+            }
+          });
+          sessionStorage.setItem('welcomeShown', 'true');
+        }
+      }
+    });
+  }
+}
